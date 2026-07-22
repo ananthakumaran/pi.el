@@ -4,6 +4,7 @@
 
 ### Added
 
+- Bash command output is streamed while the command is running.
 - Extension status text can be placed in header and mode lines with
   `(:status STATUS-KEY ...)`, including per-placement face customization.
   Status keys can be hidden from the prompt status widget with
