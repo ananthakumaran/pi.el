@@ -338,6 +338,7 @@ with the message plist to insert the custom message content."
 (pimacs--def-permanent-buffer-local pimacs--status-widget nil)
 (pimacs--def-permanent-buffer-local pimacs--content-sections nil)
 (pimacs--def-permanent-buffer-local pimacs--tool-calls nil)
+(pimacs--def-permanent-buffer-local pimacs--bash-executions nil)
 (pimacs--def-permanent-buffer-local pimacs--cleanup-callback-fn nil)
 (pimacs--def-permanent-buffer-local pimacs--retry-in-progress nil)
 (pimacs--def-permanent-buffer-local pimacs--commands nil)
@@ -1072,6 +1073,21 @@ with the message plist to insert the custom message content."
               (insert new-text)))
           (setf (pimacs-tool-call-prev-text entry) new-text))))))
 
+(defun pimacs--handle-bash-execution-update (event)
+  (let* ((request-id (plist-get event :id))
+         (delta (plist-get event :delta))
+         (entry (gethash request-id pimacs--bash-executions)))
+    (unless (string-empty-p delta)
+      (let ((call-section (pimacs-tool-call-call-section entry))
+            (result-section (pimacs-tool-call-result-section entry)))
+        (pimacs--widget-save-excursion
+          (if result-section
+              (pimacs-section--append-section result-section
+                (insert delta))
+            (setf (pimacs-tool-call-result-section entry)
+                  (pimacs-section--create-section 'tool-result call-section
+                    (insert delta)))))))))
+
 (defun pimacs--handle-tool-execution-end (event)
   (let* ((tool-call-id (plist-get event :toolCallId))
          (result (plist-get event :result))
@@ -1330,6 +1346,7 @@ with the message plist to insert the custom message content."
 (defun pimacs--register-event-listeners ()
   (pimacs--set-event-listener "message_update" #'pimacs--handle-message-update)
   (pimacs--set-event-listener "message_end" #'pimacs--handle-message-end)
+  (pimacs--set-event-listener "bash_execution_update" #'pimacs--handle-bash-execution-update)
 
   (pimacs--set-event-listener "tool_execution_update" #'pimacs--handle-tool-execution-update)
   (pimacs--set-event-listener "tool_execution_end" #'pimacs--handle-tool-execution-end)
@@ -1989,7 +2006,8 @@ FIELDS is a list of (LABEL . KEY) where KEY is a plist key."
   (dolist (child (copy-sequence (pimacs-section-children pimacs-section--root-section)))
     (pimacs-section--delete-section child))
   (clrhash pimacs--content-sections)
-  (clrhash pimacs--tool-calls))
+  (clrhash pimacs--tool-calls)
+  (clrhash pimacs--bash-executions))
 
 (defun pimacs--clear-session-widgets ()
   (when pimacs--prompt-widget-lines
@@ -2196,17 +2214,31 @@ summarization."
         (when exclude-from-context
           (setq args (nconc args (list :excludeFromContext t))))
         (pimacs--insert-tool-call call-section "bash" args)
-        (pimacs--send-command
-         "bash" args
-         (lambda (resp)
-           (pimacs--on-response-success resp
-             (pimacs--update-header-line)
-             (let* ((data (plist-get resp :data))
-                    (output (plist-get data :output)))
-               (pimacs--widget-save-excursion
-                 (pimacs-section--create-section 'tool-result call-section
-                   (pimacs--insert-tool-result "bash" output nil data)))))
-           (pimacs--update-agent-state nil)))))))
+        (let ((request-id
+               (pimacs--send-command
+                "bash" args
+                (lambda (resp)
+                  (let ((request-id (plist-get resp :id)))
+                    (when-let ((entry (gethash request-id pimacs--bash-executions)))
+                      (pimacs--on-response-success resp
+                        (pimacs--update-header-line)
+                        (let* ((data (plist-get resp :data))
+                               (output (plist-get data :output))
+                               (result-section (pimacs-tool-call-result-section entry))
+                               (call-section (pimacs-tool-call-call-section entry)))
+                          (pimacs--widget-save-excursion
+                            (setf (pimacs-tool-call-result-section entry)
+                                  (pimacs-section--create-or-replace-section
+                                      result-section 'tool-result call-section
+                                    (pimacs--insert-tool-result "bash" output nil data))))))
+                      (remhash request-id pimacs--bash-executions))
+                    (pimacs--update-agent-state
+                     (and (> (hash-table-count pimacs--bash-executions) 0) 'bash)))))))
+          (puthash request-id
+                   (make-pimacs-tool-call :call-section call-section
+                                          :tool-name "bash"
+                                          :args args)
+                   pimacs--bash-executions))))))
 
 ;;; Chat mode
 
@@ -2340,6 +2372,7 @@ With a prefix argument OTHER-WINDOW, visit in other window."
   (setq header-line-format
         '(:eval (pimacs--format-state-line pimacs-header-line-format)))
   (setq pimacs--tool-calls (make-hash-table :test 'equal))
+  (setq pimacs--bash-executions (make-hash-table :test 'equal))
   (setq pimacs--content-sections (make-hash-table :test 'eql))
   (pimacs-section--create-root-section)
   (setq imenu-create-index-function #'pimacs--imenu-create-index)

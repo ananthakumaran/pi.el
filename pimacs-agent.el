@@ -26,7 +26,7 @@
 (require 'pimacs-utils)
 (require 'pimacs-core)
 
-(defvar pimacs--minimum-version "0.80.3"
+(defvar pimacs--minimum-version "0.82.0"
   "The minimum supported Pi agent version.")
 
 (defcustom pimacs-sync-request-timeout 2
@@ -122,7 +122,8 @@
     (pimacs--maybe-log-rpc "input" encoded-command)
     (process-send-string (pimacs--current-agent) payload)
     (when callback
-      (puthash request-id (cons (current-buffer) callback) pimacs--response-callbacks))))
+      (puthash request-id (cons (current-buffer) callback) pimacs--response-callbacks))
+    request-id))
 
 (defun pimacs--send-command-sync (name args)
   (let* ((start-time (current-time))

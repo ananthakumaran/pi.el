@@ -181,6 +181,58 @@
       (should (equal (widget-value pimacs--status-widget) "Status B\n"))
       (should (equal (gethash "status-a" pimacs--status-texts) "Status\nA")))))
 
+(ert-deftest pimacs--handle-bash-execution-update-appends-deltas-by-request-id ()
+  (with-temp-buffer
+    (pimacs-section--create-root-section)
+    (setq pimacs--prompt-widget
+          (widget-create 'editable-field :format "%v" :value ""))
+    (setq pimacs--bash-executions (make-hash-table :test 'equal))
+    (widget-setup)
+    (let ((first-call (pimacs-section--new-section 'tool-call pimacs-section--root-section))
+          (second-call (pimacs-section--new-section 'tool-call pimacs-section--root-section)))
+      (pimacs-section--insert-section first-call
+        (insert "first"))
+      (pimacs-section--insert-section second-call
+        (insert "second"))
+      (puthash "req-1" (make-pimacs-tool-call :call-section first-call)
+               pimacs--bash-executions)
+      (puthash "req-2" (make-pimacs-tool-call :call-section second-call)
+               pimacs--bash-executions)
+      (pimacs--handle-bash-execution-update '(:id "req-1" :delta "one\n"))
+      (pimacs--handle-bash-execution-update '(:id "req-2" :delta "two\n"))
+      (pimacs--handle-bash-execution-update '(:id "req-1" :delta "three\n"))
+      (dolist (expected '(("req-1" . "one\nthree\n")
+                          ("req-2" . "two\n")))
+        (let* ((entry (gethash (car expected) pimacs--bash-executions))
+               (section (pimacs-tool-call-result-section entry))
+               (content (buffer-substring-no-properties
+                         (pimacs-section-beginning section)
+                         (pimacs-section-end section))))
+          (should (equal content (cdr expected))))))))
+
+(ert-deftest pimacs-bash-displays-direct-result-without-updates ()
+  (with-temp-buffer
+    (pimacs-section--create-root-section)
+    (setq pimacs--prompt-widget
+          (widget-create 'editable-field :format "%v" :value ""))
+    (setq pimacs--spinner (spinner-create 'progress-bar))
+    (setq pimacs--bash-executions (make-hash-table :test 'equal))
+    (setq-local pimacs--project-key "test")
+    (widget-setup)
+    (let ((pimacs--chats (make-hash-table :test 'equal))
+          callback)
+      (puthash pimacs--project-key (current-buffer) pimacs--chats)
+      (cl-letf (((symbol-function 'pimacs--send-command)
+                 (lambda (_type _args fn)
+                   (setq callback fn)
+                   "req-1"))
+                ((symbol-function 'pimacs--update-header-line)
+                 (lambda () nil)))
+        (pimacs-bash "printf result")
+        (funcall callback '(:id "req-1" :success t :data (:output "result" :exitCode 0))))
+      (should (string-match-p "result" (buffer-string)))
+      (should (= (hash-table-count pimacs--bash-executions) 0)))))
+
 (ert-deftest pimacs--handle-agent-state-formats-parallel-tools ()
   (with-temp-buffer
     (setq pimacs--spinner (spinner-create 'progress-bar))
@@ -241,6 +293,7 @@
   (with-temp-buffer
     (pimacs-section--create-root-section)
     (setq pimacs--tool-calls (make-hash-table :test 'equal))
+    (setq pimacs--bash-executions (make-hash-table :test 'equal))
     (setq pimacs--content-sections (make-hash-table :test 'eql))
     (setq pimacs--prompt-before-widget
           (widget-create 'pimacs-item :face 'pimacs-widget-face pimacs--empty-widget-text))
