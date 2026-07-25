@@ -23,7 +23,7 @@ pi
 (use-package pimacs
   :ensure t
   :vc (:url "git@github.com:ananthakumaran/pimacs.el.git"
-       :rev "v0.1.0")
+       :rev "v0.2.0")
   :commands (pimacs-chat))
 ```
 
