@@ -391,15 +391,16 @@ with the message plist to insert the custom message content."
     (with-selected-window window
       (recenter (- -1 scroll-margin (pimacs--widget-lines pimacs--prompt-widget) (pimacs--extra-widget-lines))))))
 
+(defun pimacs--point-in-prompt-p ()
+  (when-let (window (get-buffer-window (current-buffer) t))
+    (>= (window-point window)
+        (widget-get pimacs--prompt-widget :from))))
+
 (defmacro pimacs--widget-save-excursion (&rest body)
   "Insert before PROMPT-WIDGET and restore focus.  BODY is the content."
   (declare (indent 0))
   `(let* ((inhibit-read-only t)
-          (window (get-buffer-window (current-buffer) t))
-          (follow-p
-           (and window
-                (>= (window-point window)
-                    (widget-get pimacs--prompt-widget :from)))))
+          (follow-p (pimacs--point-in-prompt-p)))
      (save-excursion
        (goto-char (widget-get pimacs--prompt-widget :from))
        ,@body)
@@ -1420,8 +1421,9 @@ with the message plist to insert the custom message content."
   (pimacs--update-header-line))
 
 (defun pimacs--autohide-sections ()
-  (pimacs-section-autohide)
-  (pimacs--recenter-chat))
+  (when (pimacs--point-in-prompt-p)
+    (pimacs-section-autohide)
+    (pimacs--recenter-chat)))
 
 (defun pimacs--cleanup-chat-buffer ()
   (let ((project-key pimacs--project-key))
