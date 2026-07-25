@@ -37,6 +37,8 @@
 (defvar-local pimacs-edit--on-cancel nil)
 (defvar-local pimacs-edit--original-text nil)
 (defvar-local pimacs-edit--return-window nil)
+(defvar-local pimacs-edit--chat-buffer nil)
+(defvar-local pimacs-edit--buffers nil)
 
 (define-derived-mode pimacs-edit-mode fundamental-mode "pimacs-edit"
   "Major mode for editing text via pimacs.
@@ -71,9 +73,17 @@
     (when callback
       (funcall callback))))
 
+(defun pimacs-edit--unregister ()
+  (let ((editor-buffer (current-buffer)))
+    (when (buffer-live-p pimacs-edit--chat-buffer)
+      (with-current-buffer pimacs-edit--chat-buffer
+        (setq pimacs-edit--buffers
+              (delq editor-buffer pimacs-edit--buffers))))))
+
 (defun pimacs-edit--with-editor (on-complete on-cancel &optional text)
   (let ((buffer (generate-new-buffer "*pimacs-edit*"))
-        (window (selected-window)))
+        (window (selected-window))
+        (chat-buffer (current-buffer)))
     (with-current-buffer buffer
       (pimacs-edit-mode)
       (when text
@@ -81,8 +91,23 @@
         (goto-char (point-min)))
       (setq pimacs-edit--on-complete on-complete
             pimacs-edit--on-cancel on-cancel
-            pimacs-edit--return-window window))
+            pimacs-edit--return-window window
+            pimacs-edit--chat-buffer chat-buffer)
+      (add-hook 'kill-buffer-hook #'pimacs-edit--unregister nil t))
+    (with-current-buffer chat-buffer
+      (push buffer pimacs-edit--buffers))
     (pop-to-buffer buffer)))
+
+(defun pimacs-edit--close-for-chat (chat-buffer)
+  (let (buffers)
+    (with-current-buffer chat-buffer
+      (setq buffers pimacs-edit--buffers
+            pimacs-edit--buffers nil))
+    (dolist (buffer buffers)
+      (when (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (set-buffer-modified-p nil))
+        (kill-buffer buffer)))))
 
 (provide 'pimacs-edit)
 

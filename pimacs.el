@@ -1402,10 +1402,9 @@ with the message plist to insert the custom message content."
 (defun pimacs--handle-agent-state (event)
   (cl-case (intern (plist-get event :type))
     (agent_start (pimacs--update-agent-state 'thinking))
-    (agent_end (pimacs--update-agent-state nil)
-               (pimacs-clear-project-file-cache))
+    (agent_settled (pimacs--update-agent-state nil)
+                   (pimacs-clear-project-file-cache))
     (turn_start (pimacs--update-agent-state 'thinking))
-    (turn_end (pimacs--update-agent-state nil))
     (tool_execution_start
      (pimacs--update-agent-state
       (pimacs--agent-state-add-tool (plist-get event :toolName))))
@@ -2522,7 +2521,14 @@ If non-nil, call CB after the session refresh finishes."
           (lambda ()
             (when (buffer-live-p chat-buffer)
               (with-current-buffer chat-buffer
+                (pimacs-edit--close-for-chat chat-buffer)
                 (pimacs--kill-agent pimacs--cleanup-callback-fn)
+                (setq pimacs--retry-in-progress nil
+                      pimacs--header-line-state nil
+                      pimacs--commands nil)
+                (pimacs-clear-project-file-cache)
+                (pimacs--update-agent-state nil)
+                (force-mode-line-update)
                 (pimacs--widget-save-excursion
                   (pimacs--clear-sections)
                   (pimacs--clear-session-widgets))

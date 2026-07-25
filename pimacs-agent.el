@@ -71,6 +71,9 @@
 (defvar pimacs--agents (make-hash-table :test 'equal))
 (defvar pimacs--response-callbacks (make-hash-table :test 'equal))
 
+(cl-defstruct pimacs-response-callback
+  process buffer function)
+
 (defvar pimacs--event-listeners (make-hash-table :test 'equal))
 
 (defvar pimacs--request-counter 0)
@@ -83,14 +86,16 @@
 
 ;;; Agent
 
-(defun pimacs--dispatch-response (response)
+(defun pimacs--dispatch-response (process response)
   (let* ((request-id (plist-get response :id))
          (callback (gethash request-id pimacs--response-callbacks)))
-    (when callback
-      (let ((buffer (car callback)))
+    (when (and callback
+               (eq process (pimacs-response-callback-process callback)))
+      (let ((buffer (pimacs-response-callback-buffer callback))
+            (fn (pimacs-response-callback-function callback)))
         (when (buffer-live-p buffer)
           (with-current-buffer buffer
-            (apply (cdr callback) (list response)))))
+            (funcall fn response))))
       (remhash request-id pimacs--response-callbacks))))
 
 (defun pimacs--dispatch-event (event)
@@ -106,24 +111,29 @@
   "Set event listener NAME for all events.  LISTENER is the callback."
   (puthash (cons pimacs--project-key name) (cons (current-buffer) listener) pimacs--event-listeners))
 
-(defun pimacs--dispatch (response)
+(defun pimacs--dispatch (process response)
   (cl-case (intern (plist-get response :type))
-    ((response) (pimacs--dispatch-response response))
+    ((response) (pimacs--dispatch-response process response))
     (t (pimacs--dispatch-event response))))
 
 (defun pimacs--send-command (type args &optional callback)
-  (unless (pimacs--current-agent)
-    (error "Agent does not exist.  Run M-x pimacs-restart-chat to start it again"))
+  (let ((agent (pimacs--current-agent)))
+    (unless agent
+      (error "Agent does not exist.  Run M-x pimacs-restart-chat to start it again"))
 
-  (let* ((request-id (pimacs--next-request-id))
-         (command (pimacs--plist-merge (list :id request-id :type type) args))
-         (encoded-command (pimacs--json-encode command))
-         (payload (concat encoded-command "\n")))
-    (pimacs--maybe-log-rpc "input" encoded-command)
-    (process-send-string (pimacs--current-agent) payload)
-    (when callback
-      (puthash request-id (cons (current-buffer) callback) pimacs--response-callbacks))
-    request-id))
+    (let* ((request-id (pimacs--next-request-id))
+           (command (pimacs--plist-merge (list :id request-id :type type) args))
+           (encoded-command (pimacs--json-encode command))
+           (payload (concat encoded-command "\n")))
+      (pimacs--maybe-log-rpc "input" encoded-command)
+      (process-send-string agent payload)
+      (when callback
+        (puthash request-id
+                 (make-pimacs-response-callback :process agent
+                                                :buffer (current-buffer)
+                                                :function callback)
+                 pimacs--response-callbacks))
+      request-id)))
 
 (defun pimacs--send-command-sync (name args)
   (let* ((start-time (current-time))
@@ -166,7 +176,7 @@
         (delete-region (point-min) (point))
         (when response
           (ignore-error quit
-            (pimacs--dispatch response))))
+            (pimacs--dispatch process response))))
       (when (>= (buffer-size) 16)
         (pimacs--decode-response process)))))
 
@@ -238,7 +248,11 @@ Cleanup callbacks are run when the agent process exits."
 (defun pimacs--cleanup-agent (process)
   "Run cleanup callbacks registered on PROCESS and remove from agents table."
   (let ((project-key (process-get process 'project-key)))
-    (when project-key
+    (pimacs--hash-remove-if
+     (lambda (_ callback)
+       (eq (pimacs-response-callback-process callback) process))
+     pimacs--response-callbacks)
+    (when (eq (gethash project-key pimacs--agents) process)
       (remhash project-key pimacs--agents))
     (dolist (fn (process-get process 'pimacs--agent-cleanup-fns))
       (ignore-errors (funcall fn)))

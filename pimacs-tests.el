@@ -262,7 +262,7 @@
     (should (equal (pimacs--format-state) "thinking"))
     (should (spinner--active-p pimacs--spinner))
 
-    (pimacs--handle-agent-state '(:type "turn_end"))
+    (pimacs--handle-agent-state '(:type "agent_settled"))
     (should (equal (pimacs--format-state) "idle"))
     (should-not (spinner--active-p pimacs--spinner))))
 

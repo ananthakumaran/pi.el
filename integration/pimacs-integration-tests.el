@@ -423,8 +423,16 @@
                   :spacer
                   "compaction=" :compaction_mode))
     (pimacs-send-prompt-and-wait "hello")
-    (pimacs-send-prompt "/reload")
-    (sleep-for 3)
+    (let (chat-buffer)
+      (pimacs--with-chat-buffer
+        (setq chat-buffer (current-buffer)))
+      (pimacs-send-prompt "/rpc-editor")
+      (pimacs-drain-process-output)
+      (should (get-buffer "*pimacs-edit*"))
+      (with-current-buffer chat-buffer
+        (pimacs-send-prompt "/reload"))
+      (sleep-for 3)
+      (should-not (get-buffer "*pimacs-edit*")))
     (pimacs-send-prompt-and-wait "hello")))
 
 (ert-deftest pimacs-extension-ui ()
