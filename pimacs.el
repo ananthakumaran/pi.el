@@ -4,7 +4,7 @@
 
 ;; Author: Anantha kumaran <ananthakumaran@gmail.com>
 ;; URL: https://github.com/ananthakumaran/pimacs.el
-;; Version: 0.2.0
+;; Version: 0.2.1
 ;; Keywords: convenience processes
 ;; Package-Requires: ((emacs "28.1") (compat "31.0") (markdown-mode "2.8") (timeout "2.1.7") (pcre2el "1.12") (spinner "1.7") (transient "0.3.7"))
 
@@ -1791,42 +1791,26 @@ FIELDS is a list of (LABEL . KEY) where KEY is a plist key."
   '((:one-at-a-time . "One at a time")
     (:all . "All")))
 
-(defun pimacs--get-supported-thinking-levels (model)
-  (let ((thinking-level-map (plist-get model :thinkingLevelMap))
-        (reasoning (plist-get model :reasoning))
-        result)
-    (when (and reasoning (not (eq reasoning 'json-false)))
-      (dolist (level '(:minimal :low :medium :high :xhigh :max))
-        (let ((mapped (plist-get thinking-level-map level)))
-          (unless (eq mapped 'json-null)
-            (if (member level '(:xhigh :max))
-                (when mapped
-                  (push level result))
-              (push level result))))))
-    (cons :off (nreverse result))))
-
 (defun pimacs-set-thinking-level ()
   "Set the thinking level for the agent."
   (interactive)
   (pimacs--with-chat-buffer
     (pimacs--send-command
-     "get_state" '()
+     "get_available_thinking_levels" '()
      (pimacs--on-response-success-callback resp
-       (let* ((data (plist-get resp :data))
-              (model (plist-get data :model))
-              (current-level (plist-get data :thinkingLevel))
-              (supported-levels (pimacs--get-supported-thinking-levels model)))
+       (let ((supported-levels (pimacs--plist-get resp :data :levels))
+             (current-level (plist-get pimacs--header-line-state :thinkingLevel)))
          (if (null supported-levels)
              (message "No thinking levels available for this model.")
            (let* ((options
                    (mapcar
                     (lambda (level)
-                      (let* ((name (pimacs--keyword-name level))
-                             (desc (alist-get level pimacs--thinking-level-descriptions)))
-                        (cons level
+                      (let* ((keyword (intern (concat ":" level)))
+                             (desc (alist-get keyword pimacs--thinking-level-descriptions)))
+                        (cons keyword
                               (if desc
-                                  (format "%s (%s)" name desc)
-                                name))))
+                                  (format "%s (%s)" level desc)
+                                level))))
                     supported-levels))
                   (choice (pimacs--read-option options current-level "Set thinking level")))
              (when choice
