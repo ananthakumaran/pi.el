@@ -1,0 +1,3 @@
+│ code and **bold and [link]
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^ inline-code
+@ eof

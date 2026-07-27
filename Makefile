@@ -3,7 +3,7 @@ CASK_DIR := $(shell cask package-directory)
 
 MATCH ?=
 PIMACS_VERSION := $(shell awk '/^;; Version:/ { print $$3; exit }' pimacs.el)
-PIMACS_DOC_SOURCES := pimacs-section.el pimacs-utils.el pimacs-state-line.el \
+PIMACS_DOC_SOURCES := pimacs-section.el pimacs-utils.el pimacs-markdown.el pimacs-state-line.el \
 	pimacs-core.el pimacs-agent.el pimacs-session.el pimacs.el
 
 $(CASK_DIR): Cask
@@ -21,7 +21,7 @@ setup: cask
 .PHONY: compile
 compile: cask
 	@cask emacs -batch -L . -L test \
-	  -f batch-byte-compile pimacs-utils.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el; \
+	  -f batch-byte-compile pimacs-utils.el pimacs-markdown.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el; \
 	  (ret=$$? ; cask clean-elc && exit $$ret)
 
 .PHONY: package-lint
@@ -29,11 +29,11 @@ package-lint: cask
 	@cask emacs -Q --batch \
 	  --eval "(setq package-lint-main-file \"pimacs.el\")" \
 	  -f package-lint-batch-and-exit \
-	  pimacs-utils.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el
+	  pimacs-utils.el pimacs-markdown.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el
 
 .PHONY: test
 test: compile
-	@cask emacs --batch -L . -L test -l pimacs-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
+	@cask emacs --batch -L . -L test -l pimacs-tests.el -l pimacs-markdown-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
 
 .PHONY: integration
 integration: compile
@@ -46,7 +46,7 @@ coverage: test integration
 
 .PHONY: format
 format:
-	@cask emacs --batch -L . -l pimacs-utils.el -l pimacs-state-line.el -l pimacs-core.el -l pimacs.el -l pimacs-section.el -l pimacs-edit.el -l pimacs-agent.el -l pimacs-session.el -l pimacs-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el -l integration/pimacs-integration-tests.el \
+	@cask emacs --batch -L . -l pimacs-utils.el -l pimacs-markdown.el -l pimacs-state-line.el -l pimacs-core.el -l pimacs.el -l pimacs-section.el -l pimacs-edit.el -l pimacs-agent.el -l pimacs-session.el -l pimacs-tests.el -l pimacs-markdown-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el -l integration/pimacs-integration-tests.el \
 	  --eval " \
 	  (let ((inhibit-message t) \
                 (message-log-max nil)) \
@@ -55,7 +55,7 @@ format:
 	      (with-current-buffer (find-file-noselect f) \
 	        (indent-region (point-min) (point-max)) \
 	        (save-buffer))))" \
-          pimacs-utils.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el pimacs-tests.el pimacs-section-tests.el pimacs-state-line-tests.el integration/pimacs-integration-tests.el
+          pimacs-utils.el pimacs-markdown.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el pimacs-tests.el pimacs-markdown-tests.el pimacs-section-tests.el pimacs-state-line-tests.el integration/pimacs-integration-tests.el
 
 
 .PHONY: sandbox
@@ -78,6 +78,7 @@ define ESCRIPT
   (require 'subr-x)
   (insert-file-contents "pimacs-section.el")
   (insert-file-contents "pimacs-utils.el")
+  (insert-file-contents "pimacs-markdown.el")
   (insert-file-contents "pimacs-state-line.el")
   (insert-file-contents "pimacs-core.el")
   (insert-file-contents "pimacs-agent.el")
@@ -144,6 +145,7 @@ docs-lint:
 	  --eval "(checkdoc-file \"pimacs.el\")" \
 	  --eval "(checkdoc-file \"pimacs-section.el\")" \
 	  --eval "(checkdoc-file \"pimacs-utils.el\")" \
+	  --eval "(checkdoc-file \"pimacs-markdown.el\")" \
 	  --eval "(checkdoc-file \"pimacs-state-line.el\")" \
 	  --eval "(checkdoc-file \"pimacs-edit.el\")" \
 	  --eval "(checkdoc-file \"pimacs-agent.el\")" \

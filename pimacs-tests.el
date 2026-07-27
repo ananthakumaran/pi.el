@@ -321,6 +321,64 @@
                                (pimacs-section-end section)))))
     (should (= (hash-table-count pimacs--content-sections) 0))))
 
+(ert-deftest pimacs--markdown-renderer-receives-streaming-flag ()
+  (with-temp-buffer
+    (pimacs-section--create-root-section)
+    (setq pimacs--content-sections (make-hash-table :test 'eql))
+    (setq pimacs--prompt-widget
+          (widget-create 'editable-field :format "%v" :value ""))
+    (widget-setup)
+
+    (let* ((contexts nil)
+           (pimacs-markdown-renderer
+            (lambda (context text streaming)
+              (push context contexts)
+              (list (list :append
+                          (concat (if streaming "stream: " "full: ") text))))))
+      (pimacs--handle-message-update
+       '(:assistantMessageEvent (:type "text_delta" :delta "Hello" :contentIndex 0)
+                                :message (:role "assistant")))
+      (should (string-match-p "assistant> stream: Hello" (buffer-string)))
+      (pimacs--handle-message-update
+       '(:assistantMessageEvent (:type "text_delta" :delta " world" :contentIndex 0)
+                                :message (:role "assistant")))
+      (let ((section (pimacs-content-section-section
+                      (gethash 0 pimacs--content-sections))))
+        (should (string-match-p
+                 "stream: Hello.*stream:  world"
+                 (buffer-substring-no-properties
+                  (pimacs-section-beginning section)
+                  (pimacs-section-end section)))))
+
+      (pimacs--handle-message-end
+       '(:message (:role "assistant"
+                         :content ((:type "text" :text "Hello world")))))
+      (should (string-match-p "assistant> full: Hello world" (buffer-string)))
+      (should-not (string-match-p "stream: Hello" (buffer-string)))
+      (should (cl-every #'pimacs-markdown-context-p contexts)))))
+
+(ert-deftest pimacs--thinking-markdown-uses-only-dimmed-non-color-faces ()
+  (with-temp-buffer
+    (pimacs--thinking-markdown-insert
+     "# Heading\n**bold** and `code` [link](https://example.com)" nil)
+    (cl-labels ((property-at (text property)
+                  (save-excursion
+                    (goto-char (point-min))
+                    (search-forward text)
+                    (get-text-property (- (point) (length text)) property))))
+      (should (equal (buffer-substring-no-properties (point-min) (point-max))
+                     "Heading\nbold and code link"))
+      (should (equal (property-at "Heading" 'face)
+                     '((:weight bold) pimacs-thinking-face)))
+      (should (equal (property-at "bold" 'face)
+                     '((:weight bold) pimacs-thinking-face)))
+      (should (eq (property-at "and" 'face) 'pimacs-thinking-face))
+      (should (equal (property-at "code" 'face)
+                     '((:family fixed-pitch) pimacs-thinking-face)))
+      (should (equal (property-at "link" 'face)
+                     '((:underline t) pimacs-thinking-face)))
+      (should (equal (property-at "link" 'help-echo) "https://example.com")))))
+
 (ert-deftest pimacs-clear-ui-keeps-sections-before-prompt-widgets ()
   (with-temp-buffer
     (pimacs-section--create-root-section)

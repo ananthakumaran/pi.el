@@ -443,6 +443,14 @@ before the next LLM call.
 when agent stops.
 @end defopt
 
+@defopt pimacs-markdown-renderer @code{#'pimacs--render-markdown-default}
+
+Function used to render Markdown content.
+
+It receives CONTEXT, Markdown TEXT, and a non-nil STREAMING flag for text
+deltas.  It must return a list of @code{:append} and @code{:delete} operations.
+@end defopt
+
 @defopt pimacs-slash-commands
 
 @lisp

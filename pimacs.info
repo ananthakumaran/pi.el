@@ -369,6 +369,15 @@ File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
      ‘followUp’: Wait until the agent finishes.  Message is delivered
      only when agent stops.
 
+ -- User Option: pimacs-markdown-renderer
+          #'pimacs--render-markdown-default
+
+     Function used to render Markdown content.
+
+     It receives CONTEXT, Markdown TEXT, and a non-nil STREAMING flag
+     for text deltas.  It must return a list of ‘:append’ and ‘:delete’
+     operations.
+
  -- User Option: pimacs-slash-commands
 
           '(("model" pimacs-select-model 0 "Switch models")
