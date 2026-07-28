@@ -1,1 +1,2 @@
-│ plain _text_ and ~~strike~~.
+│ plain text and ~~strike~~.
+@       ^^^^ italic

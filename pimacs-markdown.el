@@ -41,6 +41,11 @@
   "Face used for bold text."
   :group 'pimacs)
 
+(defface pimacs-markdown-italic-face
+  '((t :inherit italic))
+  "Face used for italic text."
+  :group 'pimacs)
+
 (defface pimacs-markdown-link-face
   '((t :inherit link))
   "Face used for provisional Markdown links."
@@ -240,25 +245,28 @@
         (t
          (pimacs--markdown-provisional-add-raw parser (string char))
          (pimacs--markdown-parser-append parser (string char)))))
-      ('bold
-       (cond
-        ((eq char ?\n)
-         (pimacs--markdown-provisional-fail parser)
-         (pimacs--markdown-inline-char parser char))
-        ((eq char ?*)
-         (setf (pimacs-markdown-parser-pending parser)
-               (concat (pimacs-markdown-parser-pending parser) (string char))))
-        ((not (string-empty-p (pimacs-markdown-parser-pending parser)))
-         (let ((pending (pimacs-markdown-parser-pending parser)))
-           (setf (pimacs-markdown-parser-pending parser) "")
-           (pimacs--markdown-provisional-add-raw parser pending)
-           (if (string= pending "**")
-               (pimacs--markdown-close-inline parser)
-             (pimacs--markdown-provisional-fail parser))
-           (pimacs--markdown-inline-char parser char)))
-        (t
-         (pimacs--markdown-provisional-add-raw parser (string char))
-         (pimacs--markdown-parser-append parser (string char)))))
+      ((or 'bold 'italic)
+       (let ((delimiter (if (eq (plist-get candidate :kind) 'bold)
+                            "**"
+                          (plist-get candidate :delimiter))))
+         (cond
+          ((eq char ?\n)
+           (pimacs--markdown-provisional-fail parser)
+           (pimacs--markdown-inline-char parser char))
+          ((eq char (aref delimiter 0))
+           (setf (pimacs-markdown-parser-pending parser)
+                 (concat (pimacs-markdown-parser-pending parser) (string char))))
+          ((not (string-empty-p (pimacs-markdown-parser-pending parser)))
+           (let ((pending (pimacs-markdown-parser-pending parser)))
+             (setf (pimacs-markdown-parser-pending parser) "")
+             (pimacs--markdown-provisional-add-raw parser pending)
+             (if (string= pending delimiter)
+                 (pimacs--markdown-close-inline parser)
+               (pimacs--markdown-provisional-fail parser))
+             (pimacs--markdown-inline-char parser char)))
+          (t
+           (pimacs--markdown-provisional-add-raw parser (string char))
+           (pimacs--markdown-parser-append parser (string char))))))
       ('link
        (pcase (plist-get candidate :stage)
          ('label
@@ -311,7 +319,7 @@
         ((eq char ?\[)
          (pimacs--markdown-open-inline parser 'link "[" 'pimacs-markdown-link-face
                                        (list :stage 'label :label "" :url "")))
-        ((memq char '(?` ?*))
+        ((memq char '(?` ?* ?_))
          (setf (pimacs-markdown-parser-pending parser)
                (concat (pimacs-markdown-parser-pending parser) (string char))))
         (t
@@ -328,11 +336,14 @@
          (if (= (length pending) (plist-get candidate :width))
              (pimacs--markdown-close-inline parser)
            (pimacs--markdown-provisional-fail parser)))
-        ('bold
-         (pimacs--markdown-provisional-add-raw parser pending)
-         (if (string= pending "**")
-             (pimacs--markdown-close-inline parser)
-           (pimacs--markdown-provisional-fail parser)))
+        ((or 'bold 'italic)
+         (let ((delimiter (if (eq (plist-get candidate :kind) 'bold)
+                              "**"
+                            (plist-get candidate :delimiter))))
+           (pimacs--markdown-provisional-add-raw parser pending)
+           (if (string= pending delimiter)
+               (pimacs--markdown-close-inline parser)
+             (pimacs--markdown-provisional-fail parser))))
         (_
          (cond
           ((and (> (length pending) 0)
@@ -340,7 +351,7 @@
            (pimacs--markdown-open-inline parser 'code pending
                                          'pimacs-markdown-inline-code-face
                                          (list :width (length pending))))
-          ((string= pending "**")
+          ((member pending '("**" "*" "_"))
            (if final
                (pimacs--markdown-parser-append parser pending)
              (setf (pimacs-markdown-parser-pending parser) pending)))
@@ -361,6 +372,16 @@
           (setf (pimacs-markdown-parser-pending parser) "")
           (pimacs--markdown-open-inline parser 'bold "**" 'pimacs-markdown-bold-face)
           (pimacs--markdown-inline-char parser char))
+         ((and (null candidate)
+               (member (pimacs-markdown-parser-pending parser) '("*" "_"))
+               (not (eq char (aref (pimacs-markdown-parser-pending parser) 0)))
+               (pimacs--markdown-eligible-bold-p char))
+          (let ((delimiter (pimacs-markdown-parser-pending parser)))
+            (setf (pimacs-markdown-parser-pending parser) "")
+            (pimacs--markdown-open-inline
+             parser 'italic delimiter 'pimacs-markdown-italic-face
+             (list :delimiter delimiter))
+            (pimacs--markdown-inline-char parser char)))
          (t
           (pimacs--markdown-inline-char parser char)))))))
 

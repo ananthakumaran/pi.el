@@ -396,6 +396,8 @@ with the message plist to insert the custom message content."
     (when (cl-intersection faces '(pimacs-markdown-heading-face
                                    pimacs-markdown-bold-face))
       (setq attributes (plist-put attributes :weight 'bold)))
+    (when (memq 'pimacs-markdown-italic-face faces)
+      (setq attributes (plist-put attributes :slant 'italic)))
     (when (cl-intersection faces '(pimacs-markdown-inline-code-face
                                    pimacs-markdown-code-block-face
                                    pimacs-markdown-table-header-face
