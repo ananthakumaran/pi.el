@@ -1,12 +1,12 @@
-│ | A   | B   |
+│ │ A   │ B   │
 @ ^ table-border
 @   ^^^ table-header
 @       ^ table-border
 @         ^^^ table-header
 @             ^ table-border
-│ |-----|-----|
+│ ├─────┼─────┤
 @ ^^^^^^^^^^^^^ table-border
-│ | x   | y   |
+│ │ x   │ y   │
 @ ^ table-border
 @       ^ table-border
 @             ^ table-border

@@ -1,0 +1,29 @@
+│ Table with descriptive content
+│ │ Feature  │ Description              │ Status │
+@ ^ table-border
+@   ^^^^^^^^ table-header
+@            ^ table-border
+@              ^^^^^^^^^^^^^^^^^^^^^^^^ table-header
+@                                       ^ table-border
+@                                         ^^^^^^ table-header
+@                                                ^ table-border
+│ ├──────────┼──────────────────────────┼────────┤
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ table-border
+│ │ Speed    │ Blazing fast performance │ ✅     │
+@ ^ table-border
+@   ^^^^^ bold
+@            ^ table-border
+@                                       ^ table-border
+@                                               ^ table-border
+│ │ Security │ End-to-end encryption    │ ✅     │
+@ ^ table-border
+@   ^^^^^^^^ bold
+@            ^ table-border
+@                                       ^ table-border
+@                                               ^ table-border
+│ │ Cost     │ Free for basic users     │ ⚠️      │
+@ ^ table-border
+@   ^^^^ bold
+@            ^ table-border
+@                                       ^ table-border
+@                                                 ^ table-border

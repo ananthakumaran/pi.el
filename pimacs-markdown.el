@@ -76,6 +76,11 @@
   "Face used for Markdown table borders."
   :group 'pimacs)
 
+(defcustom pimacs-markdown-use-unicode-tables t
+  "Whether to render Markdown tables with Unicode borders."
+  :type 'boolean
+  :group 'pimacs)
+
 (defvar pimacs-markdown-language-aliases
   '(("ocaml" . tuareg-mode)
     ("elisp" . emacs-lisp-mode)
@@ -400,6 +405,28 @@
          (t
           (pimacs--markdown-inline-char parser char)))))))
 
+(defun pimacs--markdown-render-inline (text)
+  (let ((parser (pimacs--markdown-parser-new)))
+    (pimacs--markdown-inline-write parser text)
+    (pimacs--markdown-inline-flush-pending parser t)
+    (when (pimacs--markdown-provisional-current parser)
+      (pimacs--markdown-close-inline parser))
+    (pimacs--markdown-operations-string
+     (pimacs-markdown-parser-operations parser))))
+
+(defun pimacs--markdown-table-cell (cell width face)
+  (let ((text (copy-sequence cell))
+        (start 0)
+        (end (length cell)))
+    (when face
+      (while (< start end)
+        (let ((next (next-single-property-change start 'face text end)))
+          (unless (get-text-property start 'face text)
+            (put-text-property start next 'face face text))
+          (setq start next))))
+    (concat text
+            (propertize (make-string (- width (string-width cell)) ? ) 'face face))))
+
 (defun pimacs--markdown-table-cells (line)
   (let ((line (string-trim line)))
     (when (string-prefix-p "|" line)
@@ -420,18 +447,26 @@
          (widths (mapcar (lambda (column)
                            (apply #'max 3 (mapcar #'string-width column)))
                          (apply #'cl-mapcar #'list headers rows)))
-         (border (concat "|" (mapconcat (lambda (width) (make-string (+ width 2) ?-)) widths "|") "|")))
+         (vertical (if pimacs-markdown-use-unicode-tables "│" "|"))
+         (horizontal (if pimacs-markdown-use-unicode-tables ?─ ?-))
+         (junction (if pimacs-markdown-use-unicode-tables "┼" "|"))
+         (left (if pimacs-markdown-use-unicode-tables "├" "|"))
+         (right (if pimacs-markdown-use-unicode-tables "┤" "|"))
+         (border (concat left
+                         (mapconcat (lambda (width) (make-string (+ width 2) horizontal))
+                                    widths
+                                    junction)
+                         right)))
     (cl-labels ((row (cells face)
                   (concat
-                   (propertize "|" 'face 'pimacs-markdown-table-border-face)
+                   (propertize vertical 'face 'pimacs-markdown-table-border-face)
                    (mapconcat
                     #'identity
                     (cl-mapcar
                      (lambda (cell width)
-                       (concat " " (propertize (concat cell (make-string (- width (string-width cell)) ? ))
-                                               'face face)
+                       (concat " " (pimacs--markdown-table-cell cell width face)
                                " "
-                               (propertize "|" 'face 'pimacs-markdown-table-border-face)))
+                               (propertize vertical 'face 'pimacs-markdown-table-border-face)))
                      cells widths)
                     "")
                    "\n")))
@@ -482,7 +517,8 @@
              (cells (pimacs--markdown-table-cells line)))
          (if (pimacs--markdown-table-separator-p cells (length headers))
              (let ((new-state (list :phase 'rows
-                                    :headers headers :rows nil
+                                    :headers (mapcar #'pimacs--markdown-render-inline headers)
+                                    :rows nil
                                     :start (plist-get state :start))))
                (pimacs--markdown-parser-delete
                 parser (- (pimacs-markdown-parser-output-length parser)
@@ -496,7 +532,8 @@
          (if (= (length cells) (length (plist-get state :headers)))
              (progn
                (setf (plist-get state :rows)
-                     (append (plist-get state :rows) (list cells)))
+                     (append (plist-get state :rows)
+                             (list (mapcar #'pimacs--markdown-render-inline cells))))
                (pimacs--markdown-parser-delete
                 parser (- (pimacs-markdown-parser-output-length parser)
                           (plist-get state :start)))
