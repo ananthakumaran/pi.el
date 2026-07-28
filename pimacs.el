@@ -84,7 +84,7 @@
   :group 'pimacs)
 
 (defface pimacs-thinking-face
-  '((t :inherit shadow))
+  '((t :inherit font-lock-comment-face))
   "Face used for assistant thinking content."
   :group 'pimacs)
 
@@ -170,6 +170,17 @@ deltas.  It must return a list of `:append' and `:delete' operations.
 
 The default preserves the existing `markdown-mode' renderer.  Set this to
 `pimacs--render-markdown-experimental' to opt into the experimental renderer."
+  :type 'function
+  :group 'pimacs)
+
+(defcustom pimacs-thinking-renderer #'pimacs--render-thinking-default
+  "Function used to render assistant thinking content.
+
+It receives CONTEXT, thinking TEXT, and a non-nil STREAMING flag for text
+deltas.  It must return a list of `:append' and `:delete' operations.
+
+The default preserves the legacy, dimmed plain-text rendering.  Set this to
+`pimacs--render-thinking-markdown' to render thinking as Markdown."
   :type 'function
   :group 'pimacs)
 
@@ -424,6 +435,11 @@ with the message plist to insert the custom message content."
         (setq start next)))
     result))
 
+(defun pimacs--render-thinking-default (_context text streaming)
+  (list (list :append
+              (propertize (if streaming text (pimacs--fill-string text))
+                          'face 'pimacs-thinking-face))))
+
 (defun pimacs--render-thinking-markdown (context text streaming)
   (mapcar
    (lambda (operation)
@@ -433,11 +449,14 @@ with the message plist to insert the custom message content."
        (_ operation)))
    (pimacs--render-markdown-experimental context text streaming)))
 
-(defun pimacs--thinking-markdown-insert (text streaming)
+(defun pimacs--render-thinking (context text streaming)
+  (funcall pimacs-thinking-renderer context text streaming))
+
+(defun pimacs--thinking-insert (text streaming)
   (let ((context (pimacs--markdown-create-context)))
     (pimacs--markdown-apply-operations
      context
-     (pimacs--render-thinking-markdown context text streaming))
+     (pimacs--render-thinking context text streaming))
     context))
 
 (pimacs--def-permanent-buffer-local pimacs--prompt-widget nil)
@@ -634,7 +653,7 @@ with the message plist to insert the custom message content."
        (insert-image image)
        (insert "\n")))
     ("thinking"
-     (pimacs--thinking-markdown-insert (plist-get item :thinking) nil))
+     (pimacs--thinking-insert (plist-get item :thinking) nil))
     (_
      (insert (prin1-to-string item)))))
 
@@ -687,9 +706,6 @@ with the message plist to insert the custom message content."
       (fill-region (point) (line-end-position))
       (forward-line 1))
     (buffer-string)))
-
-(defun pimacs--insert-thinking (text)
-  (insert (propertize text 'face 'pimacs-thinking-face)))
 
 (defun pimacs--insert-tool-name (tool-name)
   (insert (propertize (format "%s " tool-name) 'face 'pimacs-tool-name-face)))
@@ -819,7 +835,7 @@ with the message plist to insert the custom message content."
                (pimacs-section--append-section (pimacs-content-section-section content-section)
                  (pimacs--markdown-apply-operations
                   (pimacs-content-section-markdown-context content-section)
-                  (pimacs--render-thinking-markdown
+                  (pimacs--render-thinking
                    (pimacs-content-section-markdown-context content-section)
                    delta
                    t)))
@@ -827,7 +843,7 @@ with the message plist to insert the custom message content."
                    markdown-context)
                (pimacs-section--insert-section section
                  (pimacs--insert-role-prefix role)
-                 (setq markdown-context (pimacs--thinking-markdown-insert delta t)))
+                 (setq markdown-context (pimacs--thinking-insert delta t)))
                (puthash content-index
                         (make-pimacs-content-section
                          :section section

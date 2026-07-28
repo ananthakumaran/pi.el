@@ -449,6 +449,20 @@ Function used to render Markdown content.
 
 It receives CONTEXT, Markdown TEXT, and a non-nil STREAMING flag for text
 deltas.  It must return a list of @code{:append} and @code{:delete} operations.
+
+The default preserves the existing @code{markdown-mode} renderer.  Set this to
+@code{pimacs--render-markdown-experimental} to opt into the experimental renderer.
+@end defopt
+
+@defopt pimacs-thinking-renderer @code{#'pimacs--render-thinking-default}
+
+Function used to render assistant thinking content.
+
+It receives CONTEXT, thinking TEXT, and a non-nil STREAMING flag for text
+deltas.  It must return a list of @code{:append} and @code{:delete} operations.
+
+The default preserves the legacy, dimmed plain-text rendering.  Set this to
+@code{pimacs--render-thinking-markdown} to render thinking as Markdown.
 @end defopt
 
 @defopt pimacs-slash-commands
@@ -721,6 +735,11 @@ Use at most one @code{:spacer}.
 Format of the Pimacs mode-line entry.
 
 See @code{pimacs-header-line-format} for available components.
+@end defopt
+
+@defopt pimacs-markdown-use-unicode-tables @code{t}
+
+Whether to render Markdown tables with Unicode borders.
 @end defopt
 
 @defopt pimacs-align-markdown-tables @code{t}

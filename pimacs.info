@@ -378,6 +378,23 @@ File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
      for text deltas.  It must return a list of ‘:append’ and ‘:delete’
      operations.
 
+     The default preserves the existing ‘markdown-mode’ renderer.  Set
+     this to ‘pimacs--render-markdown-experimental’ to opt into the
+     experimental renderer.
+
+ -- User Option: pimacs-thinking-renderer
+          #'pimacs--render-thinking-default
+
+     Function used to render assistant thinking content.
+
+     It receives CONTEXT, thinking TEXT, and a non-nil STREAMING flag
+     for text deltas.  It must return a list of ‘:append’ and ‘:delete’
+     operations.
+
+     The default preserves the legacy, dimmed plain-text rendering.  Set
+     this to ‘pimacs--render-thinking-markdown’ to render thinking as
+     Markdown.
+
  -- User Option: pimacs-slash-commands
 
           '(("model" pimacs-select-model 0 "Switch models")
@@ -620,6 +637,10 @@ File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
      Format of the Pimacs mode-line entry.
 
      See ‘pimacs-header-line-format’ for available components.
+
+ -- User Option: pimacs-markdown-use-unicode-tables t
+
+     Whether to render Markdown tables with Unicode borders.
 
  -- User Option: pimacs-align-markdown-tables t
 
