@@ -360,14 +360,14 @@
 (ert-deftest pimacs--thinking-markdown-uses-only-dimmed-non-color-faces ()
   (with-temp-buffer
     (pimacs--thinking-markdown-insert
-     "# Heading\n**bold** and *italic* `code` [link](https://example.com)" nil)
+     "# Heading\n**bold** and *italic* ~~strike~~ `code` [link](https://example.com)" nil)
     (cl-labels ((property-at (text property)
                   (save-excursion
                     (goto-char (point-min))
                     (search-forward text)
                     (get-text-property (- (point) (length text)) property))))
       (should (equal (buffer-substring-no-properties (point-min) (point-max))
-                     "Heading\nbold and italic code link"))
+                     "Heading\nbold and italic strike code link"))
       (should (equal (property-at "Heading" 'face)
                      '((:weight bold) pimacs-thinking-face)))
       (should (equal (property-at "bold" 'face)
@@ -375,6 +375,8 @@
       (should (eq (property-at "and" 'face) 'pimacs-thinking-face))
       (should (equal (property-at "italic" 'face)
                      '((:slant italic) pimacs-thinking-face)))
+      (should (equal (property-at "strike" 'face)
+                     '((:strike-through t) pimacs-thinking-face)))
       (should (equal (property-at "code" 'face)
                      '((:family fixed-pitch) pimacs-thinking-face)))
       (should (equal (property-at "link" 'face)

@@ -1,0 +1,2 @@
+│ Keep old text.
+@      ^^^ strike-through
