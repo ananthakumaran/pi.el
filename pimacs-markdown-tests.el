@@ -85,6 +85,8 @@
                                     (match-string 3 line)
                                     "-face")))
               annotations))
+       ((string= line "│")
+        (push "" output-lines))
        ((string-prefix-p "│ " line)
         (push (substring line 2) output-lines))
        (t
@@ -101,8 +103,16 @@
         (dolist (annotation annotations)
           (let ((start (+ (nth (car annotation) line-starts)
                           (nth 1 annotation))))
-            (put-text-property start (+ start (nth 2 annotation))
-                               'face (nth 3 annotation) text))))
+            (let* ((end (+ start (nth 2 annotation)))
+                   (face (nth 3 annotation))
+                   (existing (get-text-property start 'face text)))
+              (put-text-property start end 'face
+                                 (if existing
+                                     (cons face (if (listp existing)
+                                                    existing
+                                                  (list existing)))
+                                   face)
+                                 text)))))
       text)))
 
 (defun pimacs-markdown-tests--tapes ()
@@ -127,5 +137,6 @@
         (ert-info ((format "%s: streaming chunks %S" input-file chunks))
           (should (equal expected
                          (pimacs-markdown-tests--render input chunks t))))))))
+
 
 ;;; pimacs-markdown-tests.el ends here

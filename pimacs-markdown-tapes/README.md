@@ -1,7 +1,8 @@
 # Markdown tapes
 
 Each `NAME.in.markdown` is rendered and compared with `NAME.out.txt`.
-Each output line begins with `│ `, which is not part of the expected output.
+Each nonempty output line begins with `│ `, which is not part of the expected
+output.  An empty output line is written as `│`, with no trailing space.
 A face annotation immediately following an output line has this form:
 
 ```text
