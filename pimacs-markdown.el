@@ -61,6 +61,11 @@
   "Face used for Markdown list markers."
   :group 'pimacs)
 
+(defface pimacs-markdown-blockquote-face
+  '((t :inherit font-lock-comment-face))
+  "Face used for Markdown blockquotes."
+  :group 'pimacs)
+
 (defface pimacs-markdown-code-block-face
   '((t :inherit fixed-pitch))
   "Face used as the base face of Markdown code blocks."
@@ -128,7 +133,7 @@
 (defun pimacs--markdown-parser-new ()
   (make-pimacs-markdown-parser
    :tokens nil :text "" :pending "" :spaces nil :indent 0 :indent-length 0
-   :table-state nil :provisional nil :operations nil :output-length 0
+   :table-state nil :blockquote-index 0 :provisional nil :operations nil :output-length 0
    :line "" :line-output-start 0 :line-kind nil :prefix "" :at-line-start t))
 
 (defun pimacs--markdown-link-keymap ()
@@ -565,6 +570,42 @@
         (pimacs-markdown-parser-prefix parser) ""
         (pimacs-markdown-parser-at-line-start parser) t))
 
+(defun pimacs--markdown-set-blockquote-depth (parser depth)
+  (let ((current (pimacs-markdown-parser-blockquote-index parser)))
+    (while (> current depth)
+      (pimacs--markdown-parser-end-token parser)
+      (setq current (1- current)))
+    (while (< current depth)
+      (pimacs--markdown-parser-add-token
+       parser 'blockquote
+       (when (zerop current)
+         (list :face 'pimacs-markdown-blockquote-face)))
+      (setq current (1+ current)))
+    (setf (pimacs-markdown-parser-blockquote-index parser) depth)))
+
+(defun pimacs--markdown-blockquote-prefix-p (prefix)
+  (string-match-p "\\`[ \t]\\{0,3\\}\\(?:>[ \t]?\\)*\\'" prefix))
+
+(defun pimacs--markdown-activate-blockquote-prefix (parser prefix)
+  (when (string-match "\\`[ \t]\\{0,3\\}\\(\\(?:>[ \t]?\\)+\\)" prefix)
+    (let* ((marker (match-string 1 prefix))
+           (depth (cl-count ?> marker))
+           (content (substring prefix (match-end 0)))
+           (line (pimacs-markdown-parser-line parser))
+           (line-end (- (length line) (if (string-suffix-p "\n" line) 1 0)))
+           (line-start (- line-end (length prefix))))
+      (setf (pimacs-markdown-parser-line parser)
+            (concat (substring line 0 line-start) content (substring line line-end)))
+      (pimacs--markdown-set-blockquote-depth parser depth)
+      (setf (pimacs-markdown-parser-prefix parser) ""
+            (pimacs-markdown-parser-at-line-start parser)
+            (not (or (pimacs-markdown-parser-fence parser)
+                     (pimacs-markdown-parser-table-state parser)
+                     (eq (pimacs-markdown-parser-line-kind parser) 'table-candidate))))
+      (dotimes (index (length content))
+        (pimacs--markdown-root-char parser (aref content index) t))
+      content)))
+
 (defun pimacs--markdown-fence-closing-p (fence line)
   (let ((character (plist-get fence :character))
         (width (plist-get fence :width)))
@@ -629,13 +670,18 @@
       (setf (plist-get fence :body)
             (concat (plist-get fence :body) line "\n")))))
 
-(defun pimacs--markdown-root-char (parser char)
-  (setf (pimacs-markdown-parser-line parser)
-        (concat (pimacs-markdown-parser-line parser) (string char)))
+(defun pimacs--markdown-root-char (parser char &optional reprocessing)
+  (unless reprocessing
+    (setf (pimacs-markdown-parser-line parser)
+          (concat (pimacs-markdown-parser-line parser) (string char))))
   (let ((kind (pimacs-markdown-parser-line-kind parser))
         (state (pimacs-markdown-parser-table-state parser))
         (fence (pimacs-markdown-parser-fence parser)))
     (cond
+     ((and (pimacs-markdown-parser-at-line-start parser)
+           (> (pimacs-markdown-parser-blockquote-index parser) 0)
+           (or fence state (eq kind 'table-candidate)))
+      (pimacs--markdown-prefix-char parser char))
      (fence
       (pimacs--markdown-parser-append parser (string char))
       (when (eq char ?\n)
@@ -689,12 +735,35 @@
   (let ((prefix (pimacs-markdown-parser-prefix parser)))
     (setf (pimacs-markdown-parser-prefix parser) ""
           (pimacs-markdown-parser-at-line-start parser) nil)
-    (pimacs--markdown-inline-write parser prefix)))
+    (if (or (pimacs-markdown-parser-fence parser)
+            (pimacs-markdown-parser-table-state parser)
+            (eq (pimacs-markdown-parser-line-kind parser) 'table-candidate))
+        (dotimes (index (length prefix))
+          (pimacs--markdown-root-char parser (aref prefix index) t))
+      (pimacs--markdown-inline-write parser prefix))))
 
 (defun pimacs--markdown-prefix-char (parser char)
   (let ((prefix (concat (pimacs-markdown-parser-prefix parser) (string char))))
     (setf (pimacs-markdown-parser-prefix parser) prefix)
     (cond
+     ((eq char ?\n)
+      (let ((line (string-remove-suffix "\n" prefix)))
+        (cond
+         ((let ((content (pimacs--markdown-activate-blockquote-prefix parser line)))
+            (when content
+              (if (string-empty-p content)
+                  (progn
+                    (pimacs--markdown-parser-append parser "\n")
+                    (pimacs--markdown-reset-line parser))
+                (pimacs--markdown-root-char parser char t))
+              t)))
+         (t
+          (when (string-match-p "\\`[ \t]*\\'" line)
+            (pimacs--markdown-set-blockquote-depth parser 0))
+          (pimacs--markdown-prefix-flush parser)
+          (pimacs--markdown-reset-line parser)))))
+     ((pimacs--markdown-blockquote-prefix-p prefix))
+     ((pimacs--markdown-activate-blockquote-prefix parser prefix))
      ((and (string-match-p "\\`[ \t]*\\'" prefix) (<= (length prefix) 3)))
      ((string-match "\\`[ \t]*\\(#+\\) " prefix)
       (let ((hashes (match-string 1 prefix)))
