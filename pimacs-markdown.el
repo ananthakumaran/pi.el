@@ -297,6 +297,46 @@
         (pimacs--markdown-provisional-put parser :trailing-space t)
       (pimacs--markdown-parser-append parser (string char))))))
 
+(defconst pimacs--markdown-html-break-tags '("<br>" "<br/>" "<br />"))
+
+(defun pimacs--markdown-html-break-eligible-p (parser)
+  (let ((candidate (pimacs--markdown-provisional-current parser)))
+    (or (null candidate)
+        (memq (plist-get candidate :kind) '(bold italic strike))
+        (and (eq (plist-get candidate :kind) 'link)
+             (eq (plist-get candidate :stage) 'label)))))
+
+(defun pimacs--markdown-html-break-add-to-link-label (parser source)
+  (when-let ((candidate (pimacs--markdown-provisional-current parser)))
+    (when (and (eq (plist-get candidate :kind) 'link)
+               (eq (plist-get candidate :stage) 'label))
+      (pimacs--markdown-provisional-put
+       parser :label (concat (plist-get candidate :label) source))
+      (pimacs--markdown-provisional-put
+       parser :label-source (concat (plist-get candidate :label-source) source)))))
+
+(defun pimacs--markdown-html-break-close (parser)
+  (let ((source (plist-get (pimacs--markdown-provisional-current parser) :raw)))
+    (pimacs--markdown-provisional-close parser)
+    (pimacs--markdown-html-break-add-to-link-label parser source)
+    (pimacs--markdown-parser-append parser "\n")))
+
+(defun pimacs--markdown-html-break-fail (parser)
+  (let ((source (plist-get (pimacs--markdown-provisional-current parser) :raw)))
+    (pimacs--markdown-provisional-close parser)
+    (pimacs--markdown-html-break-add-to-link-label parser source)
+    (pimacs--markdown-parser-append parser source)))
+
+(defun pimacs--markdown-html-break-char (parser char)
+  (pimacs--markdown-provisional-add-raw parser (string char))
+  (let ((source (plist-get (pimacs--markdown-provisional-current parser) :raw)))
+    (cond
+     ((member source pimacs--markdown-html-break-tags)
+      (pimacs--markdown-html-break-close parser))
+     ((not (cl-some (lambda (tag) (string-prefix-p source tag))
+                    pimacs--markdown-html-break-tags))
+      (pimacs--markdown-html-break-fail parser)))))
+
 (defun pimacs--markdown-escape-character-p (char)
   (not (or (and (>= char ?0) (<= char ?9))
            (and (>= char ?A) (<= char ?Z))
@@ -482,6 +522,9 @@
 (defun pimacs--markdown-inline-flush-pending (parser &optional final)
   (let ((pending (pimacs-markdown-parser-pending parser))
         (candidate (pimacs--markdown-provisional-current parser)))
+    (when (eq (plist-get candidate :kind) 'html-break)
+      (pimacs--markdown-html-break-fail parser)
+      (setq candidate (pimacs--markdown-provisional-current parser)))
     (unless (or (string-empty-p pending)
                 (and (string= pending "\\") (not final)))
       (setf (pimacs-markdown-parser-pending parser) "")
@@ -536,6 +579,8 @@
            (candidate (pimacs--markdown-provisional-current parser))
            (pending (pimacs-markdown-parser-pending parser)))
       (cond
+       ((eq (plist-get candidate :kind) 'html-break)
+        (pimacs--markdown-html-break-char parser char))
        ((and (string= pending "\\")
              (not (eq (plist-get candidate :kind) 'code)))
         (setf (pimacs-markdown-parser-pending parser) "")
@@ -552,6 +597,10 @@
              (eq char ?\n))
         (pimacs--markdown-inline-flush-pending parser)
         (pimacs--markdown-inline-char parser char))
+       ((and (eq char ?<)
+             (string-empty-p pending)
+             (pimacs--markdown-html-break-eligible-p parser))
+        (pimacs--markdown-provisional-open parser 'html-break "<"))
        ((and (null candidate)
              (member pending '("**" "__"))
              (eq char (aref pending 0)))
