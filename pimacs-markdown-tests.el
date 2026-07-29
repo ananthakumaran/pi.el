@@ -2,6 +2,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'ert)
 (require 'subr-x)
 
@@ -17,21 +18,46 @@
   (expand-file-name "pimacs-markdown-tapes"
                     (file-name-directory (or load-file-name buffer-file-name))))
 
-(defun pimacs-markdown-tests--chunks (input)
-  (let* ((length (length input))
-         (max-width (min length 16))
-         (chunkings (list (list input))))
-    (dotimes (cut (max 0 (1- length)))
-      (push (list (substring input 0 (1+ cut))
-                  (substring input (1+ cut)))
-            chunkings))
-    (dotimes (offset max-width)
-      (let ((width (1+ offset))
-            chunks)
-        (dotimes (start (ceiling (/ (float length) width)))
-          (let ((begin (* start width)))
-            (push (substring input begin (min length (+ begin width))) chunks)))
-        (push (nreverse chunks) chunkings)))
+(defconst pimacs-markdown-tests--fixed-chunk-widths '(1 4 16))
+
+(defun pimacs-markdown-tests--environment-natural-number (variable default)
+  (if-let ((value (getenv variable)))
+      (if (string-match-p "\\`[0-9]+\\'" value)
+          (string-to-number value)
+        (error "%s must be a natural number, got %S" variable value))
+    default))
+
+(defun pimacs-markdown-tests--seed ()
+  (if (getenv "SEED")
+      (pimacs-markdown-tests--environment-natural-number "SEED" 0)
+    (random t)
+    (random most-positive-fixnum)))
+
+(defun pimacs-markdown-tests--chunks-of-width (input width)
+  (let ((length (length input))
+        chunks)
+    (dotimes (start (ceiling (/ (float length) width)))
+      (let ((begin (* start width)))
+        (push (substring input begin (min length (+ begin width))) chunks)))
+    (nreverse chunks)))
+
+(defun pimacs-markdown-tests--random-chunks (input random-state)
+  (let ((length (length input))
+        (position 0)
+        chunks)
+    (while (< position length)
+      (let ((width (1+ (cl-random (min 32 (- length position)) random-state))))
+        (push (substring input position (+ position width)) chunks)
+        (setq position (+ position width))))
+    (nreverse chunks)))
+
+(defun pimacs-markdown-tests--chunks (input random-state complexity)
+  (let ((chunkings (list (list input))))
+    (dolist (width pimacs-markdown-tests--fixed-chunk-widths)
+      (when (<= width (length input))
+        (push (pimacs-markdown-tests--chunks-of-width input width) chunkings)))
+    (dotimes (_ complexity)
+      (push (pimacs-markdown-tests--random-chunks input random-state) chunkings))
     (delete-dups (nreverse chunkings))))
 
 (defun pimacs-markdown-tests--face-only (text)
@@ -42,17 +68,31 @@
         (put-text-property index (1+ index) 'face
                            (get-text-property index 'face text) result)))))
 
-(defun pimacs-markdown-tests--render (input chunks &optional finalize)
+(defun pimacs-markdown-tests--render-complete (input)
+  (with-temp-buffer
+    (let ((context (pimacs--markdown-create-context)))
+      (pimacs--markdown-apply-operations
+       context
+       (pimacs--render-markdown-experimental context input nil))
+      (pimacs-markdown-tests--face-only
+       (buffer-substring (pimacs-markdown-context-content-begin context)
+                         (pimacs-markdown-context-content-end context))))))
+
+(defun pimacs-markdown-tests--render-streaming (input chunks &optional replace-with-complete)
   (with-temp-buffer
     (let ((context (pimacs--markdown-create-context)))
       (dolist (chunk chunks)
         (pimacs--markdown-apply-operations
          context
          (pimacs--render-markdown-experimental context chunk t)))
-      (when finalize
-        (pimacs--markdown-apply-operations
-         context
-         (pimacs--render-markdown-experimental context input nil)))
+      (if replace-with-complete
+          (pimacs--markdown-apply-operations
+           context
+           (pimacs--render-markdown-experimental context input nil))
+        (let ((parser (pimacs-markdown-context-parser context)))
+          (pimacs--markdown-parser-finish parser t)
+          (pimacs--markdown-apply-operations
+           context (pimacs-markdown-parser-operations parser))))
       (pimacs-markdown-tests--face-only
        (buffer-substring (pimacs-markdown-context-content-begin context)
                          (pimacs-markdown-context-content-end context))))))
@@ -128,15 +168,29 @@
    (directory-files pimacs-markdown-tests--directory t "\\.in\\.markdown\\'")))
 
 (ert-deftest pimacs-markdown-tape ()
-  (dolist (tape (pimacs-markdown-tests--tapes))
-    (pcase-let ((`(,input-file ,input ,expected) tape))
-      (ert-info ((format "%s: complete render" input-file))
-        (should (equal expected
-                       (pimacs-markdown-tests--render input nil t))))
-      (dolist (chunks (pimacs-markdown-tests--chunks input))
-        (ert-info ((format "%s: streaming chunks %S" input-file chunks))
-          (should (equal expected
-                         (pimacs-markdown-tests--render input chunks t))))))))
+  (let* ((seed (pimacs-markdown-tests--seed))
+         (complexity
+          (pimacs-markdown-tests--environment-natural-number
+           "PIMACS_MARKDOWN_TEST_COMPLEXITY" 2))
+         (random-state (cl-make-random-state seed)))
+    (message "pimacs markdown fuzz seed: %d (complexity %d)" seed complexity)
+    (ert-info ((format "seed=%d; rerun with SEED=%d (complexity %d)"
+                       seed seed complexity))
+      (dolist (tape (pimacs-markdown-tests--tapes))
+        (pcase-let ((`(,input-file ,input ,expected) tape))
+          (ert-info ((format "%s: complete render" input-file))
+            (should (equal expected
+                           (pimacs-markdown-tests--render-complete input))))
+          (dolist (chunks (pimacs-markdown-tests--chunks input random-state complexity))
+            (ert-info ((format "%s: streaming chunks %S" input-file chunks))
+              (should (equal expected
+                             (pimacs-markdown-tests--render-streaming input chunks)))))
+          (ert-info ((format "%s: final complete replacement" input-file))
+            (should (equal expected
+                           (pimacs-markdown-tests--render-streaming
+                            input
+                            (pimacs-markdown-tests--chunks-of-width input 1)
+                            t)))))))))
 
 
 
