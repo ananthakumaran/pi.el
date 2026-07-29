@@ -1,5 +1,7 @@
-│ `code
+│ code
+@ ^^^^ inline-code
 │ **bold
-│ Pimacs
-@ ^^^^^^ link
+@ ^^^^^^ inline-code
+│ [Pimacs]
+@ ^^^^^^^^ inline-code
 @ eof
