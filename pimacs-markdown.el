@@ -61,6 +61,11 @@
   "Face used for Markdown list markers."
   :group 'pimacs)
 
+(defface pimacs-markdown-checkbox-face
+  '((t :inherit font-lock-builtin-face))
+  "Face used for Markdown task-list checkboxes."
+  :group 'pimacs)
+
 (defconst pimacs--markdown-list-bullets
   '("●" "◎" "○" "◆" "◇" "►" "•"))
 
@@ -139,6 +144,7 @@
   paragraph-start
   indented-code
   list-stack
+  task
   fence)
 
 (defun pimacs--markdown-parser-new ()
@@ -757,6 +763,46 @@
 (defun pimacs--markdown-list-indent (parser)
   (make-string (* 2 (1- (length (pimacs-markdown-parser-list-stack parser)))) ?\s))
 
+(defun pimacs--markdown-task-write (parser string)
+  (dotimes (index (length string))
+    (let* ((char (aref string index))
+           (task (pimacs-markdown-parser-task parser)))
+      (cond
+       ((null task)
+        (pimacs--markdown-inline-write parser (string char)))
+       ((string-empty-p task)
+        (if (eq char ?\[)
+            (setf (pimacs-markdown-parser-task parser) "[")
+          (setf (pimacs-markdown-parser-task parser) nil)
+          (pimacs--markdown-inline-write parser (string char))))
+       ((string= task "[")
+        (if (memq char '(?\s ?x))
+            (setf (pimacs-markdown-parser-task parser) (concat task (string char)))
+          (setf (pimacs-markdown-parser-task parser) nil)
+          (pimacs--markdown-inline-write parser (concat task (string char)))))
+       ((member task '("[ " "[x"))
+        (if (eq char ?\])
+            (setf (pimacs-markdown-parser-task parser) (concat task "]"))
+          (setf (pimacs-markdown-parser-task parser) nil)
+          (pimacs--markdown-inline-write parser (concat task (string char)))))
+       ((member task '("[ ]" "[x]"))
+        (if (eq char ?\s)
+            (progn
+              (pimacs--markdown-parser-append
+               parser (if (string= task "[x]") "☑" "☐")
+               (list 'face 'pimacs-markdown-checkbox-face))
+              (pimacs--markdown-parser-append parser " ")
+              (setf (pimacs-markdown-parser-task parser) nil
+                    (pimacs-markdown-parser-paragraph-start parser) nil))
+          (setf (pimacs-markdown-parser-task parser) nil)
+          (pimacs--markdown-inline-write parser (concat task (string char)))))))))
+
+(defun pimacs--markdown-task-flush (parser)
+  (when-let ((task (pimacs-markdown-parser-task parser)))
+    (unless (string-empty-p task)
+      (pimacs--markdown-inline-write parser task))
+    (setf (pimacs-markdown-parser-task parser) nil)))
+
 (defun pimacs--markdown-activate-list-prefix (parser prefix)
   (when (string-match
          "\\`\\([ \t]*\\)\\([-+*]\\|[0-9]+\\.\\) \\(.*\\)\\'" prefix)
@@ -768,14 +814,15 @@
       (pimacs--markdown-continue-or-add-list parser type indent marker-width)
       (setf (pimacs-markdown-parser-prefix parser) ""
             (pimacs-markdown-parser-at-line-start parser) nil
-            (pimacs-markdown-parser-line-kind parser) 'list)
+            (pimacs-markdown-parser-line-kind parser) 'list
+            (pimacs-markdown-parser-task parser) "")
       (pimacs--markdown-parser-append parser (pimacs--markdown-list-indent parser))
       (pimacs--markdown-parser-add-token
        parser 'list (list :face 'pimacs-markdown-list-marker-face))
       (pimacs--markdown-parser-append
        parser (concat (pimacs--markdown-list-marker parser type marker) " "))
       (pimacs--markdown-parser-end-token parser)
-      (pimacs--markdown-inline-write parser content)
+      (pimacs--markdown-task-write parser content)
       t)))
 
 (defun pimacs--markdown-activate-list-continuation (parser prefix)
@@ -795,7 +842,8 @@
       (pimacs--markdown-list-stack-to parser length)
       (setf (pimacs-markdown-parser-prefix parser) ""
             (pimacs-markdown-parser-at-line-start parser) nil
-            (pimacs-markdown-parser-line-kind parser) 'list)
+            (pimacs-markdown-parser-line-kind parser) 'list
+            (pimacs-markdown-parser-task parser) nil)
       (pimacs--markdown-parser-append parser (pimacs--markdown-list-indent parser))
       (pimacs--markdown-inline-write
        parser (concat (make-string (max 0 indent) ?\s) content))
@@ -930,7 +978,9 @@
                     :start (pimacs-markdown-parser-line-output-start parser)))
         (pimacs--markdown-reset-line parser)))
      ((memq kind '(heading list))
-      (pimacs--markdown-inline-write parser (string char))
+      (if (eq kind 'list)
+          (pimacs--markdown-task-write parser (string char))
+        (pimacs--markdown-inline-write parser (string char)))
       (when (eq char ?\n)
         (when (eq kind 'heading)
           (pimacs--markdown-parser-end-token parser))
@@ -1080,6 +1130,7 @@
          ((pimacs--markdown-activate-list-prefix parser prefix))
          (t
           (pimacs--markdown-prefix-flush parser)))))
+    (pimacs--markdown-task-flush parser)
     (pimacs--markdown-inline-flush-text parser)
     (pimacs--markdown-inline-flush-pending parser t)
     (when (pimacs--markdown-provisional-current parser)
