@@ -66,6 +66,11 @@
   "Face used for Markdown blockquotes."
   :group 'pimacs)
 
+(defface pimacs-markdown-horizontal-rule-face
+  '((t :inherit shadow))
+  "Face used for Markdown horizontal rules."
+  :group 'pimacs)
+
 (defface pimacs-markdown-code-block-face
   '((t :inherit fixed-pitch))
   "Face used as the base face of Markdown code blocks."
@@ -586,6 +591,44 @@
 (defun pimacs--markdown-blockquote-prefix-p (prefix)
   (string-match-p "\\`[ \t]\\{0,3\\}\\(?:>[ \t]?\\)*\\'" prefix))
 
+(defun pimacs--markdown-horizontal-rule-prefix-p (prefix)
+  (when (string-match "\\`[ \t]*" prefix)
+    (let ((start (match-end 0)))
+      (and (<= start 3)
+           (< start (length prefix))
+           (let ((delimiter (aref prefix start)))
+             (and (memq delimiter '(?* ?- ?_))
+                  (cl-every (lambda (char)
+                              (memq char (list delimiter ?\s ?\t)))
+                            (substring prefix start))))))))
+
+(defun pimacs--markdown-horizontal-rule-p (line)
+  (and (pimacs--markdown-horizontal-rule-prefix-p line)
+       (>= (cl-count (aref (string-trim-left line) 0) line) 3)))
+
+(defun pimacs--markdown-render-horizontal-rule (parser terminated)
+  (pimacs--markdown-parser-add-token
+   parser 'horizontal-rule (list :face 'pimacs-markdown-horizontal-rule-face))
+  (pimacs--markdown-parser-append
+   parser
+   (concat (make-string (min 80 (window-width)) ?─) (if terminated "\n" "")))
+  (pimacs--markdown-parser-end-token parser))
+
+(defun pimacs--markdown-activate-unordered-list-prefix (parser prefix)
+  (when (string-match "\\`[ \t]*\\([-*]\\) " prefix)
+    (let ((marker (match-string 1 prefix))
+          (content (substring prefix (match-end 0))))
+      (setf (pimacs-markdown-parser-prefix parser) ""
+            (pimacs-markdown-parser-at-line-start parser) nil
+            (pimacs-markdown-parser-line-kind parser) 'list)
+      (pimacs--markdown-parser-add-token
+       parser 'list (list :face 'pimacs-markdown-list-marker-face))
+      (pimacs--markdown-parser-append parser marker)
+      (pimacs--markdown-parser-append parser " ")
+      (pimacs--markdown-parser-end-token parser)
+      (pimacs--markdown-inline-write parser content)
+      content)))
+
 (defun pimacs--markdown-activate-blockquote-prefix (parser prefix)
   (when (string-match "\\`[ \t]\\{0,3\\}\\(\\(?:>[ \t]?\\)+\\)" prefix)
     (let* ((marker (match-string 1 prefix))
@@ -714,7 +757,8 @@
      ((memq kind '(heading list))
       (pimacs--markdown-inline-write parser (string char))
       (when (eq char ?\n)
-        (pimacs--markdown-parser-end-token parser)
+        (when (eq kind 'heading)
+          (pimacs--markdown-parser-end-token parser))
         (pimacs--markdown-reset-line parser)))
      ((pimacs-markdown-parser-at-line-start parser)
       (pimacs--markdown-prefix-char parser char))
@@ -749,6 +793,9 @@
      ((eq char ?\n)
       (let ((line (string-remove-suffix "\n" prefix)))
         (cond
+         ((pimacs--markdown-horizontal-rule-p line)
+          (pimacs--markdown-render-horizontal-rule parser t)
+          (pimacs--markdown-reset-line parser))
          ((let ((content (pimacs--markdown-activate-blockquote-prefix parser line)))
             (when content
               (if (string-empty-p content)
@@ -757,13 +804,19 @@
                     (pimacs--markdown-reset-line parser))
                 (pimacs--markdown-root-char parser char t))
               t)))
+         ((let ((content (pimacs--markdown-activate-unordered-list-prefix parser line)))
+            (when content
+              (pimacs--markdown-root-char parser char t)
+              t)))
          (t
           (when (string-match-p "\\`[ \t]*\\'" line)
             (pimacs--markdown-set-blockquote-depth parser 0))
           (pimacs--markdown-prefix-flush parser)
           (pimacs--markdown-reset-line parser)))))
+     ((pimacs--markdown-horizontal-rule-prefix-p prefix))
      ((pimacs--markdown-blockquote-prefix-p prefix))
      ((pimacs--markdown-activate-blockquote-prefix parser prefix))
+     ((pimacs--markdown-activate-unordered-list-prefix parser prefix))
      ((and (string-match-p "\\`[ \t]*\\'" prefix) (<= (length prefix) 3)))
      ((string-match "\\`[ \t]*\\(#+\\) " prefix)
       (let ((hashes (match-string 1 prefix)))
@@ -837,10 +890,20 @@
                (not (string-empty-p (pimacs-markdown-parser-line parser))))
       (pimacs--markdown-finish-table-line parser (pimacs-markdown-parser-line parser) nil)
       (pimacs--markdown-reset-line parser))
+    (when (and (pimacs-markdown-parser-at-line-start parser)
+               (not (string-empty-p (pimacs-markdown-parser-prefix parser))))
+      (let ((prefix (pimacs-markdown-parser-prefix parser)))
+        (cond
+         ((pimacs--markdown-horizontal-rule-p prefix)
+          (pimacs--markdown-render-horizontal-rule parser nil)
+          (pimacs--markdown-reset-line parser))
+         ((pimacs--markdown-activate-unordered-list-prefix parser prefix))
+         (t
+          (pimacs--markdown-prefix-flush parser)))))
     (pimacs--markdown-inline-flush-pending parser t)
     (when (pimacs--markdown-provisional-current parser)
       (pimacs--markdown-close-inline parser))
-    (when (memq (pimacs-markdown-parser-line-kind parser) '(heading list))
+    (when (eq (pimacs-markdown-parser-line-kind parser) 'heading)
       (pimacs--markdown-parser-end-token parser))))
 
 (defun pimacs--markdown-operations-string (operations)
