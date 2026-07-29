@@ -230,10 +230,6 @@
   (setf (pimacs-markdown-parser-token parser)
         (car (pimacs-markdown-parser-tokens parser))))
 
-(defun pimacs--markdown-parser-set-attribute (_parser _key _value)
-  ;; Attributes are applied by replacing a completed provisional link suffix.
-  nil)
-
 (defun pimacs--markdown-provisional-open (parser kind raw &optional attributes)
   (dolist (record (pimacs-markdown-parser-provisional parser))
     (setf (plist-get record :raw) (concat (plist-get record :raw) raw)))

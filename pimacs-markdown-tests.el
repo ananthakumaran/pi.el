@@ -61,12 +61,15 @@
     (delete-dups (nreverse chunkings))))
 
 (defun pimacs-markdown-tests--face-only (text)
-  (let ((result (substring-no-properties text)))
-    (dotimes (index (length text) result)
+  (let ((result (substring-no-properties text))
+        (index 0))
+    (while (< index (length text))
       (when (and (not (eq (aref text index) ?\n))
                  (get-text-property index 'face text))
         (put-text-property index (1+ index) 'face
-                           (get-text-property index 'face text) result)))))
+                           (get-text-property index 'face text) result))
+      (setq index (1+ index)))
+    result))
 
 (defun pimacs-markdown-tests--render-complete (input)
   (with-temp-buffer
