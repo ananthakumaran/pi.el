@@ -695,8 +695,15 @@
     (pimacs--markdown-operations-string
      (pimacs-markdown-parser-operations parser))))
 
-(defun pimacs--markdown-table-cell (cell width face)
+(defun pimacs--markdown-table-cell-lines (cell)
+  (split-string cell "\n" nil))
+
+(defun pimacs--markdown-table-cell-width (cell)
+  (apply #'max 0 (mapcar #'string-width (pimacs--markdown-table-cell-lines cell))))
+
+(defun pimacs--markdown-table-cell (cell width face alignment)
   (let ((text (copy-sequence cell))
+        (padding (- width (string-width cell)))
         (start 0)
         (end (length cell)))
     (when face
@@ -705,28 +712,66 @@
           (unless (get-text-property start 'face text)
             (put-text-property start next 'face face text))
           (setq start next))))
-    (concat text
-            (propertize (make-string (- width (string-width cell)) ? ) 'face face))))
+    (pcase alignment
+      ('right (concat (propertize (make-string padding ? ) 'face face) text))
+      ('center (let ((left (/ padding 2)))
+                 (concat (propertize (make-string left ? ) 'face face)
+                         text
+                         (propertize (make-string (- padding left) ? ) 'face face))))
+      (_ (concat text (propertize (make-string padding ? ) 'face face))))))
+
+(defun pimacs--markdown-table-escaped-p (string position)
+  (let ((slashes 0)
+        (position (1- position)))
+    (while (and (>= position 0) (eq (aref string position) ?\\))
+      (cl-incf slashes)
+      (cl-decf position))
+    (= (mod slashes 2) 1)))
 
 (defun pimacs--markdown-table-cells (line)
-  (let ((line (string-trim line)))
+  (let ((line (string-trim line))
+        (cells nil)
+        (cell "")
+        (index 0))
     (when (string-prefix-p "|" line)
       (setq line (substring line 1)))
-    (when (string-suffix-p "|" line)
+    (when (and (string-suffix-p "|" line)
+               (not (pimacs--markdown-table-escaped-p line (1- (length line)))))
       (setq line (substring line 0 -1)))
-    (mapcar #'string-trim (split-string line "|" nil))))
+    (while (< index (length line))
+      (let ((char (aref line index)))
+        (cond
+         ((and (eq char ?\\) (< (1+ index) (length line)))
+          (setq cell (concat cell (string char (aref line (1+ index))))
+                index (+ index 2)))
+         ((eq char ?|)
+          (push (string-trim cell) cells)
+          (setq cell ""
+                index (1+ index)))
+         (t
+          (setq cell (concat cell (string char))
+                index (1+ index))))))
+    (nreverse (cons (string-trim cell) cells))))
 
-(defun pimacs--markdown-table-separator-p (cells count)
-  (and (= (length cells) count)
-       (cl-every (lambda (cell)
-                   (string-match-p "\\`:?---+:?\\'" cell))
-                 cells)))
+(defun pimacs--markdown-table-separator-alignments (cells count)
+  (when (and (= (length cells) count)
+             (cl-every (lambda (cell)
+                         (string-match-p "\\`:?---+:?\\'" cell))
+                       cells))
+    (mapcar (lambda (cell)
+              (cond
+               ((and (string-prefix-p ":" cell) (string-suffix-p ":" cell)) 'center)
+               ((string-prefix-p ":" cell) 'left)
+               ((string-suffix-p ":" cell) 'right)
+               (t 'left)))
+            cells)))
 
 (defun pimacs--markdown-table-render (state)
   (let* ((headers (plist-get state :headers))
          (rows (plist-get state :rows))
+         (alignments (plist-get state :alignments))
          (widths (mapcar (lambda (column)
-                           (apply #'max 3 (mapcar #'string-width column)))
+                           (apply #'max 3 (mapcar #'pimacs--markdown-table-cell-width column)))
                          (apply #'cl-mapcar #'list headers rows)))
          (vertical (if pimacs-markdown-use-unicode-tables "│" "|"))
          (horizontal (if pimacs-markdown-use-unicode-tables ?─ ?-))
@@ -739,18 +784,24 @@
                                     junction)
                          right)))
     (cl-labels ((row (cells face)
-                  (concat
-                   (propertize vertical 'face 'pimacs-markdown-table-border-face)
-                   (mapconcat
-                    #'identity
-                    (cl-mapcar
-                     (lambda (cell width)
-                       (concat " " (pimacs--markdown-table-cell cell width face)
-                               " "
-                               (propertize vertical 'face 'pimacs-markdown-table-border-face)))
-                     cells widths)
-                    "")
-                   "\n")))
+                  (let ((lines (mapcar #'pimacs--markdown-table-cell-lines cells)))
+                    (mapconcat
+                     (lambda (line)
+                       (concat
+                        (propertize vertical 'face 'pimacs-markdown-table-border-face)
+                        (mapconcat
+                         #'identity
+                         (cl-mapcar
+                          (lambda (cell width alignment)
+                            (concat " " (pimacs--markdown-table-cell cell width face alignment)
+                                    " "
+                                    (propertize vertical 'face 'pimacs-markdown-table-border-face)))
+                          (mapcar (lambda (cell-lines) (or (nth line cell-lines) "")) lines)
+                          widths alignments)
+                         "")
+                        "\n"))
+                     (number-sequence 0 (1- (apply #'max (mapcar #'length lines))))
+                     ""))))
       (concat (row headers 'pimacs-markdown-table-header-face)
               (propertize (concat border "\n") 'face 'pimacs-markdown-table-border-face)
               (mapconcat (lambda (cells) (row cells nil)) rows "")))))
@@ -1071,9 +1122,11 @@
       ('separator
        (let ((headers (plist-get state :headers))
              (cells (pimacs--markdown-table-cells line)))
-         (if (pimacs--markdown-table-separator-p cells (length headers))
+         (if-let ((alignments
+                   (pimacs--markdown-table-separator-alignments cells (length headers))))
              (let ((new-state (list :phase 'rows
                                     :headers (mapcar #'pimacs--markdown-render-inline headers)
+                                    :alignments alignments
                                     :rows nil
                                     :start (plist-get state :start))))
                (pimacs--markdown-parser-delete
@@ -1086,10 +1139,15 @@
       ('rows
        (let ((cells (pimacs--markdown-table-cells line)))
          (if (= (length cells) (length (plist-get state :headers)))
-             (progn
+             (let ((cells (mapcar #'pimacs--markdown-render-inline cells)))
                (setf (plist-get state :rows)
-                     (append (plist-get state :rows)
-                             (list (mapcar #'pimacs--markdown-render-inline cells))))
+                     (if (and (plist-get state :rows)
+                              (string-empty-p (car cells)))
+                         (append (butlast (plist-get state :rows))
+                                 (list (cl-mapcar (lambda (previous cell)
+                                                    (concat previous "\n" cell))
+                                                  (car (last (plist-get state :rows))) cells)))
+                       (append (plist-get state :rows) (list cells))))
                (pimacs--markdown-parser-delete
                 parser (- (pimacs-markdown-parser-output-length parser)
                           (plist-get state :start)))
