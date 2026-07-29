@@ -61,6 +61,9 @@
   "Face used for Markdown list markers."
   :group 'pimacs)
 
+(defconst pimacs--markdown-list-bullets
+  '("●" "◎" "○" "◆" "◇" "►" "•"))
+
 (defface pimacs-markdown-blockquote-face
   '((t :inherit font-lock-comment-face))
   "Face used for Markdown blockquotes."
@@ -135,6 +138,7 @@
   at-line-start
   paragraph-start
   indented-code
+  list-stack
   fence)
 
 (defun pimacs--markdown-parser-new ()
@@ -704,20 +708,98 @@
     (when (eq char ?\n)
       (pimacs--markdown-reset-line parser))))
 
-(defun pimacs--markdown-activate-unordered-list-prefix (parser prefix)
-  (when (string-match "\\`[ \t]*\\([-*]\\) " prefix)
-    (let ((marker (match-string 1 prefix))
-          (content (substring prefix (match-end 0))))
+(defun pimacs--markdown-prefix-width (prefix)
+  (cl-loop for char across prefix
+           sum (if (eq char ?\t) 4 1)))
+
+(defun pimacs--markdown-list-stack-to (parser length)
+  (setf (pimacs-markdown-parser-list-stack parser)
+        (cl-subseq (pimacs-markdown-parser-list-stack parser) 0 length)))
+
+(defun pimacs--markdown-list-prefix-p (prefix)
+  (string-match-p "\\`[ \t]*\\(?:[-+*]?\\|[0-9]*\\.?\\)?\\'" prefix))
+
+(defun pimacs--markdown-continue-or-add-list (parser type indent marker-width)
+  (let ((list-length nil)
+        (item-length nil))
+    (cl-loop for level in (pimacs-markdown-parser-list-stack parser)
+             for length from 1
+             do (when (eq (plist-get level :type) type)
+                  (setq list-length length))
+             if (< indent (plist-get level :content-indent))
+             do (setq item-length nil)
+             and return nil
+             else do (setq item-length length))
+    (if item-length
+        (progn
+          (pimacs--markdown-list-stack-to parser item-length)
+          (setf (pimacs-markdown-parser-list-stack parser)
+                (append (pimacs-markdown-parser-list-stack parser)
+                        (list (list :type type
+                                    :content-indent (+ indent marker-width))))))
+      (if list-length
+          (progn
+            (pimacs--markdown-list-stack-to parser list-length)
+            (setf (plist-get (car (last (pimacs-markdown-parser-list-stack parser)))
+                             :content-indent)
+                  (+ indent marker-width)))
+        (setf (pimacs-markdown-parser-list-stack parser)
+              (list (list :type type
+                          :content-indent (+ indent marker-width))))))))
+
+(defun pimacs--markdown-list-marker (parser type marker)
+  (if (eq type 'unordered)
+      (nth (mod (1- (length (pimacs-markdown-parser-list-stack parser)))
+                (length pimacs--markdown-list-bullets))
+           pimacs--markdown-list-bullets)
+    marker))
+
+(defun pimacs--markdown-list-indent (parser)
+  (make-string (* 2 (1- (length (pimacs-markdown-parser-list-stack parser)))) ?\s))
+
+(defun pimacs--markdown-activate-list-prefix (parser prefix)
+  (when (string-match
+         "\\`\\([ \t]*\\)\\([-+*]\\|[0-9]+\\.\\) \\(.*\\)\\'" prefix)
+    (let* ((indent (pimacs--markdown-prefix-width (match-string 1 prefix)))
+           (marker (match-string 2 prefix))
+           (content (match-string 3 prefix))
+           (type (if (string-suffix-p "." marker) 'ordered 'unordered))
+           (marker-width (1+ (length marker))))
+      (pimacs--markdown-continue-or-add-list parser type indent marker-width)
       (setf (pimacs-markdown-parser-prefix parser) ""
             (pimacs-markdown-parser-at-line-start parser) nil
             (pimacs-markdown-parser-line-kind parser) 'list)
+      (pimacs--markdown-parser-append parser (pimacs--markdown-list-indent parser))
       (pimacs--markdown-parser-add-token
        parser 'list (list :face 'pimacs-markdown-list-marker-face))
-      (pimacs--markdown-parser-append parser marker)
-      (pimacs--markdown-parser-append parser " ")
+      (pimacs--markdown-parser-append
+       parser (concat (pimacs--markdown-list-marker parser type marker) " "))
       (pimacs--markdown-parser-end-token parser)
       (pimacs--markdown-inline-write parser content)
-      content)))
+      t)))
+
+(defun pimacs--markdown-activate-list-continuation (parser prefix)
+  (let* ((leading (progn (string-match "\\`[ \t]*" prefix) (match-string 0 prefix)))
+         (content (substring prefix (length leading)))
+         (indent (pimacs--markdown-prefix-width leading))
+         (length 0))
+    (cl-loop for level in (pimacs-markdown-parser-list-stack parser)
+             for index from 1
+             do (setq indent (- indent (plist-get level :content-indent)))
+             if (< indent 0)
+             return nil
+             else do (setq length index))
+    (when (and (> length 0)
+               (not (string-empty-p content))
+               (not (pimacs--markdown-list-prefix-p prefix)))
+      (pimacs--markdown-list-stack-to parser length)
+      (setf (pimacs-markdown-parser-prefix parser) ""
+            (pimacs-markdown-parser-at-line-start parser) nil
+            (pimacs-markdown-parser-line-kind parser) 'list)
+      (pimacs--markdown-parser-append parser (pimacs--markdown-list-indent parser))
+      (pimacs--markdown-inline-write
+       parser (concat (make-string (max 0 indent) ?\s) content))
+      t)))
 
 (defun pimacs--markdown-activate-blockquote-prefix (parser prefix)
   (when (string-match "\\`[ \t]\\{0,3\\}\\(\\(?:>[ \t]?\\)+\\)" prefix)
@@ -874,6 +956,11 @@
   (let ((prefix (pimacs-markdown-parser-prefix parser)))
     (setf (pimacs-markdown-parser-prefix parser) ""
           (pimacs-markdown-parser-at-line-start parser) nil)
+    (unless (or (string-match-p "\\`[ \t\n]*\\'" prefix)
+                (pimacs-markdown-parser-fence parser)
+                (pimacs-markdown-parser-table-state parser)
+                (eq (pimacs-markdown-parser-line-kind parser) 'table-candidate))
+      (setf (pimacs-markdown-parser-list-stack parser) nil))
     (if (or (pimacs-markdown-parser-fence parser)
             (pimacs-markdown-parser-table-state parser)
             (eq (pimacs-markdown-parser-line-kind parser) 'table-candidate))
@@ -899,21 +986,30 @@
                     (pimacs--markdown-reset-line parser))
                 (pimacs--markdown-root-char parser char t))
               t)))
-         ((let ((content (pimacs--markdown-activate-unordered-list-prefix parser line)))
-            (when content
-              (pimacs--markdown-root-char parser char t)
-              t)))
+         ((pimacs--markdown-activate-list-prefix parser line)
+          (pimacs--markdown-root-char parser char t))
          (t
-          (when (string-match-p "\\`[ \t]*\\'" line)
-            (pimacs--markdown-set-blockquote-depth parser 0)
-            (setf (pimacs-markdown-parser-paragraph-start parser) t))
-          (pimacs--markdown-prefix-flush parser)
-          (pimacs--markdown-reset-line parser)))))
+          (let ((blank (string-match-p "\\`[ \t]*\\'" line))
+                (continuation nil))
+            (when blank
+              (pimacs--markdown-set-blockquote-depth parser 0)
+              (setf (pimacs-markdown-parser-paragraph-start parser) t))
+            (unless blank
+              (setq continuation
+                    (pimacs--markdown-activate-list-continuation parser line))
+              (unless continuation
+                (setf (pimacs-markdown-parser-list-stack parser) nil)))
+            (if continuation
+                (pimacs--markdown-root-char parser char t)
+              (pimacs--markdown-prefix-flush parser))
+            (pimacs--markdown-reset-line parser))))))
      ((pimacs--markdown-horizontal-rule-prefix-p prefix))
      ((pimacs--markdown-blockquote-prefix-p prefix))
      ((pimacs--markdown-activate-blockquote-prefix parser prefix))
-     ((pimacs--markdown-activate-indented-code-prefix parser prefix))
-     ((pimacs--markdown-activate-unordered-list-prefix parser prefix))
+     ((pimacs--markdown-activate-list-prefix parser prefix))
+     ((pimacs--markdown-activate-list-continuation parser prefix))
+     ((and (null (pimacs-markdown-parser-list-stack parser))
+           (pimacs--markdown-activate-indented-code-prefix parser prefix)))
      ((and (string-match-p "\\`[ \t]*\\'" prefix) (<= (length prefix) 3)))
      ((string-match "\\`[ \t]*\\(#+\\) " prefix)
       (let ((hashes (match-string 1 prefix)))
@@ -925,23 +1021,6 @@
               (pimacs--markdown-parser-add-token
                parser 'heading (list :face 'pimacs-markdown-heading-face)))
           (pimacs--markdown-prefix-flush parser))))
-     ((string-match "\\`[ \t]*\\([-+*]\\) " prefix)
-      (setf (pimacs-markdown-parser-prefix parser) ""
-            (pimacs-markdown-parser-at-line-start parser) nil
-            (pimacs-markdown-parser-line-kind parser) 'list)
-      (pimacs--markdown-parser-add-token
-       parser 'list (list :face 'pimacs-markdown-list-marker-face))
-      (pimacs--markdown-parser-append parser (match-string 1 prefix))
-      (pimacs--markdown-parser-append parser " ")
-      (pimacs--markdown-parser-end-token parser))
-     ((string-match "\\`[ \t]*\\([0-9]+\\)\\. " prefix)
-      (setf (pimacs-markdown-parser-prefix parser) ""
-            (pimacs-markdown-parser-at-line-start parser) nil
-            (pimacs-markdown-parser-line-kind parser) 'list)
-      (pimacs--markdown-parser-add-token
-       parser 'list (list :face 'pimacs-markdown-list-marker-face))
-      (pimacs--markdown-parser-append parser (concat (match-string 1 prefix) ". "))
-      (pimacs--markdown-parser-end-token parser))
      ((string-match "\\`[ \t]*\\([`~]\\)\\1\\1" prefix)
       (let* ((run (match-string 0 prefix))
              (character (aref run (1- (length run))))
@@ -957,7 +1036,9 @@
       (pimacs--markdown-prefix-flush parser)
       (pimacs--markdown-reset-line parser))
      ((or (> (length prefix) 12)
-          (and (> (length prefix) 3) (string-match-p "\\`[ \t]+" prefix))
+          (and (null (pimacs-markdown-parser-list-stack parser))
+               (> (length prefix) 3)
+               (string-match-p "\\`[ \t]+" prefix))
           (and (string-match-p "\\`[ \t]*#+\\'" prefix) (> (length (string-trim prefix)) 6))
           (and (not (string-match-p "\\`[ \t]*[-+*0-9`~#]+\\'" prefix))
                (not (string-match-p "\\`[ \t]*\\'" prefix))))
@@ -996,7 +1077,7 @@
          ((pimacs--markdown-horizontal-rule-p prefix)
           (pimacs--markdown-render-horizontal-rule parser nil)
           (pimacs--markdown-reset-line parser))
-         ((pimacs--markdown-activate-unordered-list-prefix parser prefix))
+         ((pimacs--markdown-activate-list-prefix parser prefix))
          (t
           (pimacs--markdown-prefix-flush parser)))))
     (pimacs--markdown-inline-flush-text parser)
