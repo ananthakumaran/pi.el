@@ -1,0 +1,12 @@
+│ http://example.com/page
+@ ^^^^^^^^^^^^^^^^^^^^^^^ link
+│ See https://example.com/path?query=one.
+@     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ link
+│ nothttp://example.com
+│ http:/wrong.com
+│ https://example.com/code
+@ ^^^^^^^^^^^^^^^^^^^^^^^^ inline-code
+│ https://example.com/label
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^ link
+│ http://one.example*literal
+@ ^^^^^^^^^^^^^^^^^^ link

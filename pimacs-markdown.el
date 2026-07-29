@@ -142,6 +142,7 @@
   prefix
   at-line-start
   paragraph-start
+  autolink-boundary
   indented-code
   list-stack
   task
@@ -152,7 +153,7 @@
    :tokens nil :text "" :pending "" :spaces nil :indent 0 :indent-length 0
    :table-state nil :blockquote-index 0 :provisional nil :operations nil :output-length 0
    :line "" :line-output-start 0 :line-kind nil :prefix "" :at-line-start t
-   :paragraph-start t))
+   :paragraph-start t :autolink-boundary t))
 
 (defun pimacs--markdown-link-keymap ()
   (let ((map (make-sparse-keymap)))
@@ -166,10 +167,11 @@
   (let ((label (pimacs--markdown-render-inline source)))
     (dotimes (index (length label))
       (let* ((existing (get-text-property index 'face label))
-             (label-faces (delq nil
-                                (append faces
-                                        (if (listp existing) existing (list existing))
-                                        '(pimacs-markdown-link-face)))))
+             (label-faces (delete-dups
+                           (delq nil
+                                 (append faces
+                                         (if (listp existing) existing (list existing))
+                                         '(pimacs-markdown-link-face))))))
         (put-text-property
          index (1+ index) 'face (if (= (length label-faces) 1)
                                     (car label-faces)
@@ -209,7 +211,9 @@
                                             faces))))
       (when properties
         (setq text (apply #'propertize text properties)))
-      (pimacs--markdown-parser-emit parser (list :append text)))))
+      (pimacs--markdown-parser-emit parser (list :append text))
+      (setf (pimacs-markdown-parser-autolink-boundary parser)
+            (memq (aref text (1- (length text))) '(?\s ?\t ?\n))))))
 
 (defun pimacs--markdown-parser-delete (parser count)
   (when (> count 0)
@@ -337,6 +341,74 @@
                     pimacs--markdown-html-break-tags))
       (pimacs--markdown-html-break-fail parser)))))
 
+(defun pimacs--markdown-autolink-eligible-p (parser)
+  (let ((candidate (pimacs--markdown-provisional-current parser)))
+    (and (pimacs-markdown-parser-autolink-boundary parser)
+         (string-empty-p (pimacs-markdown-parser-pending parser))
+         (or (null candidate)
+             (memq (plist-get candidate :kind) '(bold italic strike))))))
+
+(defun pimacs--markdown-autolink-label (url faces)
+  (let ((label (copy-sequence url))
+        (link-faces (delq nil (append faces '(pimacs-markdown-link-face)))))
+    (put-text-property 0 (length label) 'face
+                       (if (= (length link-faces) 1)
+                           (car link-faces)
+                         link-faces)
+                       label)
+    (put-text-property 0 (length label) 'keymap pimacs--markdown-link-keymap label)
+    (put-text-property 0 (length label) 'mouse-face 'highlight label)
+    (put-text-property 0 (length label) 'help-echo url label)
+    (put-text-property 0 (length label) 'follow-link t label)
+    label))
+
+(defun pimacs--markdown-autolink-open (parser url)
+  (pimacs--markdown-provisional-close parser)
+  (push (list :kind 'autolink
+              :output-start (pimacs-markdown-parser-output-length parser)
+              :raw url
+              :token-depth (length (pimacs-markdown-parser-tokens parser)))
+        (pimacs-markdown-parser-provisional parser))
+  (pimacs--markdown-parser-add-token parser 'autolink
+                                     (list :face 'pimacs-markdown-link-face))
+  (pimacs--markdown-parser-append parser url))
+
+(defun pimacs--markdown-autolink-close (parser)
+  (let* ((candidate (pimacs--markdown-provisional-current parser))
+         (start (plist-get candidate :output-start))
+         (url (plist-get candidate :raw)))
+    (pimacs--markdown-parser-delete
+     parser (- (pimacs-markdown-parser-output-length parser) start))
+    (pimacs--markdown-parser-end-token parser)
+    (pimacs--markdown-provisional-close parser)
+    (pimacs--markdown-parser-emit
+     parser (list :append
+                  (pimacs--markdown-autolink-label
+                   url (pimacs--markdown-parser-faces parser))))))
+
+(defun pimacs--markdown-autolink-prefix-fail (parser)
+  (let ((source (plist-get (pimacs--markdown-provisional-current parser) :raw)))
+    (pimacs--markdown-provisional-close parser)
+    (pimacs--markdown-parser-append parser source)))
+
+(defun pimacs--markdown-autolink-prefix-char (parser char)
+  (pimacs--markdown-provisional-add-raw parser (string char))
+  (let ((source (plist-get (pimacs--markdown-provisional-current parser) :raw)))
+    (cond
+     ((member source '("http://" "https://"))
+      (pimacs--markdown-autolink-open parser source))
+     ((not (or (string-prefix-p source "http://")
+               (string-prefix-p source "https://")))
+      (pimacs--markdown-autolink-prefix-fail parser)))))
+
+(defun pimacs--markdown-autolink-char (parser char)
+  (if (memq char '(?\s ?\t ?\n ?\\))
+      (progn
+        (pimacs--markdown-autolink-close parser)
+        (pimacs--markdown-inline-write-raw parser (string char)))
+    (pimacs--markdown-provisional-add-raw parser (string char))
+    (pimacs--markdown-parser-append parser (string char))))
+
 (defun pimacs--markdown-escape-character-p (char)
   (not (or (and (>= char ?0) (<= char ?9))
            (and (>= char ?A) (<= char ?Z))
@@ -447,8 +519,11 @@
                (pimacs--markdown-parser-append parser pending))
              (pimacs--markdown-inline-char parser char)))
           (t
-           (pimacs--markdown-provisional-add-raw parser (string char))
-           (pimacs--markdown-parser-append parser (string char))))))
+           (if (and (eq char ?h)
+                    (pimacs--markdown-autolink-eligible-p parser))
+               (pimacs--markdown-provisional-open parser 'autolink-prefix "h")
+             (pimacs--markdown-provisional-add-raw parser (string char))
+             (pimacs--markdown-parser-append parser (string char)))))))
       ('link
        (pcase (plist-get candidate :stage)
          ('label
@@ -522,9 +597,11 @@
 (defun pimacs--markdown-inline-flush-pending (parser &optional final)
   (let ((pending (pimacs-markdown-parser-pending parser))
         (candidate (pimacs--markdown-provisional-current parser)))
-    (when (eq (plist-get candidate :kind) 'html-break)
-      (pimacs--markdown-html-break-fail parser)
-      (setq candidate (pimacs--markdown-provisional-current parser)))
+    (pcase (plist-get candidate :kind)
+      ('html-break (pimacs--markdown-html-break-fail parser))
+      ('autolink (pimacs--markdown-autolink-close parser))
+      ('autolink-prefix (pimacs--markdown-autolink-prefix-fail parser)))
+    (setq candidate (pimacs--markdown-provisional-current parser))
     (unless (or (string-empty-p pending)
                 (and (string= pending "\\") (not final)))
       (setf (pimacs-markdown-parser-pending parser) "")
@@ -581,6 +658,13 @@
       (cond
        ((eq (plist-get candidate :kind) 'html-break)
         (pimacs--markdown-html-break-char parser char))
+       ((eq (plist-get candidate :kind) 'autolink-prefix)
+        (pimacs--markdown-autolink-prefix-char parser char))
+       ((eq (plist-get candidate :kind) 'autolink)
+        (pimacs--markdown-autolink-char parser char))
+       ((and (eq char ?h)
+             (pimacs--markdown-autolink-eligible-p parser))
+        (pimacs--markdown-provisional-open parser 'autolink-prefix "h"))
        ((and (string= pending "\\")
              (not (eq (plist-get candidate :kind) 'code)))
         (setf (pimacs-markdown-parser-pending parser) "")
@@ -725,8 +809,15 @@
        ((eq char ?\n)
         (setf (pimacs-markdown-parser-text parser) "")
         (pimacs--markdown-inline-write-raw parser (string char)))
+       ((and (eq (plist-get candidate :kind) 'autolink)
+             (memq char '(?\s ?\t)))
+        (pimacs--markdown-autolink-close parser)
+        (setf (pimacs-markdown-parser-autolink-boundary parser) t)
+        (unless (pimacs-markdown-parser-paragraph-start parser)
+          (setf (pimacs-markdown-parser-text parser) " ")))
        ((and (memq char '(?\s ?\t))
              (not (eq (plist-get candidate :kind) 'code)))
+        (setf (pimacs-markdown-parser-autolink-boundary parser) t)
         (unless (pimacs-markdown-parser-paragraph-start parser)
           (setf (pimacs-markdown-parser-text parser) " ")))
        (t
