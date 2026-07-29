@@ -133,13 +133,15 @@
   line-kind
   prefix
   at-line-start
+  paragraph-start
   fence)
 
 (defun pimacs--markdown-parser-new ()
   (make-pimacs-markdown-parser
    :tokens nil :text "" :pending "" :spaces nil :indent 0 :indent-length 0
    :table-state nil :blockquote-index 0 :provisional nil :operations nil :output-length 0
-   :line "" :line-output-start 0 :line-kind nil :prefix "" :at-line-start t))
+   :line "" :line-output-start 0 :line-kind nil :prefix "" :at-line-start t
+   :paragraph-start t))
 
 (defun pimacs--markdown-link-keymap ()
   (let ((map (make-sparse-keymap)))
@@ -404,7 +406,7 @@
           (t
            (pimacs--markdown-parser-append parser pending))))))))
 
-(defun pimacs--markdown-inline-write (parser string)
+(defun pimacs--markdown-inline-write-raw (parser string)
   (dotimes (index (length string))
     (let* ((char (aref string index))
            (candidate (pimacs--markdown-provisional-current parser))
@@ -478,9 +480,33 @@
          (t
           (pimacs--markdown-inline-char parser char))))))))
 
+(defun pimacs--markdown-inline-flush-text (parser)
+  (when-let ((text (pimacs-markdown-parser-text parser)))
+    (unless (string-empty-p text)
+      (setf (pimacs-markdown-parser-text parser) "")
+      (pimacs--markdown-inline-write-raw parser text))))
+
+(defun pimacs--markdown-inline-write (parser string)
+  (dotimes (index (length string))
+    (let* ((char (aref string index))
+           (candidate (pimacs--markdown-provisional-current parser)))
+      (cond
+       ((eq char ?\n)
+        (setf (pimacs-markdown-parser-text parser) "")
+        (pimacs--markdown-inline-write-raw parser (string char)))
+       ((and (memq char '(?\s ?\t))
+             (not (eq (plist-get candidate :kind) 'code)))
+        (unless (pimacs-markdown-parser-paragraph-start parser)
+          (setf (pimacs-markdown-parser-text parser) " ")))
+       (t
+        (pimacs--markdown-inline-flush-text parser)
+        (pimacs--markdown-inline-write-raw parser (string char))
+        (setf (pimacs-markdown-parser-paragraph-start parser) nil))))))
+
 (defun pimacs--markdown-render-inline (text)
   (let ((parser (pimacs--markdown-parser-new)))
     (pimacs--markdown-inline-write parser text)
+    (pimacs--markdown-inline-flush-text parser)
     (pimacs--markdown-inline-flush-pending parser t)
     (when (pimacs--markdown-provisional-current parser)
       (pimacs--markdown-close-inline parser))
@@ -612,7 +638,8 @@
   (pimacs--markdown-parser-append
    parser
    (concat (make-string (min 80 (window-width)) ?─) (if terminated "\n" "")))
-  (pimacs--markdown-parser-end-token parser))
+  (pimacs--markdown-parser-end-token parser)
+  (setf (pimacs-markdown-parser-paragraph-start parser) t))
 
 (defun pimacs--markdown-activate-unordered-list-prefix (parser prefix)
   (when (string-match "\\`[ \t]*\\([-*]\\) " prefix)
@@ -704,7 +731,8 @@
      parser
      (pimacs--markdown-fontify-code (plist-get fence :body)
                                     (plist-get fence :language)))
-    (setf (pimacs-markdown-parser-fence parser) nil)))
+    (setf (pimacs-markdown-parser-fence parser) nil
+          (pimacs-markdown-parser-paragraph-start parser) t)))
 
 (defun pimacs--markdown-finish-fence-line (parser line)
   (let ((fence (pimacs-markdown-parser-fence parser)))
@@ -759,7 +787,8 @@
       (when (eq char ?\n)
         (when (eq kind 'heading)
           (pimacs--markdown-parser-end-token parser))
-        (pimacs--markdown-reset-line parser)))
+        (pimacs--markdown-reset-line parser)
+        (setf (pimacs-markdown-parser-paragraph-start parser) t)))
      ((pimacs-markdown-parser-at-line-start parser)
       (pimacs--markdown-prefix-char parser char))
      (t
@@ -769,7 +798,8 @@
           (pimacs--markdown-parser-delete
            parser (- (pimacs-markdown-parser-output-length parser) start))
           (pimacs--markdown-parser-append parser (pimacs-markdown-parser-line parser))
-          (setf (pimacs-markdown-parser-line-kind parser) 'table-candidate)))
+          (setf (pimacs-markdown-parser-text parser) ""
+                (pimacs-markdown-parser-line-kind parser) 'table-candidate)))
       (unless (eq (pimacs-markdown-parser-line-kind parser) 'table-candidate)
         (pimacs--markdown-inline-write parser (string char)))
       (when (eq char ?\n)
@@ -810,7 +840,8 @@
               t)))
          (t
           (when (string-match-p "\\`[ \t]*\\'" line)
-            (pimacs--markdown-set-blockquote-depth parser 0))
+            (pimacs--markdown-set-blockquote-depth parser 0)
+            (setf (pimacs-markdown-parser-paragraph-start parser) t))
           (pimacs--markdown-prefix-flush parser)
           (pimacs--markdown-reset-line parser)))))
      ((pimacs--markdown-horizontal-rule-prefix-p prefix))
@@ -900,6 +931,7 @@
          ((pimacs--markdown-activate-unordered-list-prefix parser prefix))
          (t
           (pimacs--markdown-prefix-flush parser)))))
+    (pimacs--markdown-inline-flush-text parser)
     (pimacs--markdown-inline-flush-pending parser t)
     (when (pimacs--markdown-provisional-current parser)
       (pimacs--markdown-close-inline parser))
