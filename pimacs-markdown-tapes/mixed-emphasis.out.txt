@@ -1,0 +1,24 @@
+│ bolditalic
+@ ^^^^^^^^^^ bold
+@     ^^^^^^ italic
+│ bolditalic
+@ ^^^^^^^^^^ bold
+@ ^^^^ italic
+│ italicbold
+@ ^^^^^^^^^^ italic
+@       ^^^^ bold
+│ bolditalic
+@ ^^^^ bold
+@ ^^^^^^^^^^ italic
+│ bolditalic
+@ ^^^^^^^^^^ bold
+@     ^^^^^^ italic
+│ bolditalic
+@ ^^^^^^^^^^ bold
+@ ^^^^ italic
+│ italicbold
+@ ^^^^^^^^^^ italic
+@       ^^^^ bold
+│ bolditalic
+@ ^^^^ bold
+@ ^^^^^^^^^^ italic
