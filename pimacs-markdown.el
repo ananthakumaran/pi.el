@@ -134,6 +134,7 @@
   prefix
   at-line-start
   paragraph-start
+  indented-code
   fence)
 
 (defun pimacs--markdown-parser-new ()
@@ -641,6 +642,68 @@
   (pimacs--markdown-parser-end-token parser)
   (setf (pimacs-markdown-parser-paragraph-start parser) t))
 
+(defun pimacs--markdown-indented-code-prefix-p (prefix)
+  (let ((width 0)
+        (index 0))
+    (while (and (< index (length prefix)) (< width 4))
+      (pcase (aref prefix index)
+        (?\s (setq width (1+ width)))
+        (?\t (setq width (+ width 4)))
+        (_ (setq width -100)))
+      (setq index (1+ index)))
+    (>= width 4)))
+
+(defun pimacs--markdown-indented-code-content (prefix)
+  (let ((width 0)
+        (index 0))
+    (while (< width 4)
+      (setq width (+ width (if (eq (aref prefix index) ?\t) 4 1))
+            index (1+ index)))
+    (substring prefix index)))
+
+(defun pimacs--markdown-open-indented-code (parser)
+  (pimacs--markdown-parser-add-token
+   parser 'indented-code (list :face 'pimacs-markdown-code-block-face))
+  (setf (pimacs-markdown-parser-indented-code parser) t
+        (pimacs-markdown-parser-prefix parser) ""
+        (pimacs-markdown-parser-at-line-start parser) nil
+        (pimacs-markdown-parser-paragraph-start parser) t))
+
+(defun pimacs--markdown-close-indented-code (parser)
+  (pimacs--markdown-parser-end-token parser)
+  (setf (pimacs-markdown-parser-indented-code parser) nil
+        (pimacs-markdown-parser-paragraph-start parser) t))
+
+(defun pimacs--markdown-activate-indented-code-prefix (parser prefix)
+  (when (pimacs--markdown-indented-code-prefix-p prefix)
+    (pimacs--markdown-open-indented-code parser)
+    (pimacs--markdown-parser-append
+     parser (pimacs--markdown-indented-code-content prefix))
+    t))
+
+(defun pimacs--markdown-indented-code-char (parser char)
+  (if (pimacs-markdown-parser-at-line-start parser)
+      (let ((prefix (concat (pimacs-markdown-parser-prefix parser) (string char))))
+        (setf (pimacs-markdown-parser-prefix parser) prefix)
+        (cond
+         ((pimacs--markdown-indented-code-prefix-p prefix)
+          (pimacs--markdown-parser-append
+           parser (pimacs--markdown-indented-code-content prefix))
+          (setf (pimacs-markdown-parser-prefix parser) ""
+                (pimacs-markdown-parser-at-line-start parser) nil))
+         ((eq char ?\n)
+          (pimacs--markdown-close-indented-code parser)
+          (pimacs--markdown-reset-line parser)
+          (pimacs--markdown-root-char parser char t))
+         ((not (memq char '(?\s ?\t)))
+          (let ((source prefix))
+            (pimacs--markdown-close-indented-code parser)
+            (pimacs--markdown-reset-line parser)
+            (pimacs--markdown-parser-write parser source)))))
+    (pimacs--markdown-parser-append parser (string char))
+    (when (eq char ?\n)
+      (pimacs--markdown-reset-line parser))))
+
 (defun pimacs--markdown-activate-unordered-list-prefix (parser prefix)
   (when (string-match "\\`[ \t]*\\([-*]\\) " prefix)
     (let ((marker (match-string 1 prefix))
@@ -749,6 +812,8 @@
         (state (pimacs-markdown-parser-table-state parser))
         (fence (pimacs-markdown-parser-fence parser)))
     (cond
+     ((pimacs-markdown-parser-indented-code parser)
+      (pimacs--markdown-indented-code-char parser char))
      ((and (pimacs-markdown-parser-at-line-start parser)
            (> (pimacs-markdown-parser-blockquote-index parser) 0)
            (or fence state (eq kind 'table-candidate)))
@@ -847,6 +912,7 @@
      ((pimacs--markdown-horizontal-rule-prefix-p prefix))
      ((pimacs--markdown-blockquote-prefix-p prefix))
      ((pimacs--markdown-activate-blockquote-prefix parser prefix))
+     ((pimacs--markdown-activate-indented-code-prefix parser prefix))
      ((pimacs--markdown-activate-unordered-list-prefix parser prefix))
      ((and (string-match-p "\\`[ \t]*\\'" prefix) (<= (length prefix) 3)))
      ((string-match "\\`[ \t]*\\(#+\\) " prefix)
@@ -903,6 +969,8 @@
 
 (defun pimacs--markdown-parser-finish (parser final-p)
   (when final-p
+    (when (pimacs-markdown-parser-indented-code parser)
+      (pimacs--markdown-close-indented-code parser))
     (when-let ((fence (pimacs-markdown-parser-fence parser)))
       (when (not (string-empty-p (pimacs-markdown-parser-line parser)))
         (if (plist-get fence :opening)
