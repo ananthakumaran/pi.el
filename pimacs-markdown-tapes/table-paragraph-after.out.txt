@@ -1,0 +1,14 @@
+│ │ A   │ B   │
+@ ^ table-border
+@   ^^^ table-header
+@       ^ table-border
+@         ^^^ table-header
+@             ^ table-border
+│ ├─────┼─────┤
+@ ^^^^^^^^^^^^^^^ table-border
+│ │ a   │ b   │
+@ ^ table-border
+@       ^ table-border
+@             ^ table-border
+│
+│ Hello

@@ -1,0 +1,16 @@
+│ │ Foo │ Bar │
+@ ^ table-border
+@   ^^^ table-header
+@       ^ table-border
+@         ^^^ table-header
+@             ^ table-border
+│ ├─────┼─────┤
+@ ^^^^^^^^^^^^^^^ table-border
+│ │ A|a │ Bb  │
+@ ^ table-border
+@       ^ table-border
+@             ^ table-border
+│ │ aA  │ bB  │
+@ ^ table-border
+@       ^ table-border
+@             ^ table-border
