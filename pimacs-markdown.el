@@ -26,115 +26,7 @@
 (require 'subr-x)
 (require 'browse-url)
 
-(defface pimacs-markdown-heading-face
-  '((t :inherit font-lock-function-name-face :weight bold))
-  "Face used for Markdown headings."
-  :group 'pimacs)
-
-(defface pimacs-markdown-inline-code-face
-  '((t :inherit (fixed-pitch font-lock-constant-face)))
-  "Face used for inline code."
-  :group 'pimacs)
-
-(defface pimacs-markdown-bold-face
-  '((t :inherit bold))
-  "Face used for bold text."
-  :group 'pimacs)
-
-(defface pimacs-markdown-italic-face
-  '((t :inherit italic))
-  "Face used for italic text."
-  :group 'pimacs)
-
-(defface pimacs-markdown-strike-through-face
-  '((t :strike-through t))
-  "Face used for Markdown strike-through text."
-  :group 'pimacs)
-
-(defface pimacs-markdown-highlight-face
-  '((t :inherit highlight))
-  "Face used for Markdown highlighted text."
-  :group 'pimacs)
-
-(defface pimacs-markdown-superscript-face
-  '((t :height 0.8 :raise 0.3))
-  "Face used for Markdown superscript text."
-  :group 'pimacs)
-
-(defface pimacs-markdown-subscript-face
-  '((t :height 0.8 :raise -0.2))
-  "Face used for Markdown subscript text."
-  :group 'pimacs)
-
-(defface pimacs-markdown-link-face
-  '((t :inherit link))
-  "Face used for provisional Markdown links."
-  :group 'pimacs)
-
-(defface pimacs-markdown-list-marker-face
-  '((t :inherit shadow :slant normal :weight normal))
-  "Face used for Markdown list markers."
-  :group 'pimacs)
-
-(defface pimacs-markdown-checkbox-face
-  '((t :inherit font-lock-builtin-face))
-  "Face used for Markdown task-list checkboxes."
-  :group 'pimacs)
-
-(defconst pimacs--markdown-list-bullets
-  '("●" "◎" "○" "◆" "◇" "►" "•"))
-
-(defface pimacs-markdown-blockquote-face
-  '((t :inherit font-lock-comment-face))
-  "Face used for Markdown blockquotes."
-  :group 'pimacs)
-
-(defface pimacs-markdown-horizontal-rule-face
-  '((t :inherit shadow))
-  "Face used for Markdown horizontal rules."
-  :group 'pimacs)
-
-(defface pimacs-markdown-code-block-face
-  '((t :inherit fixed-pitch))
-  "Face used as the base face of Markdown code blocks."
-  :group 'pimacs)
-
-(defface pimacs-markdown-table-header-face
-  '((t :inherit fixed-pitch))
-  "Face used for Markdown table headers."
-  :group 'pimacs)
-
-(defface pimacs-markdown-table-border-face
-  '((t :inherit fixed-pitch))
-  "Face used for Markdown table borders."
-  :group 'pimacs)
-
-(defcustom pimacs-markdown-use-unicode-tables t
-  "Whether to render Markdown tables with Unicode borders."
-  :type 'boolean
-  :group 'pimacs)
-
-(defvar pimacs-markdown-language-aliases
-  '(("ocaml" . tuareg-mode)
-    ("elisp" . emacs-lisp-mode)
-    ("ditaa" . artist-mode)
-    ("asymptote" . asy-mode)
-    ("dot" . fundamental-mode)
-    ("sqlite" . sql-mode)
-    ("calc" . fundamental-mode)
-    ("C" . c-mode)
-    ("cpp" . c++-mode)
-    ("C++" . c++-mode)
-    ("screen" . shell-script-mode)
-    ("shell" . sh-mode)
-    ("bash" . sh-mode))
-  "Alist mapping Markdown fence language names to major modes.")
-
-(cl-defstruct pimacs-markdown-context
-  parser
-  content-begin
-  content-end
-  rendered-length)
+;;; Markdown Parser
 
 (cl-defstruct pimacs-markdown-parser
   token
@@ -170,41 +62,6 @@
    :table-state nil :blockquote-index 0 :provisional nil :operations nil :output-length 0
    :line "" :line-output-start 0 :line-kind nil :prefix "" :at-line-start t
    :paragraph-start t :autolink-boundary t))
-
-(defun pimacs--markdown-link-keymap ()
-  (let ((map (make-sparse-keymap)))
-    (define-key map [mouse-2] #'browse-url-at-mouse)
-    (define-key map (kbd "RET") #'browse-url-at-point)
-    map))
-
-(defvar pimacs--markdown-link-keymap (pimacs--markdown-link-keymap))
-
-(defun pimacs--markdown-link-label (source faces url &optional title)
-  (let ((label (pimacs--markdown-render-inline source)))
-    (dotimes (index (length label))
-      (let* ((existing (get-text-property index 'face label))
-             (label-faces (delete-dups
-                           (delq nil
-                                 (append faces
-                                         (if (listp existing) existing (list existing))
-                                         '(pimacs-markdown-link-face))))))
-        (put-text-property
-         index (1+ index) 'face (if (= (length label-faces) 1)
-                                    (car label-faces)
-                                  label-faces)
-         label)))
-    (put-text-property 0 (length label) 'keymap pimacs--markdown-link-keymap label)
-    (put-text-property 0 (length label) 'mouse-face 'highlight label)
-    (put-text-property 0 (length label) 'help-echo url label)
-    (put-text-property 0 (length label) 'follow-link t label)
-    (when title
-      (put-text-property 0 (length label) 'pimacs-markdown-link-title title label))
-    label))
-
-(defun pimacs--markdown-image-label (source faces url &optional title)
-  (let ((label (pimacs--markdown-link-label source faces url title)))
-    (put-text-property 0 (length label) 'pimacs-markdown-image-url url label)
-    label))
 
 (defun pimacs--markdown-reference-id (identifier)
   (downcase (replace-regexp-in-string "[ \t\n]+" " " (string-trim identifier))))
@@ -377,6 +234,7 @@
       (pimacs--markdown-parser-append parser (string char))))))
 
 (defconst pimacs--markdown-html-break-tags '("<br>" "<br/>" "<br />"))
+
 (defconst pimacs--markdown-html-inline-tags
   '("<br>" "<br/>" "<br />" "<sup>" "<sub>"))
 
@@ -435,20 +293,6 @@
          (string-empty-p (pimacs-markdown-parser-pending parser))
          (or (null candidate)
              (memq (plist-get candidate :kind) '(bold italic strike))))))
-
-(defun pimacs--markdown-autolink-label (url faces)
-  (let ((label (copy-sequence url))
-        (link-faces (delq nil (append faces '(pimacs-markdown-link-face)))))
-    (put-text-property 0 (length label) 'face
-                       (if (= (length link-faces) 1)
-                           (car link-faces)
-                         link-faces)
-                       label)
-    (put-text-property 0 (length label) 'keymap pimacs--markdown-link-keymap label)
-    (put-text-property 0 (length label) 'mouse-face 'highlight label)
-    (put-text-property 0 (length label) 'help-echo url label)
-    (put-text-property 0 (length label) 'follow-link t label)
-    label))
 
 (defun pimacs--markdown-autolink-open (parser url)
   (pimacs--markdown-provisional-close parser)
@@ -1072,41 +916,6 @@
         (pimacs--markdown-inline-write-raw parser (string char))
         (setf (pimacs-markdown-parser-paragraph-start parser) nil))))))
 
-(defun pimacs--markdown-render-inline (text)
-  (let ((parser (pimacs--markdown-parser-new)))
-    (pimacs--markdown-inline-write parser text)
-    (pimacs--markdown-inline-flush-text parser)
-    (pimacs--markdown-inline-flush-pending parser t)
-    (when (pimacs--markdown-provisional-current parser)
-      (pimacs--markdown-close-inline parser))
-    (pimacs--markdown-operations-string
-     (pimacs-markdown-parser-operations parser))))
-
-(defun pimacs--markdown-table-cell-lines (cell)
-  (split-string cell "\n" nil))
-
-(defun pimacs--markdown-table-cell-width (cell)
-  (apply #'max 0 (mapcar #'string-width (pimacs--markdown-table-cell-lines cell))))
-
-(defun pimacs--markdown-table-cell (cell width face alignment)
-  (let ((text (copy-sequence cell))
-        (padding (- width (string-width cell)))
-        (start 0)
-        (end (length cell)))
-    (when face
-      (while (< start end)
-        (let ((next (next-single-property-change start 'face text end)))
-          (unless (get-text-property start 'face text)
-            (put-text-property start next 'face face text))
-          (setq start next))))
-    (pcase alignment
-      ('right (concat (propertize (make-string padding ? ) 'face face) text))
-      ('center (let ((left (/ padding 2)))
-                 (concat (propertize (make-string left ? ) 'face face)
-                         text
-                         (propertize (make-string (- padding left) ? ) 'face face))))
-      (_ (concat text (propertize (make-string padding ? ) 'face face))))))
-
 (defun pimacs--markdown-table-escaped-p (string position)
   (let ((slashes 0)
         (position (1- position)))
@@ -1152,66 +961,6 @@
                ((string-suffix-p ":" cell) 'right)
                (t 'left)))
             cells)))
-
-(defun pimacs--markdown-table-render (state)
-  (let* ((headers (plist-get state :headers))
-         (rows (plist-get state :rows))
-         (alignments (plist-get state :alignments))
-         (widths (mapcar (lambda (column)
-                           (apply #'max 3 (mapcar #'pimacs--markdown-table-cell-width column)))
-                         (apply #'cl-mapcar #'list headers rows)))
-         (vertical (if pimacs-markdown-use-unicode-tables "│" "|"))
-         (horizontal (if pimacs-markdown-use-unicode-tables ?─ ?-))
-         (junction (if pimacs-markdown-use-unicode-tables "┼" "|"))
-         (left (if pimacs-markdown-use-unicode-tables "├" "|"))
-         (right (if pimacs-markdown-use-unicode-tables "┤" "|"))
-         (border (concat left
-                         (mapconcat (lambda (width) (make-string (+ width 2) horizontal))
-                                    widths
-                                    junction)
-                         right)))
-    (cl-labels ((row (cells face)
-                  (let ((lines (mapcar #'pimacs--markdown-table-cell-lines cells)))
-                    (mapconcat
-                     (lambda (line)
-                       (concat
-                        (propertize vertical 'face 'pimacs-markdown-table-border-face)
-                        (mapconcat
-                         #'identity
-                         (cl-mapcar
-                          (lambda (cell width alignment)
-                            (concat " " (pimacs--markdown-table-cell cell width face alignment)
-                                    " "
-                                    (propertize vertical 'face 'pimacs-markdown-table-border-face)))
-                          (mapcar (lambda (cell-lines) (or (nth line cell-lines) "")) lines)
-                          widths alignments)
-                         "")
-                        "\n"))
-                     (number-sequence 0 (1- (apply #'max (mapcar #'length lines))))
-                     ""))))
-      (concat (row headers 'pimacs-markdown-table-header-face)
-              (propertize (concat border "\n") 'face 'pimacs-markdown-table-border-face)
-              (mapconcat (lambda (cells) (row cells nil)) rows "")))))
-
-(defun pimacs--markdown-resolve-language-mode (language)
-  (or (cdr (assoc-string (downcase (or language "")) pimacs-markdown-language-aliases t))
-      (let ((mode (intern-soft (concat (downcase (or language "")) "-mode"))))
-        (and mode (fboundp mode) mode))
-      #'fundamental-mode))
-
-(defun pimacs--markdown-fontify-code (code language)
-  (with-temp-buffer
-    (insert code)
-    (let ((inhibit-message t)
-          (mode (pimacs--markdown-resolve-language-mode language)))
-      (condition-case nil
-          (progn
-            (funcall mode)
-            (font-lock-ensure))
-        (error (fundamental-mode)))
-      (let ((text (buffer-string)))
-        (put-text-property 0 (length text) 'face 'pimacs-markdown-code-block-face text)
-        text))))
 
 (defun pimacs--markdown-reset-line (parser)
   (setf (pimacs-markdown-parser-line parser) ""
@@ -1364,6 +1113,9 @@
             (list (list :type type
                         :content-indent (+ indent marker-width))))
       t))))
+
+(defconst pimacs--markdown-list-bullets
+  '("●" "◎" "○" "◆" "◇" "►" "•"))
 
 (defun pimacs--markdown-list-marker (parser type marker)
   (if (eq type 'unordered)
@@ -1817,6 +1569,259 @@
       (pimacs--markdown-close-inline parser))
     (when (eq (pimacs-markdown-parser-line-kind parser) 'heading)
       (pimacs--markdown-parser-end-token parser))))
+
+;;; Markdown Renderer
+
+(defface pimacs-markdown-heading-face
+  '((t :inherit font-lock-function-name-face :weight bold))
+  "Face used for Markdown headings."
+  :group 'pimacs)
+
+(defface pimacs-markdown-inline-code-face
+  '((t :inherit (fixed-pitch font-lock-constant-face)))
+  "Face used for inline code."
+  :group 'pimacs)
+
+(defface pimacs-markdown-bold-face
+  '((t :inherit bold))
+  "Face used for bold text."
+  :group 'pimacs)
+
+(defface pimacs-markdown-italic-face
+  '((t :inherit italic))
+  "Face used for italic text."
+  :group 'pimacs)
+
+(defface pimacs-markdown-strike-through-face
+  '((t :strike-through t))
+  "Face used for Markdown strike-through text."
+  :group 'pimacs)
+
+(defface pimacs-markdown-highlight-face
+  '((t :inherit highlight))
+  "Face used for Markdown highlighted text."
+  :group 'pimacs)
+
+(defface pimacs-markdown-superscript-face
+  '((t :height 0.8 :raise 0.3))
+  "Face used for Markdown superscript text."
+  :group 'pimacs)
+
+(defface pimacs-markdown-subscript-face
+  '((t :height 0.8 :raise -0.2))
+  "Face used for Markdown subscript text."
+  :group 'pimacs)
+
+(defface pimacs-markdown-link-face
+  '((t :inherit link))
+  "Face used for provisional Markdown links."
+  :group 'pimacs)
+
+(defface pimacs-markdown-list-marker-face
+  '((t :inherit shadow :slant normal :weight normal))
+  "Face used for Markdown list markers."
+  :group 'pimacs)
+
+(defface pimacs-markdown-checkbox-face
+  '((t :inherit font-lock-builtin-face))
+  "Face used for Markdown task-list checkboxes."
+  :group 'pimacs)
+
+(defface pimacs-markdown-blockquote-face
+  '((t :inherit font-lock-comment-face))
+  "Face used for Markdown blockquotes."
+  :group 'pimacs)
+
+(defface pimacs-markdown-horizontal-rule-face
+  '((t :inherit shadow))
+  "Face used for Markdown horizontal rules."
+  :group 'pimacs)
+
+(defface pimacs-markdown-code-block-face
+  '((t :inherit fixed-pitch))
+  "Face used as the base face of Markdown code blocks."
+  :group 'pimacs)
+
+(defface pimacs-markdown-table-header-face
+  '((t :inherit fixed-pitch))
+  "Face used for Markdown table headers."
+  :group 'pimacs)
+
+(defface pimacs-markdown-table-border-face
+  '((t :inherit fixed-pitch))
+  "Face used for Markdown table borders."
+  :group 'pimacs)
+
+(defcustom pimacs-markdown-use-unicode-tables t
+  "Whether to render Markdown tables with Unicode borders."
+  :type 'boolean
+  :group 'pimacs)
+
+(defvar pimacs-markdown-language-aliases
+  '(("ocaml" . tuareg-mode)
+    ("elisp" . emacs-lisp-mode)
+    ("ditaa" . artist-mode)
+    ("asymptote" . asy-mode)
+    ("dot" . fundamental-mode)
+    ("sqlite" . sql-mode)
+    ("calc" . fundamental-mode)
+    ("C" . c-mode)
+    ("cpp" . c++-mode)
+    ("C++" . c++-mode)
+    ("screen" . shell-script-mode)
+    ("shell" . sh-mode)
+    ("bash" . sh-mode))
+  "Alist mapping Markdown fence language names to major modes.")
+
+(cl-defstruct pimacs-markdown-context
+  parser
+  content-begin
+  content-end
+  rendered-length)
+
+(defun pimacs--markdown-link-keymap ()
+  (let ((map (make-sparse-keymap)))
+    (define-key map [mouse-2] #'browse-url-at-mouse)
+    (define-key map (kbd "RET") #'browse-url-at-point)
+    map))
+
+(defvar pimacs--markdown-link-keymap (pimacs--markdown-link-keymap))
+
+(defun pimacs--markdown-link-label (source faces url &optional title)
+  (let ((label (pimacs--markdown-render-inline source)))
+    (dotimes (index (length label))
+      (let* ((existing (get-text-property index 'face label))
+             (label-faces (delete-dups
+                           (delq nil
+                                 (append faces
+                                         (if (listp existing) existing (list existing))
+                                         '(pimacs-markdown-link-face))))))
+        (put-text-property
+         index (1+ index) 'face (if (= (length label-faces) 1)
+                                    (car label-faces)
+                                  label-faces)
+         label)))
+    (put-text-property 0 (length label) 'keymap pimacs--markdown-link-keymap label)
+    (put-text-property 0 (length label) 'mouse-face 'highlight label)
+    (put-text-property 0 (length label) 'help-echo url label)
+    (put-text-property 0 (length label) 'follow-link t label)
+    (when title
+      (put-text-property 0 (length label) 'pimacs-markdown-link-title title label))
+    label))
+
+(defun pimacs--markdown-image-label (source faces url &optional title)
+  (let ((label (pimacs--markdown-link-label source faces url title)))
+    (put-text-property 0 (length label) 'pimacs-markdown-image-url url label)
+    label))
+
+(defun pimacs--markdown-autolink-label (url faces)
+  (let ((label (copy-sequence url))
+        (link-faces (delq nil (append faces '(pimacs-markdown-link-face)))))
+    (put-text-property 0 (length label) 'face
+                       (if (= (length link-faces) 1)
+                           (car link-faces)
+                         link-faces)
+                       label)
+    (put-text-property 0 (length label) 'keymap pimacs--markdown-link-keymap label)
+    (put-text-property 0 (length label) 'mouse-face 'highlight label)
+    (put-text-property 0 (length label) 'help-echo url label)
+    (put-text-property 0 (length label) 'follow-link t label)
+    label))
+
+(defun pimacs--markdown-render-inline (text)
+  (let ((parser (pimacs--markdown-parser-new)))
+    (pimacs--markdown-inline-write parser text)
+    (pimacs--markdown-inline-flush-text parser)
+    (pimacs--markdown-inline-flush-pending parser t)
+    (when (pimacs--markdown-provisional-current parser)
+      (pimacs--markdown-close-inline parser))
+    (pimacs--markdown-operations-string
+     (pimacs-markdown-parser-operations parser))))
+
+(defun pimacs--markdown-table-cell-lines (cell)
+  (split-string cell "\n" nil))
+
+(defun pimacs--markdown-table-cell-width (cell)
+  (apply #'max 0 (mapcar #'string-width (pimacs--markdown-table-cell-lines cell))))
+
+(defun pimacs--markdown-table-cell (cell width face alignment)
+  (let ((text (copy-sequence cell))
+        (padding (- width (string-width cell)))
+        (start 0)
+        (end (length cell)))
+    (when face
+      (while (< start end)
+        (let ((next (next-single-property-change start 'face text end)))
+          (unless (get-text-property start 'face text)
+            (put-text-property start next 'face face text))
+          (setq start next))))
+    (pcase alignment
+      ('right (concat (propertize (make-string padding ? ) 'face face) text))
+      ('center (let ((left (/ padding 2)))
+                 (concat (propertize (make-string left ? ) 'face face)
+                         text
+                         (propertize (make-string (- padding left) ? ) 'face face))))
+      (_ (concat text (propertize (make-string padding ? ) 'face face))))))
+
+(defun pimacs--markdown-table-render (state)
+  (let* ((headers (plist-get state :headers))
+         (rows (plist-get state :rows))
+         (alignments (plist-get state :alignments))
+         (widths (mapcar (lambda (column)
+                           (apply #'max 3 (mapcar #'pimacs--markdown-table-cell-width column)))
+                         (apply #'cl-mapcar #'list headers rows)))
+         (vertical (if pimacs-markdown-use-unicode-tables "│" "|"))
+         (horizontal (if pimacs-markdown-use-unicode-tables ?─ ?-))
+         (junction (if pimacs-markdown-use-unicode-tables "┼" "|"))
+         (left (if pimacs-markdown-use-unicode-tables "├" "|"))
+         (right (if pimacs-markdown-use-unicode-tables "┤" "|"))
+         (border (concat left
+                         (mapconcat (lambda (width) (make-string (+ width 2) horizontal))
+                                    widths
+                                    junction)
+                         right)))
+    (cl-labels ((row (cells face)
+                  (let ((lines (mapcar #'pimacs--markdown-table-cell-lines cells)))
+                    (mapconcat
+                     (lambda (line)
+                       (concat
+                        (propertize vertical 'face 'pimacs-markdown-table-border-face)
+                        (mapconcat
+                         #'identity
+                         (cl-mapcar
+                          (lambda (cell width alignment)
+                            (concat " " (pimacs--markdown-table-cell cell width face alignment)
+                                    " "
+                                    (propertize vertical 'face 'pimacs-markdown-table-border-face)))
+                          (mapcar (lambda (cell-lines) (or (nth line cell-lines) "")) lines)
+                          widths alignments)
+                         "")
+                        "\n"))
+                     (number-sequence 0 (1- (apply #'max (mapcar #'length lines))))
+                     ""))))
+      (concat (row headers 'pimacs-markdown-table-header-face)
+              (propertize (concat border "\n") 'face 'pimacs-markdown-table-border-face)
+              (mapconcat (lambda (cells) (row cells nil)) rows "")))))
+
+(defun pimacs--markdown-resolve-language-mode (language)
+  (or (cdr (assoc-string (downcase (or language "")) pimacs-markdown-language-aliases t))
+      (let ((mode (intern-soft (concat (downcase (or language "")) "-mode"))))
+        (and mode (fboundp mode) mode))
+      #'fundamental-mode))
+
+(defun pimacs--markdown-fontify-code (code language)
+  (with-temp-buffer
+    (insert code)
+    (let ((inhibit-message t)
+          (mode (pimacs--markdown-resolve-language-mode language)))
+      (condition-case nil
+          (progn
+            (funcall mode)
+            (font-lock-ensure))
+        (error (fundamental-mode)))
+      (let ((text (buffer-string)))
+        (put-text-property 0 (length text) 'face 'pimacs-markdown-code-block-face text)
+        text))))
 
 (defun pimacs--markdown-operations-string (operations)
   (let ((output ""))
