@@ -1,0 +1,8 @@
+│ Full reference
+@ ^^^^^^^^^^^^^^ link
+│ site
+@ ^^^^ link
+│ other
+@ ^^^^^ link
+│ Inline title
+@ ^^^^^^^^^^^^ link

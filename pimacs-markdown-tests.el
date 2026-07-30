@@ -196,5 +196,35 @@
                             t)))))))))
 
 
+(ert-deftest pimacs-markdown-image-label-has-image-url ()
+  (with-temp-buffer
+    (let ((context (pimacs--markdown-create-context)))
+      (pimacs--markdown-apply-operations
+       context
+       (pimacs--render-markdown-experimental
+        context "![Pimacs](https://example.com/pimacs.png)" nil))
+      (let ((output (buffer-substring (pimacs-markdown-context-content-begin context)
+                                      (pimacs-markdown-context-content-end context))))
+        (should (equal (substring-no-properties output) "Pimacs"))
+        (should (equal (get-text-property 0 'pimacs-markdown-image-url output)
+                       "https://example.com/pimacs.png"))))))
+
+(ert-deftest pimacs-markdown-link-title-is-preserved ()
+  (with-temp-buffer
+    (let ((context (pimacs--markdown-create-context)))
+      (pimacs--markdown-apply-operations
+       context
+       (pimacs--render-markdown-experimental
+        context
+        "[Pimacs][site]\n[site]: https://example.com \"Pimacs website\"\n[Inline](https://example.org 'Inline title')"
+        nil))
+      (let ((output (buffer-substring (pimacs-markdown-context-content-begin context)
+                                      (pimacs-markdown-context-content-end context))))
+        (should (equal (substring-no-properties output) "Pimacs\nInline"))
+        (should (equal (get-text-property 0 'pimacs-markdown-link-title output)
+                       "Pimacs website"))
+        (should (equal (get-text-property 7 'pimacs-markdown-link-title output)
+                       "Inline title"))))))
+
 
 ;;; pimacs-markdown-tests.el ends here
