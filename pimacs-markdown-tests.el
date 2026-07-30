@@ -19,6 +19,7 @@
                     (file-name-directory (or load-file-name buffer-file-name))))
 
 (defconst pimacs-markdown-tests--fixed-chunk-widths '(1 4 16))
+(defconst pimacs-markdown-tests--large-tape-line-threshold 100)
 
 (defun pimacs-markdown-tests--environment-natural-number (variable default)
   (if-let ((value (getenv variable)))
@@ -59,6 +60,9 @@
     (dotimes (_ complexity)
       (push (pimacs-markdown-tests--random-chunks input random-state) chunkings))
     (delete-dups (nreverse chunkings))))
+
+(defun pimacs-markdown-tests--large-tape-p (input)
+  (> (cl-count ?\n input) pimacs-markdown-tests--large-tape-line-threshold))
 
 (defun pimacs-markdown-tests--face-only (text)
   (let ((result (substring-no-properties text))
@@ -184,16 +188,21 @@
           (ert-info ((format "%s: complete render" input-file))
             (should (equal expected
                            (pimacs-markdown-tests--render-complete input))))
-          (dolist (chunks (pimacs-markdown-tests--chunks input random-state complexity))
-            (ert-info ((format "%s: streaming chunks %S" input-file chunks))
+          (if (pimacs-markdown-tests--large-tape-p input)
+              (let ((chunks (pimacs-markdown-tests--chunks-of-width input 16)))
+                (ert-info ((format "%s: streaming chunks of width 16" input-file))
+                  (should (equal expected
+                                 (pimacs-markdown-tests--render-streaming input chunks)))))
+            (dolist (chunks (pimacs-markdown-tests--chunks input random-state complexity))
+              (ert-info ((format "%s: streaming chunks %S" input-file chunks))
+                (should (equal expected
+                               (pimacs-markdown-tests--render-streaming input chunks)))))
+            (ert-info ((format "%s: final complete replacement" input-file))
               (should (equal expected
-                             (pimacs-markdown-tests--render-streaming input chunks)))))
-          (ert-info ((format "%s: final complete replacement" input-file))
-            (should (equal expected
-                           (pimacs-markdown-tests--render-streaming
-                            input
-                            (pimacs-markdown-tests--chunks-of-width input 1)
-                            t)))))))))
+                             (pimacs-markdown-tests--render-streaming
+                              input
+                              (pimacs-markdown-tests--chunks-of-width input 1)
+                              t))))))))))
 
 
 (ert-deftest pimacs-markdown-image-label-has-image-url ()

@@ -1,0 +1,900 @@
+│ Markdown Feature Test Document
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ heading
+│
+│ A comprehensive test document for rendering markdown features.
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Table of Contents
+@ ^^^^^^^^^^^^^^^^^ heading
+│
+│ 1. Headings
+@ ^^^ list-marker
+@    ^^^^^^^^ link
+│ 2. Text Formatting
+@ ^^^ list-marker
+@    ^^^^^^^^^^^^^^^ link
+│ 3. Lists
+@ ^^^ list-marker
+@    ^^^^^ link
+│ 4. Links & Images
+@ ^^^ list-marker
+@    ^^^^^^^^^^^^^^ link
+│ 5. Code
+@ ^^^ list-marker
+@    ^^^^ link
+│ 6. Tables
+@ ^^^ list-marker
+@    ^^^^^^ link
+│ 7. Blockquotes
+@ ^^^ list-marker
+@    ^^^^^^^^^^^ link
+│ 8. Horizontal Rules
+@ ^^^ list-marker
+@    ^^^^^^^^^^^^^^^^ link
+│ 9. Task Lists
+@ ^^^ list-marker
+@    ^^^^^^^^^^ link
+│ 10. Footnotes
+@ ^^^^ list-marker
+@     ^^^^^^^^^ link
+│ 11. Definition Lists
+@ ^^^^ list-marker
+@     ^^^^^^^^^^^^^^^^ link
+│ 12. Math
+@ ^^^^ list-marker
+@     ^^^^ link
+│ 13. HTML Embedding
+@ ^^^^ list-marker
+@     ^^^^^^^^^^^^^^ link
+│ 14. Admonitions/Callouts
+@ ^^^^ list-marker
+@     ^^^^^^^^^^^^^^^^^^^^ link
+│ 15. Mermaid Diagrams
+@ ^^^^ list-marker
+@     ^^^^^^^^^^^^^^^^ link
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Headings
+@ ^^^^^^^^ heading
+│
+│ Heading 1 (H1)
+@ ^^^^^^^^^^^^^^ heading
+│ Heading 2 (H2)
+@ ^^^^^^^^^^^^^^ heading
+│ Heading 3 (H3)
+@ ^^^^^^^^^^^^^^ heading
+│ Heading 4 (H4)
+@ ^^^^^^^^^^^^^^ heading
+│ Heading 5 (H5)
+@ ^^^^^^^^^^^^^^ heading
+│ Heading 6 (H6)
+@ ^^^^^^^^^^^^^^ heading
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Text Formatting
+@ ^^^^^^^^^^^^^^^ heading
+│
+│ Bold text (double asterisk)
+@ ^^^^^^^^^ bold
+│ Bold text (double underscore)
+@ ^^^^^^^^^ bold
+│
+│ Italic text (single asterisk)
+@ ^^^^^^^^^^^ italic
+│ Italic text (single underscore)
+@ ^^^^^^^^^^^ italic
+│
+│ Bold and Italic (triple asterisk)
+@ ^^^^^^^^^^^^^^^ italic
+@ ^^^^^^^^^^^^^^^ bold
+│ Bold and Italic (triple underscore)
+@ ^^^^^^^^^^^^^^^ italic
+@ ^^^^^^^^^^^^^^^ bold
+│
+│ Strikethrough (tilde)
+@ ^^^^^^^^^^^^^ strike-through
+│
+│ Highlighted text (equal signs - GitHub Flavored)
+@ ^^^^^^^^^^^^^^^^ highlight
+│
+│ Superscript
+@ ^^^^^^^^^^^ superscript
+│ Subscript
+@ ^^^^^^^^^ subscript
+│
+│ Inline code (backticks)
+@ ^^^^^^^^^^^ inline-code
+│
+│ Note: Some renderers may not support all extensions equally.
+@ ^^^^ bold
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Lists
+@ ^^^^^ heading
+│
+│ Unordered Lists
+@ ^^^^^^^^^^^^^^^ heading
+│
+│ ● Item 1
+@ ^^ list-marker
+│ ● Item 2
+@ ^^ list-marker
+│   ◎ Nested item 2a
+@   ^^ list-marker
+│   ◎ Nested item 2b
+@   ^^ list-marker
+│     ○ Deep nested item
+@     ^^ list-marker
+│   ◎ Nested item 2c
+@   ^^ list-marker
+│ ● Item 3
+@ ^^ list-marker
+│
+│ ● Alternative bullet (asterisk)
+@ ^^ list-marker
+│ ● Alternative bullet (plus)
+@ ^^ list-marker
+│ ● Alternative bullet (dash)
+@ ^^ list-marker
+│
+│ Ordered Lists
+@ ^^^^^^^^^^^^^ heading
+│
+│ 1. First item
+@ ^^^ list-marker
+│ 2. Second item
+@ ^^^ list-marker
+│   1. Nested ordered item
+@   ^^^ list-marker
+│   2. Another nested item
+@   ^^^ list-marker
+│ 3. Third item
+@ ^^^ list-marker
+│ 4. Fourth item
+@ ^^^ list-marker
+│
+│ Mixed Lists
+@ ^^^^^^^^^^^ heading
+│
+│ 5. Ordered item
+@ ^^^ list-marker
+│   ◎ Unordered nested
+@   ^^ list-marker
+│   ◎ Another unordered
+@   ^^ list-marker
+│ 6. Next ordered
+@ ^^^ list-marker
+│   1. Ordered nested
+@   ^^^ list-marker
+│   2. Another ordered
+@   ^^^ list-marker
+│
+│ List with Paragraphs
+@ ^^^^^^^^^^^^^^^^^^^^ heading
+│
+│ ● Item with multiple paragraphs
+@ ^^ list-marker
+│
+│ This is a second paragraph in the same list item.
+│
+│ ● Another item
+@ ^^ list-marker
+│   ◎ With a nested list
+@   ^^ list-marker
+│     ○ And deeper nesting
+@     ^^ list-marker
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Links & Images
+@ ^^^^^^^^^^^^^^ heading
+│
+│ Links
+@ ^^^^^ heading
+│
+│ Simple link
+@ ^^^^^^^^^^^ link
+│
+│ Link with title
+@ ^^^^^^^^^^^^^^^ link
+│
+│ Reference-style link
+@ ^^^^^^^^^^^^^^^^^^^^ link
+│
+│ Relative link
+@ ^^^^^^^^^^^^^ link
+│
+│ Email link
+@ ^^^^^^^^^^ link
+│
+│ Anchor link
+@ ^^^^^^^^^^^ link
+│
+│
+│ Images
+@ ^^^^^^ heading
+│
+│ Alt text
+@ ^^^^^^^^ link
+│
+│ ![Reference-style link title tooltip")
+│
+│ Reference-style image
+@ ^^^^^^^^^^^^^^^^^^^^^ link
+│
+│
+│ Linked Images
+@ ^^^^^^^^^^^^^ heading
+│
+│ Alt text
+@ ^^^^^^^^ link
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Code
+@ ^^^^ heading
+│
+│ Inline Code
+@ ^^^^^^^^^^^ heading
+│
+│ Use console.log("hello") to print to console.
+@     ^^^^^^^^^^^^^^^^^^^^ inline-code
+│
+│ Fenced Code Blocks
+@ ^^^^^^^^^^^^^^^^^^ heading
+│
+│ // JavaScript example
+@ ^^^^^^^^^^^^^^^^^^^^^ code-block
+│ function greet(name) {
+@ ^^^^^^^^^^^^^^^^^^^^^^ code-block
+│   console.log(`Hello, ${name}!`);
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│ }
+@ ^ code-block
+│
+│ greet("World");
+@ ^^^^^^^^^^^^^^^ code-block
+│
+│ # Python example
+@ ^^^^^^^^^^^^^^^^ code-block
+│ def fibonacci(n):
+@ ^^^^^^^^^^^^^^^^^ code-block
+│     a, b = 0, 1
+@ ^^^^^^^^^^^^^^^ code-block
+│     for _ in range(n):
+@ ^^^^^^^^^^^^^^^^^^^^^^ code-block
+│         yield a
+@ ^^^^^^^^^^^^^^^ code-block
+│         a, b = b, a + b
+@ ^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│
+│ print(list(fibonacci(10)))
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│
+│ // Rust example
+@ ^^^^^^^^^^^^^^^ code-block
+│ fn main() {
+@ ^^^^^^^^^^^ code-block
+│     let numbers = vec![1, 2, 3, 4, 5];
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│     let doubled: Vec<i32> = numbers.iter().map(|x| x * 2).collect();
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│     println!("{:?}", doubled);
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│ }
+@ ^ code-block
+│
+│ # Shell commands
+@ ^^^^^^^^^^^^^^^^ code-block
+│ $ echo "Hello World"
+@ ^^^^^^^^^^^^^^^^^^^^ code-block
+│ $ ls -la
+@ ^^^^^^^^ code-block
+│ $ npm install
+@ ^^^^^^^^^^^^^ code-block
+│
+│ {
+@ ^ code-block
+│   "name": "example",
+@ ^^^^^^^^^^^^^^^^^^^^ code-block
+│   "version": "1.0.0",
+@ ^^^^^^^^^^^^^^^^^^^^^ code-block
+│   "dependencies": {
+@ ^^^^^^^^^^^^^^^^^^^ code-block
+│     "lodash": "^4.17.21"
+@ ^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│   }
+@ ^^^ code-block
+│ }
+@ ^ code-block
+│
+│ Indented Code Blocks (4 spaces)
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ heading
+│
+│ // This is an indented code block
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│ function oldStyle() {
+@ ^^^^^^^^^^^^^^^^^^^^^ code-block
+│     return "indented";
+@ ^^^^^^^^^^^^^^^^^^^^^^ code-block
+│ }
+@ ^ code-block
+│
+│ Code Block with Line Numbers (if supported)
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ heading
+│
+│ function highlightLines() {
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│   const a = 1; // Line 1
+@ ^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│   const b = 2; // Line 2
+@ ^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│   const c = 3; // Line 3 (highlighted)
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│   const d = 4; // Line 4 (highlighted)
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│   const e = 5; // Line 5 (highlighted)
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│   return a + b + c + d + e;
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│ }
+@ ^ code-block
+│
+│ Diff Code Blocks
+@ ^^^^^^^^^^^^^^^^ heading
+│
+│ - const oldValue = 'deprecated';
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│ + const newValue = 'improved';
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│   const unchanged = 'same';
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Tables
+@ ^^^^^^ heading
+│
+│ Basic Table
+@ ^^^^^^^^^^^ heading
+│
+│ │ Column 1 │ Column 2 │ Column 3 │
+@ ^ table-border
+@            ^ table-border
+@                       ^ table-border
+@                                  ^ table-border
+@   ^^^^^^^^ table-header
+@              ^^^^^^^^ table-header
+@                         ^^^^^^^^ table-header
+│ ├──────────┼──────────┼──────────┤
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ table-border
+│ │ Row 1    │ Data     │ More     │
+@ ^ table-border
+@            ^ table-border
+@                       ^ table-border
+@                                  ^ table-border
+│ │ Row 2    │ Data     │ More     │
+@ ^ table-border
+@            ^ table-border
+@                       ^ table-border
+@                                  ^ table-border
+│ │ Row 3    │ Data     │ More     │
+@ ^ table-border
+@            ^ table-border
+@                       ^ table-border
+@                                  ^ table-border
+│
+│ Table with Alignment
+@ ^^^^^^^^^^^^^^^^^^^^ heading
+│
+│ │ Left Aligned │ Center Aligned │ Right Aligned │
+@ ^ table-border
+@                ^ table-border
+@                                 ^ table-border
+@                                                 ^ table-border
+@   ^^^^^^^^^^^^ table-header
+@                  ^^^^^^^^^^^^^^ table-header
+@                                   ^^^^^^^^^^^^^ table-header
+│ ├──────────────┼────────────────┼───────────────┤
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ table-border
+│ │ Left         │     Center     │         Right │
+@ ^ table-border
+@                ^ table-border
+@                                 ^ table-border
+@                                                 ^ table-border
+│ │ Data         │      Data      │          Data │
+@ ^ table-border
+@                ^ table-border
+@                                 ^ table-border
+@                                                 ^ table-border
+│ │ More         │      Text      │       Numbers │
+@ ^ table-border
+@                ^ table-border
+@                                 ^ table-border
+@                                                 ^ table-border
+│
+│ Complex Table
+@ ^^^^^^^^^^^^^ heading
+│
+│ │ Feature          │ Supported │ Notes                    │
+@ ^ table-border
+@                    ^ table-border
+@                                ^ table-border
+@                                                           ^ table-border
+@   ^^^^^^^^^^^^^^^^ table-header
+@                      ^^^^^^^^^ table-header
+@                                  ^^^^^^^^^^^^^^^^^^^^^^^^ table-header
+│ ├──────────────────┼───────────┼──────────────────────────┤
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ table-border
+│ │ Headers          │    ✅     │ Standard                 │
+@ ^ table-border
+@                    ^ table-border
+@                               ^ table-border
+@                                                          ^ table-border
+│ │ Alignment        │    ✅     │ Left/Center/Right        │
+@ ^ table-border
+@                    ^ table-border
+@                               ^ table-border
+@                                                          ^ table-border
+│ │ Multi-line cells │     ⚠️     │ Limited support          │
+@ ^ table-border
+@                    ^ table-border
+@                                 ^ table-border
+@                                                            ^ table-border
+│ │ Colspan/Rowspan  │    ❌     │ Not in standard Markdown │
+@ ^ table-border
+@                    ^ table-border
+@                               ^ table-border
+@                                                          ^ table-border
+│ │ HTML in cells    │    ✅     │ If enabled               │
+@ ^ table-border
+@                    ^ table-border
+@                               ^ table-border
+@                                                          ^ table-border
+│
+│ Table with Code and Formatting
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ heading
+│
+│ │ Language │ Example      │ Bold │ Italic │
+@ ^ table-border
+@            ^ table-border
+@                           ^ table-border
+@                                  ^ table-border
+@                                           ^ table-border
+@   ^^^^^^^^ table-header
+@              ^^^^^^^^^^^^ table-header
+@                             ^^^^ bold
+@                                    ^^^^^^ italic
+│ ├──────────┼──────────────┼──────┼────────┤
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ table-border
+│ │ JS       │ const x = 1; │ Yes  │ Yes    │
+@ ^ table-border
+@            ^ table-border
+@                           ^ table-border
+@                                  ^ table-border
+@                                           ^ table-border
+@              ^^^^^^^^^^^^ inline-code
+@                             ^^^ bold
+@                                    ^^^ italic
+│ │ Python   │ x = 1        │ Yes  │ Yes    │
+@ ^ table-border
+@            ^ table-border
+@                           ^ table-border
+@                                  ^ table-border
+@                                           ^ table-border
+@              ^^^^^ inline-code
+@                             ^^^ bold
+@                                    ^^^ italic
+│ │ Rust     │ let x = 1;   │ Yes  │ Yes    │
+@ ^ table-border
+@            ^ table-border
+@                           ^ table-border
+@                                  ^ table-border
+@                                           ^ table-border
+@              ^^^^^^^^^^ inline-code
+@                             ^^^ bold
+@                                    ^^^ italic
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Blockquotes
+@ ^^^^^^^^^^^ heading
+│
+│ Simple blockquote
+@ ^^^^^^^^^^^^^^^^^ blockquote
+│
+│ Multiple paragraphs in a blockquote.
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ Blockquote with formatting
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^ bold
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ ● List item 1
+@ ^^ list-marker
+@ ^^^^^^^^^^^^^ blockquote
+│ ● List item 2
+@ ^^ list-marker
+@ ^^^^^^^^^^^^^ blockquote
+│
+│ Nested blockquote
+@ ^^^^^^^^^^^^^^^^^ blockquote
+│
+│ Deep nesting
+@ ^^^^^^^^^^^^ blockquote
+│
+│ Blockquote with Heading
+@ ^^^^^^^^^^^^^^^^^^^^^^^ heading
+@ ^^^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ Content here.
+@ ^^^^^^^^^^^^^ blockquote
+│
+│ [!NOTE]
+@ ^^^^^^^ blockquote
+│ This is a GitHub-style callout (note)
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ [!WARNING]
+@ ^^^^^^^^^^ blockquote
+│ This is a warning callout
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ [!TIP]
+@ ^^^^^^ blockquote
+│ This is a tip callout
+@ ^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ [!IMPORTANT]
+@ ^^^^^^^^^^^^ blockquote
+│ This is an important callout
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Horizontal Rules
+@ ^^^^^^^^^^^^^^^^ heading
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Task Lists
+@ ^^^^^^^^^^ heading
+│
+│ ● ☑ Completed task
+@ ^^ list-marker
+@   ^ checkbox
+│ ● ☐ Incomplete task
+@ ^^ list-marker
+@   ^ checkbox
+│ ● ☑ Another completed task
+@ ^^ list-marker
+@   ^ checkbox
+│   ◎ ☐ Nested incomplete
+@   ^^ list-marker
+@     ^ checkbox
+│   ◎ ☑ Nested complete
+@   ^^ list-marker
+@     ^ checkbox
+│ ● ☐ Task with bold and italic
+@ ^^ list-marker
+@   ^ checkbox
+@               ^^^^ bold
+@                        ^^^^^^ italic
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Footnotes
+@ ^^^^^^^^^ heading
+│
+│ Here's a sentence with a footnote[^1].
+│
+│ Another sentence with a different footnote[^longnote].
+│
+│ [^1]: This is the first footnote.
+│
+│ [^longnote]: This is a longer footnote with multiple paragraphs.
+│
+│ Indented paragraph in the footnote.
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│
+│ Another paragraph.
+@ ^^^^^^^^^^^^^^^^^^ code-block
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Definition Lists
+@ ^^^^^^^^^^^^^^^^ heading
+│
+│ Term 1
+│ : Definition for term 1
+│
+│ Term 2
+│ : Definition for term 2
+│ : Another definition for term 2
+│
+│ Term 3
+│ : Definition with multiple paragraphs.
+│
+│ Second paragraph.
+@ ^^^^^^^^^^^^^^^^^ code-block
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Math
+@ ^^^^ heading
+│
+│ Inline Math
+@ ^^^^^^^^^^^ heading
+│
+│ The quadratic formula is $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$.
+│
+│ Euler's identity: $e^{i\pi} + 1 = 0$.
+│
+│ Block Math
+@ ^^^^^^^^^^ heading
+│
+│ $$
+│ \int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+│ $$
+│
+│ $$
+│ \begin{aligned}
+│ \nabla \times \vec{E} &= -\frac{\partial \vec{B}}{\partial t} \
+│ \nabla \times \vec{B} &= \mu0 \vec{J} + \mu0 \epsilon_0 \frac{\partial
+@                             ^^^^^^^^^^^^^^^ italic
+│ \vec{E}}{\partial t}
+│ \end{aligned}
+│ $$
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ HTML Embedding
+@ ^^^^^^^^^^^^^^ heading
+│
+│ <div style="background-color: #f0f0f0; padding: 10px; border-radius:
+│ 5px;">
+│  <strong>Custom HTML div</strong> with inline styles.
+│ </div>
+│
+│ <details>
+│ <summary>Click to expand</summary>
+│ This content is hidden by default.
+│ </details>
+│
+│ <kbd>Ctrl</kbd> + <kbd>C</kbd> to copy
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Admonitions/Callouts
+@ ^^^^^^^^^^^^^^^^^^^^ heading
+│
+│ [!NOTE]
+@ ^^^^^^^ blockquote
+│ Useful information that users should know, even when skimming.
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ [!TIP]
+@ ^^^^^^ blockquote
+│ Helpful advice for doing things better or more easily.
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ [!IMPORTANT]
+@ ^^^^^^^^^^^^ blockquote
+│ Key information users need to know to achieve their goal.
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ [!WARNING]
+@ ^^^^^^^^^^ blockquote
+│ Urgent info that needs immediate attention to avoid problems.
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ [!CAUTION]
+@ ^^^^^^^^^^ blockquote
+│ Risks or negative consequences of certain actions.
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ [!NOTE]
+@ ^^^^^^^ blockquote
+│ Admonition with Title
+@ ^^^^^^^^^^^^^^^^^^^^^ heading
+@ ^^^^^^^^^^^^^^^^^^^^^ blockquote
+│
+│ Content with formatting, code, and links.
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ blockquote
+@              ^^^^^^^^^^ bold
+@                          ^^^^ inline-code
+@                                    ^^^^^ link
+│
+│ ● List item 1
+@ ^^ list-marker
+@ ^^^^^^^^^^^^^ blockquote
+│ ● List item 2
+@ ^^ list-marker
+@ ^^^^^^^^^^^^^ blockquote
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Mermaid Diagrams
+@ ^^^^^^^^^^^^^^^^ heading
+│
+│ Flowchart
+@ ^^^^^^^^^ heading
+│
+│ flowchart TD
+@ ^^^^^^^^^^^^ code-block
+│     A[Start] --> B{Decision}
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│     B -->|Yes| C[Action 1]
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│     B -->|No| D[Action 2]
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│     C --> E[End]
+@ ^^^^^^^^^^^^^^^^ code-block
+│     D --> E
+@ ^^^^^^^^^^^ code-block
+│
+│ Sequence Diagram
+@ ^^^^^^^^^^^^^^^^ heading
+│
+│ sequenceDiagram
+@ ^^^^^^^^^^^^^^^ code-block
+│     participant Alice
+@ ^^^^^^^^^^^^^^^^^^^^^ code-block
+│     participant Bob
+@ ^^^^^^^^^^^^^^^^^^^ code-block
+│     Alice->>Bob: Hello Bob!
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│     Bob-->>Alice: Hi Alice!
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│     Note right of Bob: Bob thinks
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│     Bob->>Alice: How are you?
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│
+│ Class Diagram
+@ ^^^^^^^^^^^^^ heading
+│
+│ classDiagram
+@ ^^^^^^^^^^^^ code-block
+│     Animal <|-- Dog
+@ ^^^^^^^^^^^^^^^^^^^ code-block
+│     Animal <|-- Cat
+@ ^^^^^^^^^^^^^^^^^^^ code-block
+│     Animal: +name: String
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│     Animal: +makeSound()
+@ ^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│     Dog: +breed: String
+@ ^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│     Cat: +color: String
+@ ^^^^^^^^^^^^^^^^^^^^^^^ code-block
+│
+│ Git Graph
+@ ^^^^^^^^^ heading
+│
+│ gitGraph
+@ ^^^^^^^^ code-block
+│     commit
+@ ^^^^^^^^^^ code-block
+│     branch develop
+@ ^^^^^^^^^^^^^^^^^^ code-block
+│     commit
+@ ^^^^^^^^^^ code-block
+│     commit
+@ ^^^^^^^^^^ code-block
+│     checkout main
+@ ^^^^^^^^^^^^^^^^^ code-block
+│     merge develop
+@ ^^^^^^^^^^^^^^^^^ code-block
+│     commit
+@ ^^^^^^^^^^ code-block
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Additional Edge Cases
+@ ^^^^^^^^^^^^^^^^^^^^^ heading
+│
+│ Escaping Characters
+@ ^^^^^^^^^^^^^^^^^^^ heading
+│
+│ *Not italic*
+│ # Not a heading
+│ [Not a link](http://example.com)
+│ `Not code`
+│
+│ Unicode & Special Characters
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ heading
+│
+│ Emoji: 🎉 🚀 💻 🎯 ✨
+│
+│ Arrows: ← ↑ → ↓ ↔ ⇐ ⇑ ⇒ ⇓ ⇔
+│
+│ Symbols: © ® ™ § ¶ † ‡ • … ‰ ′ ″
+│
+│ Math: ∑ ∏ ∫ ∂ √ ∞ ≈ ≠ ≤ ≥ ± ÷ ×
+│
+│ Very Long Line Test
+@ ^^^^^^^^^^^^^^^^^^^ heading
+│
+│ This is a very long line that should test how the renderer handles
+│ text wrapping and horizontal scrolling when the content exceeds the
+│ viewport width. It contains no natural break points and should
+│ demonstrate whether the renderer implements proper word wrapping or
+│ requires horizontal scrolling.
+│
+│ Empty Elements
+@ ^^^^^^^^^^^^^^ heading
+│
+│ Paragraph before empty line.
+│
+│ Paragraph after empty line.
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Raw HTML Blocks
+@ ^^^^^^^^^^^^^^^ heading
+│
+│ <table>
+│  <tr>
+│ <th>HTML Table</th>
+@ ^^^^^^^^^^^^^^^^^^^ code-block
+│ <th>Header 2</th>
+@ ^^^^^^^^^^^^^^^^^ code-block
+│ </tr>
+│  <tr>
+│ <td>Cell 1</td>
+@ ^^^^^^^^^^^^^^^ code-block
+│ <td>Cell 2</td>
+@ ^^^^^^^^^^^^^^^ code-block
+│ </tr>
+│ </table>
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ Comments
+@ ^^^^^^^^ heading
+│
+│ <!-- This is an HTML comment -->
+│ <!--
+│  Multi-line comment
+│  spanning multiple lines
+│ -->
+│
+│ ────────────────────────────────────────────────────────────────────────────────
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
+│
+│ End of test document. Generated for markdown rendering verification.
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ italic

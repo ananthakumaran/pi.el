@@ -41,7 +41,10 @@
   table-state
   provisional
   operations
+  operations-tail
+  append-chunks
   output-length
+  source
   line
   line-output-start
   line-kind
@@ -58,8 +61,8 @@
 (defun pimacs--markdown-parser-new ()
   (make-pimacs-markdown-parser
    :tokens nil :text "" :pending "" :spaces nil :indent 0 :indent-length 0
-   :table-state nil :blockquote-index 0 :provisional nil :operations nil :output-length 0
-   :line "" :line-output-start 0 :line-kind nil :prefix "" :at-line-start t
+   :table-state nil :blockquote-index 0 :provisional nil :operations nil :operations-tail nil
+   :append-chunks nil :output-length 0 :source nil :line "" :line-output-start 0 :line-kind nil :prefix "" :at-line-start t
    :paragraph-start t :autolink-boundary t))
 
 (defun pimacs--markdown-reference-id (identifier)
@@ -118,34 +121,66 @@
                                     (plist-get definition :title))
     t))
 
+(defun pimacs--markdown-parser-emit-operation (parser operation)
+  (let ((node (list operation)))
+    (if-let ((tail (pimacs-markdown-parser-operations-tail parser)))
+        (setcdr tail node)
+      (setf (pimacs-markdown-parser-operations parser) node))
+    (setf (pimacs-markdown-parser-operations-tail parser) node)))
+
+(defun pimacs--markdown-parser-flush-append (parser)
+  (when-let ((chunks (pimacs-markdown-parser-append-chunks parser)))
+    (setf (pimacs-markdown-parser-append-chunks parser) nil)
+    (pimacs--markdown-parser-emit-operation
+     parser
+     (list :append
+           (if (null (cdr chunks))
+               (car chunks)
+             (apply #'concat (nreverse chunks)))))))
+
 (defun pimacs--markdown-parser-emit (parser operation)
-  (let ((operations (pimacs-markdown-parser-operations parser)))
-    (if (and (eq (car operation) :append)
-             operations
-             (eq (caar (last operations)) :append))
-        (setf (cadr (car (last operations)))
-              (concat (cadr (car (last operations))) (cadr operation)))
-      (setf (pimacs-markdown-parser-operations parser)
-            (append operations (list operation)))))
   (pcase operation
     (`(:append ,text)
+     (push text (pimacs-markdown-parser-append-chunks parser))
      (cl-incf (pimacs-markdown-parser-output-length parser) (length text)))
     (`(:delete ,count)
+     (pimacs--markdown-parser-flush-append parser)
+     (pimacs--markdown-parser-emit-operation parser operation)
      (cl-decf (pimacs-markdown-parser-output-length parser) count))))
 
+(defun pimacs--markdown-parser-paragraph-p (parser)
+  (and (not (pimacs-markdown-parser-indented-code parser))
+       (not (pimacs-markdown-parser-fence parser))
+       (not (pimacs-markdown-parser-table-state parser))
+       (not (memq (pimacs-markdown-parser-line-kind parser)
+                  '(fence-open heading list reference-definition table-candidate)))
+       (let ((tokens (pimacs-markdown-parser-tokens parser)))
+         (while (and tokens
+                     (not (memq (plist-get (car tokens) :kind)
+                                '(heading horizontal-rule indented-code))))
+           (setq tokens (cdr tokens)))
+         (null tokens))))
+
 (defun pimacs--markdown-parser-faces (parser)
-  (delq nil (mapcar (lambda (token) (plist-get token :face))
-                    (reverse (pimacs-markdown-parser-tokens parser)))))
+  (when-let ((tokens (pimacs-markdown-parser-tokens parser)))
+    (if (null (cdr tokens))
+        (when-let ((face (plist-get (car tokens) :face)))
+          (list face))
+      (delq nil (mapcar (lambda (token) (plist-get token :face))
+                        (reverse tokens))))))
 
 (defun pimacs--markdown-parser-append (parser text &optional properties)
   (when (not (string-empty-p text))
-    (let ((faces (pimacs--markdown-parser-faces parser)))
+    (let ((faces (pimacs--markdown-parser-faces parser))
+          (paragraph (pimacs--markdown-parser-paragraph-p parser)))
       (when faces
         (setq text (propertize text 'face (if (= (length faces) 1)
                                               (car faces)
                                             faces))))
       (when properties
         (setq text (apply #'propertize text properties)))
+      (when paragraph
+        (put-text-property 0 (length text) 'pimacs-markdown-paragraph t text))
       (pimacs--markdown-parser-emit parser (list :append text))
       (setf (pimacs-markdown-parser-autolink-boundary parser)
             (memq (aref text (1- (length text))) '(?\s ?\t ?\n))))))
@@ -1521,53 +1556,103 @@
     (pimacs--markdown-root-char parser (aref delta index))))
 
 (defun pimacs--markdown-parser-finish (parser final-p)
-  (when final-p
-    (when (eq (pimacs-markdown-parser-line-kind parser) 'reference-definition)
-      (pimacs--markdown-finish-reference-definition
-       parser (pimacs-markdown-parser-line parser) nil)
-      (pimacs--markdown-reset-line parser))
-    (when (pimacs-markdown-parser-indented-code parser)
-      (pimacs--markdown-close-indented-code parser))
-    (when-let ((fence (pimacs-markdown-parser-fence parser)))
-      (when (not (string-empty-p (pimacs-markdown-parser-line parser)))
-        (if (plist-get fence :opening)
-            (progn
-              (when (string-match "\\`[ \t]*[`~]+\\(?:[ \t]+\\([^ \t\n]+\\)\\)?"
-                                  (pimacs-markdown-parser-line parser))
-                (setf (plist-get fence :language)
-                      (match-string 1 (pimacs-markdown-parser-line parser))))
-              (setf (plist-get fence :opening) nil))
-          (pimacs--markdown-finish-fence-line
-           parser (pimacs-markdown-parser-line parser))))
-      (when (pimacs-markdown-parser-fence parser)
-        (pimacs--markdown-render-fence parser))
-      (pimacs--markdown-reset-line parser))
-    (when (and (pimacs-markdown-parser-table-state parser)
-               (not (string-empty-p (pimacs-markdown-parser-line parser))))
-      (pimacs--markdown-finish-table-line parser (pimacs-markdown-parser-line parser) nil)
-      (pimacs--markdown-reset-line parser))
-    (when (and (pimacs-markdown-parser-at-line-start parser)
-               (not (string-empty-p (pimacs-markdown-parser-prefix parser))))
-      (let ((prefix (pimacs-markdown-parser-prefix parser)))
-        (cond
-         ((pimacs--markdown-horizontal-rule-p prefix)
-          (pimacs--markdown-render-horizontal-rule parser nil)
-          (pimacs--markdown-reset-line parser))
-         ((pimacs--markdown-activate-list-prefix parser prefix))
-         (t
-          (pimacs--markdown-prefix-flush parser)))))
-    (pimacs--markdown-task-flush parser)
-    (pimacs--markdown-inline-flush-text parser)
-    (pimacs--markdown-inline-flush-pending parser t)
-    (when-let ((candidate (pimacs--markdown-provisional-current parser)))
-      (when (and (memq (plist-get candidate :kind) '(link image))
-                 (eq (plist-get candidate :stage) 'after-label))
-        (pimacs--markdown-link-resolve-reference
-         parser candidate (plist-get candidate :label))))
-    (when (pimacs--markdown-provisional-current parser)
-      (pimacs--markdown-close-inline parser))
-    (when (eq (pimacs-markdown-parser-line-kind parser) 'heading)
-      (pimacs--markdown-parser-end-token parser))))
+  (catch 'finished
+    (when (and final-p (pimacs-markdown-parser-source parser))
+      (let* ((source (apply #'concat
+                            (nreverse (pimacs-markdown-parser-source parser))))
+             (complete (pimacs--markdown-parser-new)))
+        (setf (pimacs-markdown-parser-source parser) nil)
+        (pimacs--markdown-parser-collect-reference-definitions complete source)
+        (pimacs--markdown-parser-write complete source)
+        (pimacs--markdown-parser-finish complete t)
+        (pimacs--markdown-parser-delete
+         parser (pimacs-markdown-parser-output-length parser))
+        (pimacs--markdown-parser-emit
+         parser
+         (list :append
+               (pimacs--markdown-operations-string
+                (pimacs-markdown-parser-operations complete))))
+        (pimacs--markdown-parser-flush-append parser)
+        (throw 'finished nil)))
+    (when final-p
+      (when (eq (pimacs-markdown-parser-line-kind parser) 'reference-definition)
+        (pimacs--markdown-finish-reference-definition
+         parser (pimacs-markdown-parser-line parser) nil)
+        (pimacs--markdown-reset-line parser))
+      (when (pimacs-markdown-parser-indented-code parser)
+        (pimacs--markdown-close-indented-code parser))
+      (when-let ((fence (pimacs-markdown-parser-fence parser)))
+        (when (not (string-empty-p (pimacs-markdown-parser-line parser)))
+          (if (plist-get fence :opening)
+              (progn
+                (when (string-match "\\`[ \t]*[`~]+\\(?:[ \t]+\\([^ \t\n]+\\)\\)?"
+                                    (pimacs-markdown-parser-line parser))
+                  (setf (plist-get fence :language)
+                        (match-string 1 (pimacs-markdown-parser-line parser))))
+                (setf (plist-get fence :opening) nil))
+            (pimacs--markdown-finish-fence-line
+             parser (pimacs-markdown-parser-line parser))))
+        (when (pimacs-markdown-parser-fence parser)
+          (pimacs--markdown-render-fence parser))
+        (pimacs--markdown-reset-line parser))
+      (when (and (pimacs-markdown-parser-table-state parser)
+                 (not (string-empty-p (pimacs-markdown-parser-line parser))))
+        (pimacs--markdown-finish-table-line parser (pimacs-markdown-parser-line parser) nil)
+        (pimacs--markdown-reset-line parser))
+      (when (and (pimacs-markdown-parser-at-line-start parser)
+                 (not (string-empty-p (pimacs-markdown-parser-prefix parser))))
+        (let ((prefix (pimacs-markdown-parser-prefix parser)))
+          (cond
+           ((pimacs--markdown-horizontal-rule-p prefix)
+            (pimacs--markdown-render-horizontal-rule parser nil)
+            (pimacs--markdown-reset-line parser))
+           ((pimacs--markdown-activate-list-prefix parser prefix))
+           (t
+            (pimacs--markdown-prefix-flush parser)))))
+      (pimacs--markdown-task-flush parser)
+      (pimacs--markdown-inline-flush-text parser)
+      (pimacs--markdown-inline-flush-pending parser t)
+      (when-let ((candidate (pimacs--markdown-provisional-current parser)))
+        (when (and (memq (plist-get candidate :kind) '(link image))
+                   (eq (plist-get candidate :stage) 'after-label))
+          (pimacs--markdown-link-resolve-reference
+           parser candidate (plist-get candidate :label))))
+      (when (pimacs--markdown-provisional-current parser)
+        (pimacs--markdown-close-inline parser))
+      (when (eq (pimacs-markdown-parser-line-kind parser) 'heading)
+        (pimacs--markdown-parser-end-token parser))
+      (pimacs--markdown-parser-wrap-paragraphs parser)
+      (pimacs--markdown-parser-flush-append parser))))
+
+(defun pimacs--markdown-wrap-paragraph-line (text begin end)
+  (when (text-property-any begin end 'pimacs-markdown-paragraph t text)
+    (let ((column 0)
+          break
+          break-column)
+      (cl-loop for position from begin below end
+               for character = (aref text position)
+               do (cl-incf column (char-width character))
+               if (memq character '(?\s ?\t))
+               do (setq break position
+                        break-column column)
+               when (and (> column fill-column) break)
+               do (aset text break ?\n)
+               and do (setq column (- column break-column)
+                            break nil)))))
+
+(defun pimacs--markdown-parser-wrap-paragraphs (parser)
+  (pimacs--markdown-parser-flush-append parser)
+  (let ((rendered (copy-sequence
+                   (pimacs--markdown-operations-string
+                    (pimacs-markdown-parser-operations parser))))
+        (begin 0))
+    (while (string-match "\n" rendered begin)
+      (pimacs--markdown-wrap-paragraph-line rendered begin (match-beginning 0))
+      (setq begin (match-end 0)))
+    (pimacs--markdown-wrap-paragraph-line rendered begin (length rendered))
+    (setq rendered (pimacs--markdown-strip-paragraph-properties rendered))
+    (pimacs--markdown-parser-delete parser (pimacs-markdown-parser-output-length parser))
+    (pimacs--markdown-parser-emit parser (list :append rendered))))
 
 ;;; Markdown Renderer
 
@@ -1717,6 +1802,13 @@
     (put-text-property 0 (length label) 'help-echo url label)
     label))
 
+(defun pimacs--markdown-strip-paragraph-properties (text)
+  (let ((result (copy-sequence text)))
+    (remove-text-properties 0 (length result)
+                            '(pimacs-markdown-paragraph nil)
+                            result)
+    result))
+
 (defun pimacs--markdown-render-inline (text)
   (let ((parser (pimacs--markdown-parser-new)))
     (pimacs--markdown-inline-write parser text)
@@ -1724,8 +1816,10 @@
     (pimacs--markdown-inline-flush-pending parser t)
     (when (pimacs--markdown-provisional-current parser)
       (pimacs--markdown-close-inline parser))
-    (pimacs--markdown-operations-string
-     (pimacs-markdown-parser-operations parser))))
+    (pimacs--markdown-parser-flush-append parser)
+    (pimacs--markdown-strip-paragraph-properties
+     (pimacs--markdown-operations-string
+      (pimacs-markdown-parser-operations parser)))))
 
 (defun pimacs--markdown-table-cell-lines (cell)
   (split-string cell "\n" nil))
@@ -1813,20 +1907,32 @@
         text))))
 
 (defun pimacs--markdown-operations-string (operations)
-  (let ((output ""))
-    (dolist (operation operations output)
+  (let (chunks)
+    (dolist (operation operations)
       (pcase operation
-        (`(:append ,text) (setq output (concat output text)))
-        (`(:delete ,count) (setq output (substring output 0 (- (length output) count))))))))
+        (`(:append ,text)
+         (push text chunks))
+        (`(:delete ,count)
+         (while (> count 0)
+           (let ((text (pop chunks)))
+             (if (<= (length text) count)
+                 (cl-decf count (length text))
+               (push (substring text 0 (- count)) chunks)
+               (setq count 0)))))))
+    (apply #'concat (nreverse chunks))))
 
 (defun pimacs--render-markdown-experimental (context text streaming)
   (if streaming
       (let ((parser (or (pimacs-markdown-context-parser context)
                         (pimacs--markdown-parser-new))))
-        (setf (pimacs-markdown-context-parser context) parser)
+        (setf (pimacs-markdown-context-parser context) parser
+              (pimacs-markdown-parser-source parser)
+              (cons text (pimacs-markdown-parser-source parser)))
         (pimacs--markdown-parser-write parser text)
+        (pimacs--markdown-parser-flush-append parser)
         (prog1 (pimacs-markdown-parser-operations parser)
-          (setf (pimacs-markdown-parser-operations parser) nil)))
+          (setf (pimacs-markdown-parser-operations parser) nil
+                (pimacs-markdown-parser-operations-tail parser) nil)))
     (let ((parser (pimacs--markdown-parser-new)))
       (pimacs--markdown-parser-collect-reference-definitions parser text)
       (pimacs--markdown-parser-write parser text)
