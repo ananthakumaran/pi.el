@@ -434,6 +434,7 @@ with the message plist to insert the custom message content."
     (when (memq 'pimacs-markdown-strike-through-face faces)
       (setq attributes (plist-put attributes :strike-through t)))
     (when (cl-intersection faces '(pimacs-markdown-inline-code-face
+                                   pimacs-markdown-equation-face
                                    pimacs-markdown-code-block-face
                                    pimacs-markdown-table-header-face
                                    pimacs-markdown-table-border-face))

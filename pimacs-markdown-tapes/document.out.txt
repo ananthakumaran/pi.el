@@ -653,25 +653,28 @@
 │ Inline Math
 @ ^^^^^^^^^^^ heading
 │
-│ The quadratic formula is $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$.
+│ The quadratic formula is x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}.
+@                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ equation
 │
-│ Euler's identity: $e^{i\pi} + 1 = 0$.
+│ Euler's identity: e^{i\pi} + 1 = 0.
+@                  ^^^^^^^^^^^^^^^^ equation
 │
 │ Block Math
 @ ^^^^^^^^^^ heading
 │
-│ $$
 │ \int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
-│ $$
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ equation
 │
-│ $$
+│
 │ \begin{aligned}
-│ \nabla \times \vec{E} &= -\frac{\partial \vec{B}}{\partial t} \
-│ \nabla \times \vec{B} &= \mu0 \vec{J} + \mu0 \epsilon_0 \frac{\partial
-@                             ^^^^^^^^^^^^^^^ italic
-│ \vec{E}}{\partial t}
+@ ^^^^^^^^^^^^^^^ equation
+│ \nabla \times \vec{E} &= -\frac{\partial \vec{B}}{\partial t} \\
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ equation
+│ \nabla \times \vec{B} &= \mu_0 \vec{J} + \mu_0 \epsilon_0 \frac{\partial \vec{E}}{\partial t}
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ equation
 │ \end{aligned}
-│ $$
+@ ^^^^^^^^^^^^^ equation
+│
 │
 │ ────────────────────────────────────────────────────────────────────────────────
 @ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
