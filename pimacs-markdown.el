@@ -546,6 +546,74 @@
          (pimacs--markdown-provisional-add-raw parser (string char)))
        (pimacs--markdown-parser-append parser (string char))))))
 
+(defun pimacs--markdown-linked-image-append (parser candidate source visible)
+  (pimacs--markdown-provisional-put
+   parser :label (concat (plist-get candidate :label) source))
+  (pimacs--markdown-provisional-put
+   parser :label-source (concat (plist-get candidate :label-source) source))
+  (pimacs--markdown-parser-append parser visible))
+
+(defun pimacs--markdown-linked-image-char (parser char)
+  (let* ((candidate (pimacs--markdown-provisional-current parser))
+         (stage (plist-get candidate :linked-image-stage))
+         (source (plist-get candidate :linked-image-source)))
+    (pcase stage
+      ('maybe
+       (if (eq char ?\[)
+           (progn
+             (pimacs--markdown-provisional-add-raw parser "[")
+             (pimacs--markdown-provisional-put parser :linked-image-stage 'alt)
+             (pimacs--markdown-provisional-put parser :linked-image-source "![")
+             (pimacs--markdown-provisional-put parser :linked-image-alt ""))
+         (pimacs--markdown-linked-image-append parser candidate "!" "!")
+         (pimacs--markdown-provisional-put parser :linked-image-stage nil)
+         (pimacs--markdown-inline-char parser char)))
+      ('alt
+       (cond
+        ((eq char ?\])
+         (pimacs--markdown-provisional-add-raw parser "]")
+         (pimacs--markdown-provisional-put
+          parser :linked-image-source (concat source "]"))
+         (pimacs--markdown-provisional-put parser :linked-image-stage 'after-alt))
+        ((eq char ?\n)
+         (pimacs--markdown-provisional-fail parser)
+         (pimacs--markdown-inline-char parser char))
+        (t
+         (pimacs--markdown-provisional-add-raw parser (string char))
+         (pimacs--markdown-provisional-put
+          parser :linked-image-source (concat source (string char)))
+         (pimacs--markdown-provisional-put
+          parser :linked-image-alt
+          (concat (plist-get candidate :linked-image-alt) (string char))))))
+      ('after-alt
+       (if (eq char ?\()
+           (progn
+             (pimacs--markdown-provisional-add-raw parser "(")
+             (pimacs--markdown-provisional-put
+              parser :linked-image-source (concat source "("))
+             (pimacs--markdown-provisional-put parser :linked-image-stage 'url))
+         (pimacs--markdown-linked-image-append parser candidate source source)
+         (pimacs--markdown-provisional-put parser :linked-image-stage nil)
+         (pimacs--markdown-inline-char parser char)))
+      ('url
+       (cond
+        ((eq char ?\))
+         (pimacs--markdown-provisional-add-raw parser ")")
+         (setq source (concat source ")"))
+         (if (pimacs--markdown-link-destination
+              (substring source (1+ (string-match "(" source)) -1))
+             (pimacs--markdown-linked-image-append
+              parser candidate source (plist-get candidate :linked-image-alt))
+           (pimacs--markdown-linked-image-append parser candidate source source))
+         (pimacs--markdown-provisional-put parser :linked-image-stage nil))
+        ((eq char ?\n)
+         (pimacs--markdown-provisional-fail parser)
+         (pimacs--markdown-inline-char parser char))
+        (t
+         (pimacs--markdown-provisional-add-raw parser (string char))
+         (pimacs--markdown-provisional-put
+          parser :linked-image-source (concat source (string char)))))))))
+
 (defun pimacs--markdown-inline-char (parser char)
   (let ((candidate (pimacs--markdown-provisional-current parser)))
     (pcase (plist-get candidate :kind)
@@ -655,6 +723,13 @@
        (pcase (plist-get candidate :stage)
          ('label
           (cond
+           ((and (eq (plist-get candidate :kind) 'link)
+                 (plist-get candidate :linked-image-stage))
+            (pimacs--markdown-linked-image-char parser char))
+           ((and (eq (plist-get candidate :kind) 'link)
+                 (eq char ?!))
+            (pimacs--markdown-provisional-add-raw parser "!")
+            (pimacs--markdown-provisional-put parser :linked-image-stage 'maybe))
            ((eq char ?\\)
             (setf (pimacs-markdown-parser-pending parser) "\\"))
            ((eq char ?\])

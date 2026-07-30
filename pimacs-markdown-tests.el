@@ -226,5 +226,22 @@
         (should (equal (get-text-property 7 'pimacs-markdown-link-title output)
                        "Inline title"))))))
 
+(ert-deftest pimacs-markdown-linked-image-preserves-both-urls ()
+  (with-temp-buffer
+    (let ((context (pimacs--markdown-create-context)))
+      (pimacs--markdown-apply-operations
+       context
+       (pimacs--render-markdown-experimental
+        context
+        "[![Alt text](https://via.placeholder.com/100x50)](https://example.com)"
+        nil))
+      (let ((output (buffer-substring (pimacs-markdown-context-content-begin context)
+                                      (pimacs-markdown-context-content-end context))))
+        (should (equal (substring-no-properties output) "Alt text"))
+        (should (equal (get-text-property 0 'pimacs-markdown-image-url output)
+                       "https://via.placeholder.com/100x50"))
+        (should (equal (get-text-property 0 'help-echo output)
+                       "https://example.com"))))))
+
 
 ;;; pimacs-markdown-tests.el ends here
