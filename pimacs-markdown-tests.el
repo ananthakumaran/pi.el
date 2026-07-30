@@ -209,6 +209,33 @@
         (should (equal (get-text-property 0 'pimacs-markdown-image-url output)
                        "https://example.com/pimacs.png"))))))
 
+(ert-deftest pimacs-markdown-links-use-url-link-widgets ()
+  (with-temp-buffer
+    (let ((context (pimacs--markdown-create-context)))
+      (pimacs--markdown-apply-operations
+       context
+       (pimacs--render-markdown-experimental
+        context "[Pimacs](https://example.com)" nil))
+      (let ((widget (get-char-property
+                     (pimacs-markdown-context-content-begin context) 'button)))
+        (should (eq (car widget) 'url-link))
+        (should (equal (widget-value widget) "https://example.com"))
+        (should (eq (widget-get widget :action) 'widget-url-link-action))))))
+
+(ert-deftest pimacs-markdown-relative-links-use-file-link-widgets ()
+  (with-temp-buffer
+    (let ((pimacs--project-root "/tmp/pimacs-markdown-project/")
+          (context (pimacs--markdown-create-context)))
+      (pimacs--markdown-apply-operations
+       context
+       (pimacs--render-markdown-experimental
+        context "[Relative link](../README.md)" nil))
+      (let ((widget (get-char-property
+                     (pimacs-markdown-context-content-begin context) 'button)))
+        (should (eq (car widget) 'file-link))
+        (should (equal (widget-value widget) "/tmp/README.md"))
+        (should (eq (widget-get widget :action) 'widget-file-link-action))))))
+
 (ert-deftest pimacs-markdown-link-title-is-preserved ()
   (with-temp-buffer
     (let ((context (pimacs--markdown-create-context)))

@@ -24,7 +24,6 @@
 
 (require 'cl-lib)
 (require 'subr-x)
-(require 'browse-url)
 
 ;;; Markdown Parser
 
@@ -1679,14 +1678,6 @@
   content-end
   rendered-length)
 
-(defun pimacs--markdown-link-keymap ()
-  (let ((map (make-sparse-keymap)))
-    (define-key map [mouse-2] #'browse-url-at-mouse)
-    (define-key map (kbd "RET") #'browse-url-at-point)
-    map))
-
-(defvar pimacs--markdown-link-keymap (pimacs--markdown-link-keymap))
-
 (defun pimacs--markdown-link-label (source faces url &optional title)
   (let ((label (pimacs--markdown-render-inline source)))
     (dotimes (index (length label))
@@ -1701,10 +1692,9 @@
                                     (car label-faces)
                                   label-faces)
          label)))
-    (put-text-property 0 (length label) 'keymap pimacs--markdown-link-keymap label)
+    (put-text-property 0 (length label) 'pimacs-markdown-link-url url label)
     (put-text-property 0 (length label) 'mouse-face 'highlight label)
     (put-text-property 0 (length label) 'help-echo url label)
-    (put-text-property 0 (length label) 'follow-link t label)
     (when title
       (put-text-property 0 (length label) 'pimacs-markdown-link-title title label))
     label))
@@ -1722,10 +1712,9 @@
                            (car link-faces)
                          link-faces)
                        label)
-    (put-text-property 0 (length label) 'keymap pimacs--markdown-link-keymap label)
+    (put-text-property 0 (length label) 'pimacs-markdown-link-url url label)
     (put-text-property 0 (length label) 'mouse-face 'highlight label)
     (put-text-property 0 (length label) 'help-echo url label)
-    (put-text-property 0 (length label) 'follow-link t label)
     label))
 
 (defun pimacs--markdown-render-inline (text)

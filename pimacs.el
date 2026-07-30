@@ -363,6 +363,26 @@ with the message plist to insert the custom message content."
      :content-end content-end
      :rendered-length 0)))
 
+(defun pimacs--markdown-relative-link-p (url)
+  (and (not (string-match-p "\\`[[:alpha:]][[:alnum:]+.-]*:" url))
+       (not (string-prefix-p "//" url))
+       (not (string-prefix-p "#" url))))
+
+(defun pimacs--markdown-apply-url-widgets (start end)
+  (let ((position start))
+    (while (< position end)
+      (let ((next (next-single-property-change
+                   position 'pimacs-markdown-link-url nil end)))
+        (when-let ((url (get-text-property position 'pimacs-markdown-link-url)))
+          (let ((relative (pimacs--markdown-relative-link-p url)))
+            (widget-convert-button (if relative 'file-link 'url-link) position next
+                                   :value (if relative
+                                              (expand-file-name url (pimacs--project-root))
+                                            url)
+                                   :suppress-face t
+                                   :help-echo url)))
+        (setq position next)))))
+
 (defun pimacs--markdown-apply-operations (context operations)
   (dolist (operation operations)
     (pcase operation
@@ -370,7 +390,9 @@ with the message plist to insert the custom message content."
        (unless (stringp text)
          (error "Markdown append operation requires a string: %S" operation))
        (goto-char (pimacs-markdown-context-content-end context))
-       (insert text)
+       (let ((start (point)))
+         (insert text)
+         (pimacs--markdown-apply-url-widgets start (point)))
        (set-marker (pimacs-markdown-context-content-end context) (point))
        (cl-incf (pimacs-markdown-context-rendered-length context) (length text)))
       (`(:delete ,count)
