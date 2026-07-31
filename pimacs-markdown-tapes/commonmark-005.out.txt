@@ -1,4 +1,5 @@
 │ ● foo
 @ ^^ list-marker
 │
-│ bar
+│   bar
+@ ^^^^^ code-block

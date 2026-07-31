@@ -1096,6 +1096,19 @@
       (setq current (1+ current)))
     (setf (pimacs-markdown-parser-blockquote-index parser) depth)))
 
+(defun pimacs--markdown-expand-tabs (text)
+  (let ((column 0)
+        expanded)
+    (dotimes (index (length text))
+      (let ((char (aref text index)))
+        (if (eq char ?\t)
+            (let ((width (- 4 (% column 4))))
+              (push (make-string width ?\s) expanded)
+              (cl-incf column width))
+          (push (string char) expanded)
+          (cl-incf column))))
+    (apply #'concat (nreverse expanded))))
+
 (defun pimacs--markdown-blockquote-prefix-p (prefix)
   (string-match-p "\\`[ \t]\\{0,3\\}\\(?:>[ \t]?\\)*\\'" prefix))
 
@@ -1194,7 +1207,9 @@
         (cl-subseq (pimacs-markdown-parser-list-stack parser) 0 length)))
 
 (defun pimacs--markdown-list-prefix-p (prefix)
-  (string-match-p "\\`[ \t]*\\(?:[-+*]?\\|[0-9]*\\.?\\)?\\'" prefix))
+  (if (string-match-p "\t" prefix)
+      (string-match-p "\\`[ \t]*\\(?:[-+*]\\|[0-9]+\\.\\)?[ \t]*\\'" prefix)
+    (string-match-p "\\`[ \t]*\\(?:[-+*]?\\|[0-9]*\\.?\\)?\\'" prefix)))
 
 (defun pimacs--markdown-continue-or-add-list (parser type indent marker-width)
   (let ((list-length nil)
@@ -1280,43 +1295,57 @@
       (pimacs--markdown-inline-write parser task))
     (setf (pimacs-markdown-parser-task parser) nil)))
 
-(defun pimacs--markdown-activate-list-prefix (parser prefix)
-  (when (string-match
-         "\\`\\([ \t]*\\)\\([-+*]\\|[0-9]+\\.\\) \\(.*\\)\\'" prefix)
-    (let* ((indent (pimacs--markdown-prefix-width (match-string 1 prefix)))
-           (marker (match-string 2 prefix))
-           (content (match-string 3 prefix))
-           (type (if (string-suffix-p "." marker) 'ordered 'unordered))
-           (marker-width (1+ (length marker)))
-           (added (pimacs--markdown-continue-or-add-list parser type indent marker-width))
-           (source-number (and (eq type 'ordered)
-                               (string-to-number (string-remove-suffix "." marker))))
-           (level (car (last (pimacs-markdown-parser-list-stack parser))))
-           (start (and added source-number)))
-      (when start
-        (setq level (plist-put level :start start)
-              level (plist-put level :next-number start))
-        (setcar (last (pimacs-markdown-parser-list-stack parser)) level))
-      (setf (pimacs-markdown-parser-prefix parser) ""
-            (pimacs-markdown-parser-at-line-start parser) nil
-            (pimacs-markdown-parser-line-kind parser) 'list
-            (pimacs-markdown-parser-root-state parser) pimacs--markdown-root-list
-            (pimacs-markdown-parser-task parser) "")
-      (pimacs--markdown-parser-append parser (pimacs--markdown-list-indent parser))
-      (pimacs--markdown-parser-add-token
-       parser 'list (list :face 'pimacs-markdown-list-marker-face))
-      (let ((rendered-marker
-             (if source-number
-                 (prog1 (format "%d." (plist-get level :next-number))
-                   (cl-incf (plist-get level :next-number)))
-               marker)))
+(defun pimacs--markdown-list-write-content (parser content &optional indented-code)
+  (if (and indented-code
+           (pimacs--markdown-indented-code-prefix-p content))
+      (progn
+        (pimacs--markdown-open-indented-code parser)
         (pimacs--markdown-parser-append
-         parser (concat (pimacs--markdown-list-marker parser type rendered-marker) " ")
-         (when (and start (/= start 1))
-           (list 'pimacs-markdown-list-start start))))
-      (pimacs--markdown-parser-end-token parser)
-      (pimacs--markdown-task-write parser content)
-      t)))
+         parser (pimacs--markdown-indented-code-content content))
+        (pimacs--markdown-root-update-state parser))
+    (pimacs--markdown-task-write parser content)))
+
+(defun pimacs--markdown-activate-list-prefix (parser prefix)
+  (let ((indented-code (string-match-p "\t" prefix))
+        (prefix (pimacs--markdown-expand-tabs prefix)))
+    (when (string-match
+           "\\`\\( *\\)\\([-+*]\\|[0-9]+\\.\\)\\( +\\)\\(.*\\)\\'" prefix)
+      (let* ((indent (length (match-string 1 prefix)))
+             (marker (match-string 2 prefix))
+             (content (concat (substring (match-string 3 prefix) 1)
+                              (match-string 4 prefix)))
+             (type (if (string-suffix-p "." marker) 'ordered 'unordered))
+             (marker-width (1+ (length marker)))
+             (added (pimacs--markdown-continue-or-add-list parser type indent marker-width))
+             (source-number (and (eq type 'ordered)
+                                 (string-to-number (string-remove-suffix "." marker))))
+             (level (car (last (pimacs-markdown-parser-list-stack parser))))
+             (start (and added source-number)))
+        (when start
+          (setq level (plist-put level :start start)
+                level (plist-put level :next-number start))
+          (setcar (last (pimacs-markdown-parser-list-stack parser)) level))
+        (setf (pimacs-markdown-parser-prefix parser) ""
+              (pimacs-markdown-parser-at-line-start parser) nil
+              (pimacs-markdown-parser-line-kind parser) 'list
+              (pimacs-markdown-parser-root-state parser) pimacs--markdown-root-list
+              (pimacs-markdown-parser-task parser) "")
+        (pimacs--markdown-parser-append parser (pimacs--markdown-list-indent parser))
+        (pimacs--markdown-parser-add-token
+         parser 'list (list :face 'pimacs-markdown-list-marker-face))
+        (let ((rendered-marker
+               (if source-number
+                   (prog1 (format "%d." (plist-get level :next-number))
+                     (cl-incf (plist-get level :next-number)))
+                 marker)))
+          (pimacs--markdown-parser-append
+           parser (concat (pimacs--markdown-list-marker parser type rendered-marker) " ")
+           (when (and start (/= start 1))
+             (list 'pimacs-markdown-list-start start))))
+        (pimacs--markdown-parser-end-token parser)
+        (pimacs--markdown-list-write-content
+         parser content indented-code)
+        t))))
 
 (defun pimacs--markdown-activate-list-continuation (parser prefix)
   (let* ((leading (progn (string-match "\\`[ \t]*" prefix) (match-string 0 prefix)))
@@ -1339,30 +1368,32 @@
             (pimacs-markdown-parser-root-state parser) pimacs--markdown-root-list
             (pimacs-markdown-parser-task parser) nil)
       (pimacs--markdown-parser-append parser (pimacs--markdown-list-indent parser))
-      (pimacs--markdown-inline-write
-       parser (concat (make-string (max 0 indent) ?\s) content))
+      (pimacs--markdown-list-write-content
+       parser (concat (make-string (max 0 indent) ?\s) content)
+       (string-match-p "\t" leading))
       t)))
 
 (defun pimacs--markdown-activate-blockquote-prefix (parser prefix)
-  (when (string-match "\\`[ \t]\\{0,3\\}\\(\\(?:>[ \t]?\\)+\\)" prefix)
-    (let* ((marker (match-string 1 prefix))
-           (depth (cl-count ?> marker))
-           (content (substring prefix (match-end 0)))
-           (line (pimacs-markdown-parser-line parser))
-           (line-end (- (length line) (if (string-suffix-p "\n" line) 1 0)))
-           (line-start (- line-end (length prefix))))
-      (setf (pimacs-markdown-parser-line parser)
-            (concat (substring line 0 line-start) content (substring line line-end)))
-      (pimacs--markdown-set-blockquote-depth parser depth)
-      (setf (pimacs-markdown-parser-prefix parser) ""
-            (pimacs-markdown-parser-at-line-start parser)
-            (not (or (pimacs-markdown-parser-fence parser)
-                     (pimacs-markdown-parser-table-state parser)
-                     (eq (pimacs-markdown-parser-line-kind parser) 'table-candidate))))
-      (pimacs--markdown-root-update-state parser)
-      (dotimes (index (length content))
-        (pimacs--markdown-root-char parser (aref content index) t))
-      content)))
+  (let ((expanded-prefix (pimacs--markdown-expand-tabs prefix)))
+    (when (string-match "\\` \\{0,3\\}\\(\\(?:> ?\\)+\\)" expanded-prefix)
+      (let* ((marker (match-string 1 expanded-prefix))
+             (depth (cl-count ?> marker))
+             (content (substring expanded-prefix (match-end 0)))
+             (line (pimacs-markdown-parser-line parser))
+             (line-end (- (length line) (if (string-suffix-p "\n" line) 1 0)))
+             (line-start (- line-end (length prefix))))
+        (setf (pimacs-markdown-parser-line parser)
+              (concat (substring line 0 line-start) content (substring line line-end)))
+        (pimacs--markdown-set-blockquote-depth parser depth)
+        (setf (pimacs-markdown-parser-prefix parser) ""
+              (pimacs-markdown-parser-at-line-start parser)
+              (not (or (pimacs-markdown-parser-fence parser)
+                       (pimacs-markdown-parser-table-state parser)
+                       (eq (pimacs-markdown-parser-line-kind parser) 'table-candidate))))
+        (pimacs--markdown-root-update-state parser)
+        (dotimes (index (length content))
+          (pimacs--markdown-root-char parser (aref content index) t))
+        content))))
 
 (defun pimacs--markdown-fence-closing-p (fence line)
   (let ((character (plist-get fence :character))
@@ -1649,7 +1680,7 @@
      ((and (null (pimacs-markdown-parser-list-stack parser))
            (pimacs--markdown-activate-indented-code-prefix parser prefix)))
      ((and (string-match-p "\\`[ \t]*\\'" prefix) (<= (length prefix) 3)))
-     ((string-match "\\`[ \t]*\\(#+\\) " prefix)
+     ((string-match "\\`[ \t]*\\(#+\\)[ \t]+" prefix)
       (let ((hashes (match-string 1 prefix)))
         (if (<= (length hashes) 6)
             (progn
