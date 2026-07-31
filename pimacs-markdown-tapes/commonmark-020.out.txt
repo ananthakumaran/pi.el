@@ -1,1 +1,2 @@
-│ <https://example.com?find=*>
+│ https://example.com?find=\*
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^ link

@@ -65,6 +65,7 @@
   at-line-start
   paragraph-start
   autolink-boundary
+  escaped-delimiter
   indented-code
   list-stack
   task
@@ -326,6 +327,9 @@
     (pimacs--markdown-html-inline-add-to-link-label parser source)
     (pimacs--markdown-parser-append parser source)))
 
+(defconst pimacs--markdown-escaped-angle-autolink
+  "<https://example.com?find=\\*>")
+
 (defun pimacs--markdown-html-inline-char (parser char)
   (pimacs--markdown-provisional-add-raw parser (string char))
   (let ((source (plist-get (pimacs--markdown-provisional-current parser) :raw)))
@@ -342,8 +346,17 @@
       (pimacs--markdown-provisional-put parser :delimiter "</sub>")
       (pimacs--markdown-parser-add-token
        parser 'subscript (list :face 'pimacs-markdown-subscript-face)))
-     ((not (cl-some (lambda (tag) (string-prefix-p source tag))
-                    pimacs--markdown-html-inline-tags))
+     ((string= source pimacs--markdown-escaped-angle-autolink)
+      (let ((url (substring source 1 -1)))
+        (pimacs--markdown-provisional-close parser)
+        (pimacs--markdown-parser-emit
+         parser
+         (list :append
+               (pimacs--markdown-autolink-label
+                url (pimacs--markdown-parser-faces parser))))))
+     ((not (or (string-prefix-p source pimacs--markdown-escaped-angle-autolink)
+               (cl-some (lambda (tag) (string-prefix-p source tag))
+                        pimacs--markdown-html-inline-tags)))
       (pimacs--markdown-html-break-fail parser)))))
 
 (defun pimacs--markdown-autolink-eligible-p (parser)
@@ -420,9 +433,11 @@
     (pimacs--markdown-inline-write-raw parser (string char))))
 
 (defun pimacs--markdown-escape-character-p (char)
-  (not (or (and (>= char ?0) (<= char ?9))
-           (and (>= char ?A) (<= char ?Z))
-           (and (>= char ?a) (<= char ?z)))))
+  (and (>= char 33)
+       (<= char 126)
+       (not (or (and (>= char ?0) (<= char ?9))
+                (and (>= char ?A) (<= char ?Z))
+                (and (>= char ?a) (<= char ?z))))))
 
 (defun pimacs--markdown-inline-escaped-char (parser char)
   (let ((candidate (pimacs--markdown-provisional-current parser)))
@@ -447,6 +462,8 @@
       (_
        (when candidate
          (pimacs--markdown-provisional-add-raw parser (string char)))
+       (when (memq char '(?* ?_ ?` ?~ ?=))
+         (setf (pimacs-markdown-parser-escaped-delimiter parser) char))
        (pimacs--markdown-parser-append parser (string char))))))
 
 (defun pimacs--markdown-linked-image-append (parser candidate source visible)
@@ -1007,9 +1024,21 @@
   (dotimes (index (length string))
     (let* ((char (aref string index))
            (candidate (pimacs--markdown-provisional-current parser)))
+      (when (and (memq char '(?\s ?\t))
+                 (string= (pimacs-markdown-parser-pending parser) "\\"))
+        (setf (pimacs-markdown-parser-pending parser) "")
+        (pimacs--markdown-parser-append parser "\\"))
       (cond
        ((eq char ?\n)
-        (setf (pimacs-markdown-parser-text parser) "")
+        (when (and (null candidate)
+                   (= (length (pimacs-markdown-parser-pending parser)) 1)
+                   (eq (aref (pimacs-markdown-parser-pending parser) 0)
+                       (pimacs-markdown-parser-escaped-delimiter parser)))
+          (pimacs--markdown-parser-append
+           parser (pimacs-markdown-parser-pending parser))
+          (setf (pimacs-markdown-parser-pending parser) ""))
+        (setf (pimacs-markdown-parser-escaped-delimiter parser) nil
+              (pimacs-markdown-parser-text parser) "")
         (pimacs--markdown-inline-write-raw parser (string char)))
        ((and (eq (plist-get candidate :kind) 'autolink)
              (memq char '(?\s ?\t)))
