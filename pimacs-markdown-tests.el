@@ -3,6 +3,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'elp)
 (require 'ert)
 (require 'subr-x)
 
@@ -279,5 +280,15 @@
         (should (equal (get-text-property 0 'help-echo output)
                        "https://example.com"))))))
 
+
+(defun pimacs-markdown-profile-run ()
+  (elp-instrument-package "pimacs--markdown-")
+  (let ((elp-use-standard-output t)
+        stats)
+    (unwind-protect
+        (setq stats (ert-run-tests-batch "pimacs-markdown"))
+      (elp-results)
+      (elp-restore-all))
+    (kill-emacs (if (zerop (ert-stats-completed-unexpected stats)) 0 1))))
 
 ;;; pimacs-markdown-tests.el ends here
