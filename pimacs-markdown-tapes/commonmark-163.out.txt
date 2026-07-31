@@ -1,0 +1,4 @@
+│ <Warning>
+│ bar
+@ ^^^ italic
+│ </Warning>

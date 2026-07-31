@@ -1,0 +1,20 @@
+│ ● a
+@ ^^ list-marker
+│ b
+@ ^ blockquote
+│  
+@ ^ blockquote
+│   c
+@ ^ blockquote
+@ ^ inline-code
+@  ^ blockquote
+@  ^ inline-code
+@   ^ blockquote
+@   ^ inline-code
+│  
+@ ^ blockquote
+@ ^ inline-code
+│ ● d
+@ ^^ blockquote
+@ ^^ list-marker
+@   ^ blockquote

@@ -1,0 +1,11 @@
+│ -
+│  foo
+│ -
+│  
+│   bar
+@ ^^^^^ inline-code
+│  
+@ ^ inline-code
+│ -
+│   baz
+@ ^^^^^ code-block

@@ -1,0 +1,13 @@
+│ ● a
+@ ^^ list-marker
+│ ● 
+@ ^^ list-marker
+│ b
+@ ^ inline-code
+│
+│
+│
+│ ● c
+@ ^^ inline-code
+@ ^^ list-marker
+@   ^ inline-code

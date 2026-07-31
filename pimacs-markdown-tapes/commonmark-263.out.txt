@@ -1,0 +1,11 @@
+│ 1. foo
+@ ^^^ list-marker
+│
+│
+│  bar
+@ ^^^^ inline-code
+│
+│
+│ baz
+│
+│ > bam

@@ -1,0 +1,4 @@
+│ foo _bar baz
+@ ^^^^^^^^ italic
+│ _
+@ eof

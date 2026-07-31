@@ -1,0 +1,7 @@
+│ ● one
+@ ^^ blockquote
+@ ^^ list-marker
+@   ^^^ blockquote
+│
+│ two
+@ ^^^ blockquote

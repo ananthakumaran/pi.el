@@ -1,0 +1,17 @@
+│ foo bar baz*][ref]
+@ ^^^^ link
+@     ^ italic
+@     ^ link
+@      ^ italic
+@      ^ link
+@       ^ italic
+@       ^ link
+@        ^ italic
+@        ^ link
+@         ^ italic
+@         ^ link
+@          ^ italic
+@          ^ link
+@           ^ italic
+@           ^ link
+│

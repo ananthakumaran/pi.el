@@ -1,0 +1,6 @@
+│ foo
+@ ^^^ blockquote
+│ bar
+@ ^^^ blockquote
+│ ===
+@ ^^^ blockquote

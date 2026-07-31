@@ -1,0 +1,6 @@
+│ ● foo
+@ ^^ list-marker
+│ ● 
+@ ^^ list-marker
+│ ● bar
+@ ^^ list-marker

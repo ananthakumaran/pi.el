@@ -1,0 +1,12 @@
+│ <table>
+│  <tr>
+│ <td>
+@ ^^^^ code-block
+│        hi
+@ ^^^^^^^^^ code-block
+│ </td>
+@ ^^^^^ code-block
+│ </tr>
+│ </table>
+│
+│ okay.

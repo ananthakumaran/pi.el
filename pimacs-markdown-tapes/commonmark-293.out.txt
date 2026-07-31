@@ -1,0 +1,6 @@
+│ 1. > Blockquote
+@ ^^^ blockquote
+@ ^^^ list-marker
+@    ^^^^^^^^^^^^ blockquote
+│ continued here.
+@ ^^^^^^^^^^^^^^^ blockquote

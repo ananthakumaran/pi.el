@@ -1,0 +1,14 @@
+│ foo
+@ ^ blockquote
+@ ^ code-block
+@  ^ blockquote
+@  ^ code-block
+@   ^ blockquote
+@   ^ code-block
+│ bar
+@ ^ blockquote
+@ ^ code-block
+@  ^ blockquote
+@  ^ code-block
+@   ^ blockquote
+@   ^ code-block

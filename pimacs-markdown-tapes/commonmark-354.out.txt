@@ -1,0 +1,8 @@
+│ $alpha.
+@ ^ italic
+│
+│ £bravo.
+@ ^ italic
+│
+│ €charlie.
+@ ^ italic

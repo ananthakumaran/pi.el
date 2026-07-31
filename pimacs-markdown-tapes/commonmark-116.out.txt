@@ -1,0 +1,4 @@
+│     foo
+@ ^^^^^^^ code-block
+│ bar
+@ ^^^ code-block

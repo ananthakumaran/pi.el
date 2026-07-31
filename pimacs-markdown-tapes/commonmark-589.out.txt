@@ -1,0 +1,9 @@
+│ foo bar
+@ ^ italic
+@ ^ link
+@  ^ italic
+@  ^ link
+@   ^ italic
+@   ^ link
+@    ^^^^ link
+│

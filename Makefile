@@ -33,7 +33,11 @@ package-lint: cask
 
 .PHONY: test
 test: compile
-	@cask emacs --batch -L . -L test -l pimacs-tests.el -l pimacs-markdown-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
+	@cask emacs --batch -L . -L test -l pimacs-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
+
+.PHONY: markdown-test
+markdown-test: compile
+	@cask emacs --batch -L . -L test -l pimacs-markdown-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
 
 .PHONY: integration
 integration: compile

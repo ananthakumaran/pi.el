@@ -1,0 +1,8 @@
+│ ● foo
+@ ^^ blockquote
+@ ^^ list-marker
+@   ^^^ blockquote
+│ ● bar
+@ ^^ blockquote
+@ ^^ list-marker
+@   ^^^ blockquote

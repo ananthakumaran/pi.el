@@ -1,0 +1,11 @@
+│ ● foo
+@ ^^ list-marker
+│ ● bar
+@ ^^ list-marker
+│
+│ <!-- -->
+│
+│ ● baz
+@ ^^ list-marker
+│ ● bim
+@ ^^ list-marker

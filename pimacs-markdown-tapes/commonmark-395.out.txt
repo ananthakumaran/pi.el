@@ -1,0 +1,9 @@
+│ foo "bar" foo
+@ ^^^^^ bold
+@      ^ bold
+@      ^ italic
+@       ^ bold
+@       ^ italic
+@        ^ bold
+@        ^ italic
+@         ^^^^^ bold

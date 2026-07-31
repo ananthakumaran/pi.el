@@ -1,0 +1,6 @@
+│ <div>
+@ ^^^^^ blockquote
+│ foo
+@ ^^^ blockquote
+│
+│ bar

@@ -1,0 +1,12 @@
+│ ● foo
+@ ^^ list-marker
+│
+│ notcode
+│
+│ ● foo
+@ ^^ list-marker
+│
+│ <!-- -->
+│
+│ code
+@ ^^^^ code-block

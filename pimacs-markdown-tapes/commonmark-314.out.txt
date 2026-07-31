@@ -1,0 +1,7 @@
+│ ● a
+@ ^^ list-marker
+│ ● b
+@ ^^ list-marker
+│
+│ ● c
+@ ^^ list-marker

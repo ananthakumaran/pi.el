@@ -1,0 +1,6 @@
+│ <div>
+│ foo
+@ ^^^ italic
+│
+│ bar
+@ ^^^ italic

@@ -1,0 +1,11 @@
+│ Foo
+@ ^ blockquote
+@ ^ heading
+@  ^ blockquote
+@  ^ heading
+@   ^ blockquote
+@   ^ heading
+│ bar
+@ ^^^ blockquote
+│ baz
+@ ^^^ blockquote

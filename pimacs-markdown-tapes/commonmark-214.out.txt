@@ -1,0 +1,9 @@
+│ Foo
+@ ^ heading
+@ ^ link
+@  ^ heading
+@  ^ link
+@   ^ heading
+@   ^ link
+│ bar
+@ ^^^ blockquote

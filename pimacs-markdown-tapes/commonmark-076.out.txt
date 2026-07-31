@@ -1,0 +1,6 @@
+│ foo ###
+@ ^^^^^^^ heading
+│ foo ###
+@ ^^^^^^^ heading
+│ foo #
+@ ^^^^^ heading

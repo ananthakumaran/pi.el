@@ -1,0 +1,4 @@
+│ a simple
+@ ^^^^^^^^ code-block
+│   indented code block
+@ ^^^^^^^^^^^^^^^^^^^^^ code-block

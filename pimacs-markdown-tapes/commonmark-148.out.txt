@@ -1,0 +1,9 @@
+│ <table><tr><td>
+│ <pre>
+│ Hello,
+@ ^^^^^ bold
+│
+│ world.
+@ ^^^^^ italic
+│ </pre>
+│ </td></tr></table>

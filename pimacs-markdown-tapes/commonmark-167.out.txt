@@ -1,0 +1,6 @@
+│ <del>
+│
+│ foo
+@ ^^^ italic
+│
+│ </del>

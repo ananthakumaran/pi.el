@@ -1,0 +1,5 @@
+│ <div>
+│  hello
+@  ^^^^^ italic
+│      <foo><a>
+@ ^^^^^^^^^^^^^ code-block

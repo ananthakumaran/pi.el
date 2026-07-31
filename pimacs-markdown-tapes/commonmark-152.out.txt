@@ -1,0 +1,6 @@
+│ <DIV CLASS="foo">
+│
+│ Markdown
+@ ^^^^^^^^ italic
+│
+│ </DIV>

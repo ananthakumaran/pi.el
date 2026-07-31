@@ -1,0 +1,2 @@
+│ [foo](uri2)](uri3)
+@ ^^^^ link

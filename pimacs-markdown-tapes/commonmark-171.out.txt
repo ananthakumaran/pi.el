@@ -1,0 +1,9 @@
+│ <textarea>
+│
+│ foo
+@ ^^^ italic
+│
+│ bar
+@ ^^^ italic
+│
+│ </textarea>
