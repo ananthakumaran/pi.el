@@ -8,9 +8,7 @@
 @ ^^^^ table-border
 @      ^^^^ table-border
 @           ^ table-border
-│ │ a  │ b  │
+│ │ a  │   │
 @ ^ table-border
 @      ^ table-border
-@           ^ table-border
-│
-│ Hello
+@          ^ table-border

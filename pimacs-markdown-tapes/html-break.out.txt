@@ -14,19 +14,21 @@
 │ invalid <bra> <br//> <b
 │ code<br>literal
 @ ^^^^^^^^^^^^^^^ inline-code
-│ │ Key │ Value  │
+│ │ Key  │ Value  │
 @ ^ table-border
-@       ^ table-border
-@                ^ table-border
-@   ^^^ table-header
-@         ^^^^^^ table-header
-│ ├─────┼────────┤
-@ ^^^^^^^^^^^^^^^^ table-border
-│ │ row │ top    │
+@        ^ table-border
+@                 ^ table-border
+@   ^^^^ table-header
+@          ^^^^^^ table-header
+│ ├───── ┼──────── ┤
+@ ^^^^^^ table-border
+@        ^^^^^^^^^ table-border
+@                  ^ table-border
+│ │ row  │ top  │
 @ ^ table-border
-@       ^ table-border
-@                ^ table-border
-│ │     │ bottom │
+@        ^ table-border
+@               ^ table-border
+│ │   │ bottom  │
 @ ^ table-border
-@       ^ table-border
-@                ^ table-border
+@     ^ table-border
+@               ^ table-border

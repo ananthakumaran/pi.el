@@ -372,144 +372,157 @@
 │ Basic Table
 @ ^^^^^^^^^^^ heading
 │
-│ │ Column 1   │ Column 2   │ Column 3   │
+│ │ Column 1  │ Column 2  │ Column 3  │
 @ ^ table-border
-@              ^ table-border
-@                           ^ table-border
-@                                        ^ table-border
-@   ^^^^^^^^^^ table-header
-@                ^^^^^^^^^^ table-header
-@                             ^^^^^^^^^^ table-header
-│ ├────────────┼────────────┼────────────┤
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ table-border
-│ │ Row 1      │ Data       │ More       │
+@             ^ table-border
+@                         ^ table-border
+@                                     ^ table-border
+@   ^^^^^^^^^ table-header
+@               ^^^^^^^^^ table-header
+@                           ^^^^^^^^^ table-header
+│ ├────────── ┼────────── ┼────────── ┤
+@ ^^^^^^^^^^^ table-border
+@             ^^^^^^^^^^^ table-border
+@                         ^^^^^^^^^^^ table-border
+@                                     ^ table-border
+│ │ Row 1  │ Data  │ More  │
 @ ^ table-border
-@              ^ table-border
-@                           ^ table-border
-@                                        ^ table-border
-│ │ Row 2      │ Data       │ More       │
+@          ^ table-border
+@                  ^ table-border
+@                          ^ table-border
+│ │ Row 2  │ Data  │ More  │
 @ ^ table-border
-@              ^ table-border
-@                           ^ table-border
-@                                        ^ table-border
-│ │ Row 3      │ Data       │ More       │
+@          ^ table-border
+@                  ^ table-border
+@                          ^ table-border
+│ │ Row 3  │ Data  │ More  │
 @ ^ table-border
-@              ^ table-border
-@                           ^ table-border
-@                                        ^ table-border
+@          ^ table-border
+@                  ^ table-border
+@                          ^ table-border
 │
 │ Table with Alignment
 @ ^^^^^^^^^^^^^^^^^^^^ heading
 │
-│ │ Left Aligned   │  Center Aligned  │   Right Aligned │
+│ │ Left Aligned  │  Center Aligned  │  Right Aligned │
 @ ^ table-border
-@                  ^ table-border
-@                                     ^ table-border
-@                                                       ^ table-border
-@   ^^^^^^^^^^^^^^ table-header
-@                    ^^^^^^^^^^^^^^^^ table-header
-@                                       ^^^^^^^^^^^^^^^ table-header
-│ ├────────────────┼──────────────────┼─────────────────┤
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ table-border
-│ │ Left           │      Center      │           Right │
+@                 ^ table-border
+@                                    ^ table-border
+@                                                     ^ table-border
+@   ^^^^^^^^^^^^^ table-header
+@                   ^^^^^^^^^^^^^^^^ table-header
+@                                      ^^^^^^^^^^^^^^ table-header
+│ ├────────────── ┼──────────────── ┼─────────────── ┤
+@ ^^^^^^^^^^^^^^^ table-border
+@                 ^^^^^^^^^^^^^^^^^ table-border
+@                                   ^^^^^^^^^^^^^^^^ table-border
+@                                                    ^ table-border
+│ │ Left  │  Center  │  Right │
 @ ^ table-border
-@                  ^ table-border
-@                                     ^ table-border
-@                                                       ^ table-border
-│ │ Data           │       Data       │            Data │
+@         ^ table-border
+@                    ^ table-border
+@                             ^ table-border
+│ │ Data  │  Data  │  Data │
 @ ^ table-border
+@         ^ table-border
 @                  ^ table-border
-@                                     ^ table-border
-@                                                       ^ table-border
-│ │ More           │       Text       │         Numbers │
+@                          ^ table-border
+│ │ More  │  Text  │  Numbers │
 @ ^ table-border
+@         ^ table-border
 @                  ^ table-border
-@                                     ^ table-border
-@                                                       ^ table-border
+@                             ^ table-border
 │
 │ Complex Table
 @ ^^^^^^^^^^^^^ heading
 │
-│ │ Feature          │  Supported  │ Notes                    │
+│ │ Feature  │  Supported  │ Notes  │
 @ ^ table-border
-@                    ^ table-border
-@                                  ^ table-border
-@                                                             ^ table-border
-@   ^^^^^^^^^^^^^^^^ table-header
-@                      ^^^^^^^^^^^ table-header
-@                                    ^^^^^^^^^^^^^^^^^^^^^^^^ table-header
-│ ├──────────────────┼─────────────┼──────────────────────────┤
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ table-border
-│ │ Headers          │     ✅      │ Standard                 │
-@ ^ table-border
-@                    ^ table-border
-@                                 ^ table-border
-@                                                            ^ table-border
-│ │ Alignment        │     ✅      │ Left/Center/Right        │
-@ ^ table-border
-@                    ^ table-border
-@                                 ^ table-border
-@                                                            ^ table-border
-│ │ Multi-line cells │      ⚠️      │ Limited support          │
-@ ^ table-border
-@                    ^ table-border
+@            ^ table-border
+@                          ^ table-border
 @                                   ^ table-border
+@   ^^^^^^^^ table-header
+@              ^^^^^^^^^^^ table-header
+@                            ^^^^^^ table-header
+│ ├────────────────── ┼─────────── ┼────────────────────────── ┤
+@ ^^^^^^^^^^^^^^^^^^^ table-border
+@                     ^^^^^^^^^^^^ table-border
+@                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ table-border
 @                                                              ^ table-border
-│ │ Colspan/Rowspan  │     ❌      │ Not in standard Markdown │
+│ │ Headers  │  ✅  │ Standard  │
+@ ^ table-border
+@            ^ table-border
+@                  ^ table-border
+@                              ^ table-border
+│ │ Alignment  │  ✅  │ Left/Center/Right  │
+@ ^ table-border
+@              ^ table-border
+@                    ^ table-border
+@                                         ^ table-border
+│ │ Multi-line cells  │  ⚠️  │ Limited support  │
+@ ^ table-border
+@                     ^ table-border
+@                            ^ table-border
+@                                               ^ table-border
+│ │ Colspan/Rowspan  │  ❌  │ Not in standard Markdown  │
 @ ^ table-border
 @                    ^ table-border
-@                                 ^ table-border
-@                                                            ^ table-border
-│ │ HTML in cells    │     ✅      │ If enabled               │
+@                          ^ table-border
+@                                                      ^ table-border
+│ │ HTML in cells  │  ✅  │ If enabled  │
 @ ^ table-border
-@                    ^ table-border
-@                                 ^ table-border
-@                                                            ^ table-border
+@                  ^ table-border
+@                        ^ table-border
+@                                      ^ table-border
 │
 │ Table with Code and Formatting
 @ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ heading
 │
-│ │ Language   │ Example      │ Bold       │ Italic     │
+│ │ Language  │ Example  │ Bold  │ Italic  │
 @ ^ table-border
-@              ^ table-border
-@                             ^ table-border
+@             ^ table-border
+@                        ^ table-border
+@                                ^ table-border
 @                                          ^ table-border
-@                                                       ^ table-border
-@   ^^^^^^^^^^ table-header
-@                ^^^^^^^^^^^^ table-header
-@                                   ^^^^^^ table-header
-@                                                  ^^^^ table-header
-@                               ^^^^ bold
-@                                            ^^^^^^ italic
-│ ├────────────┼──────────────┼────────────┼────────────┤
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ table-border
-│ │ JS         │ const x = 1; │ Yes        │ Yes        │
+@   ^^^^^^^^^ table-header
+@               ^^^^^^^^ table-header
+@                              ^ table-header
+@                                        ^ table-header
+@                          ^^^^ bold
+@                                  ^^^^^^ italic
+│ ├────────── ┼────────────── ┼────── ┼──────── ┤
+@ ^^^^^^^^^^^ table-border
+@             ^^^^^^^^^^^^^^^ table-border
+@                             ^^^^^^^ table-border
+@                                     ^^^^^^^^^ table-border
+@                                               ^ table-border
+│ │ JS  │ const x = 1;  │ Yes  │ Yes  │
 @ ^ table-border
-@              ^ table-border
-@                             ^ table-border
-@                                          ^ table-border
-@                                                       ^ table-border
-@                ^^^^^^^^^^^^ inline-code
-@                               ^^^ bold
-@                                            ^^^ italic
-│ │ Python     │ x = 1        │ Yes        │ Yes        │
+@       ^ table-border
+@                       ^ table-border
+@                              ^ table-border
+@                                     ^ table-border
+@         ^^^^^^^^^^^^ inline-code
+@                         ^^^ bold
+@                                ^^^ italic
+│ │ Python  │ x = 1  │ Yes  │ Yes  │
 @ ^ table-border
-@              ^ table-border
-@                             ^ table-border
-@                                          ^ table-border
-@                                                       ^ table-border
-@                ^^^^^ inline-code
-@                               ^^^ bold
-@                                            ^^^ italic
-│ │ Rust       │ let x = 1;   │ Yes        │ Yes        │
+@           ^ table-border
+@                    ^ table-border
+@                           ^ table-border
+@                                  ^ table-border
+@             ^^^^^ inline-code
+@                      ^^^ bold
+@                             ^^^ italic
+│ │ Rust  │ let x = 1;  │ Yes  │ Yes  │
 @ ^ table-border
-@              ^ table-border
-@                             ^ table-border
-@                                          ^ table-border
-@                                                       ^ table-border
-@                ^^^^^^^^^^ inline-code
-@                               ^^^ bold
-@                                            ^^^ italic
+@         ^ table-border
+@                       ^ table-border
+@                              ^ table-border
+@                                     ^ table-border
+@           ^^^^^^^^^^ inline-code
+@                         ^^^ bold
+@                                ^^^ italic
 │
 │ ────────────────────────────────────────────────────────────────────────────────
 @ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule

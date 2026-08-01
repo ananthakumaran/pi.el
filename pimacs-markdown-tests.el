@@ -171,19 +171,19 @@
             (ast-file (concat tape-prefix ".out.ast")))
        (unless (file-exists-p output-file)
          (error "Missing Markdown output tape: %s" output-file))
+       (unless (file-exists-p ast-file)
+         (error "Missing Markdown AST tape: %s" ast-file))
        (list input-file
              (pimacs-markdown-tests--read-file input-file)
              (pimacs-markdown-tests--read-file output-file)
-             (and (file-exists-p ast-file)
-                  (pimacs-markdown-tests--read-file ast-file)))))
+             (pimacs-markdown-tests--read-file ast-file))))
    pimacs-markdown-tests--tape-files))
 
 (ert-deftest pimacs-markdown-tape ()
   (dolist (tape (pimacs-markdown-tests--tapes))
     (pcase-let ((`(,input-file ,input ,expected ,expected-ast) tape))
       (ert-info ((format "Markdown tape: %s" input-file))
-        (when expected-ast
-          (should (equal expected-ast (pimacs-markdown-tests--ast input))))
+        (should (equal expected-ast (pimacs-markdown-tests--ast input)))
         (should (equal expected
                        (pimacs-markdown-tests--format-tape
                         (pimacs-markdown-tests--render-complete input))))))))

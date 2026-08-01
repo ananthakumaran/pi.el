@@ -595,15 +595,98 @@
      ((string-suffix-p ":" delimiter) 'right)
      (t 'left))))
 
+(defun pimacs--markdown-table-space (width)
+  (propertize " " 'display `(space :width (,width))))
+
 (defun pimacs--markdown-table-pad (text width alignment)
-  (let ((padding (- width (string-width text))))
+  (let ((padding (max 0 (- width (string-pixel-width text)))))
     (pcase alignment
-      ('right (concat (make-string padding ?\s) text))
-      ('center (let ((left (/ padding 2)))
-                 (concat (make-string left ?\s)
+      ('right (concat (pimacs--markdown-table-space padding) text))
+      ('center (let ((left (floor (/ padding 2))))
+                 (concat (pimacs--markdown-table-space left)
                          text
-                         (make-string (- padding left) ?\s))))
-      (_ (concat text (make-string padding ?\s))))))
+                         (pimacs--markdown-table-space (- padding left)))))
+      (_ (concat text (pimacs--markdown-table-space padding))))))
+
+(defun pimacs--markdown-table-rule (width character)
+  (let* ((character (pimacs--markdown-propertize-face
+                     character 'pimacs-markdown-table-border-face))
+         (character-width (string-pixel-width character))
+         (count (floor (/ width character-width)))
+         (remainder (- width (* count character-width))))
+    (concat (apply #'concat (make-list count character))
+            (pimacs--markdown-table-space remainder))))
+
+(defun pimacs--markdown-table-wrap-line (text width)
+  (if (string-empty-p text)
+      (list text)
+    (let ((width (max 1 width))
+          (length (length text))
+          (start 0)
+          lines)
+      (while (< start length)
+        (while (and (< start length)
+                    (eq (char-syntax (aref text start)) ?\ ))
+          (setq start (1+ start)))
+        (when (< start length)
+          (let ((end start)
+                last-break)
+            (while (and (< end length)
+                        (<= (string-pixel-width (substring text start (1+ end))) width))
+              (when (eq (char-syntax (aref text end)) ?\ )
+                (setq last-break end))
+              (setq end (1+ end)))
+            (if (= end length)
+                (progn
+                  (push (substring text start end) lines)
+                  (setq start end))
+              (let ((break (or last-break end)))
+                (when (= break start)
+                  (setq break (1+ start)))
+                (push (substring text start break) lines)
+                (setq start break))))))
+      (nreverse lines))))
+
+(defun pimacs--markdown-table-line-minimum-width (line)
+  (let ((width 1))
+    (dotimes (index (length line))
+      (setq width (max width
+                       (string-pixel-width (substring line index (1+ index))))))
+    width))
+
+(defun pimacs--markdown-table-wrap-cell (cell width)
+  (apply #'append
+         (mapcar (lambda (line)
+                   (pimacs--markdown-table-wrap-line line width))
+                 cell)))
+
+(defun pimacs--markdown-table-wrap-row (row widths)
+  (cl-loop for width in widths
+           for cell = (or (pop row) '(""))
+           collect (pimacs--markdown-table-wrap-cell cell width)))
+
+(defun pimacs--markdown-table-fit-widths (widths minimums maximum)
+  (setq widths (copy-sequence widths))
+  (while (and (> (apply #'+ widths) maximum)
+              (cl-loop for width in widths
+                       for minimum in minimums
+                       thereis (> width minimum)))
+    (let* ((largest (cl-loop for width in widths
+                             for minimum in minimums
+                             when (> width minimum)
+                             maximize width))
+           (indexes (cl-loop for width in widths
+                             for minimum in minimums
+                             for index from 0
+                             when (and (= width largest) (> width minimum))
+                             collect index))
+           (excess (- (apply #'+ widths) maximum))
+           (reduction (max 1 (ceiling (/ excess (length indexes))))))
+      (dolist (index indexes)
+        (setf (nth index widths)
+              (max (nth index minimums)
+                   (- (nth index widths) reduction))))))
+  widths)
 
 (defun pimacs--markdown-render-table (node)
   (let* ((header (pimacs--markdown-node-child node "pipe_table_header"))
@@ -617,37 +700,81 @@
         (pimacs--markdown-node-text node)
       (let* ((column-count (length header-cells))
              (alignments (mapcar #'pimacs--markdown-table-alignment delimiter-cells))
-             (header-data (mapcar #'pimacs--markdown-table-cell-lines header-cells))
-             (delimiter-data (mapcar (lambda (cell)
-                                       (list (string-trim
-                                              (pimacs--markdown-node-text cell))))
-                                     delimiter-cells))
+             (vertical (pimacs--markdown-propertize-face
+                        (if pimacs-markdown-use-unicode-tables "│" "|")
+                        'pimacs-markdown-table-border-face))
+             (horizontal (if pimacs-markdown-use-unicode-tables "─" "-"))
+             (intersection (pimacs--markdown-propertize-face
+                            (if pimacs-markdown-use-unicode-tables "┼" "+")
+                            'pimacs-markdown-table-border-face))
+             (left (pimacs--markdown-propertize-face
+                    (if pimacs-markdown-use-unicode-tables "├" "+")
+                    'pimacs-markdown-table-border-face))
+             (right (pimacs--markdown-propertize-face
+                     (if pimacs-markdown-use-unicode-tables "┤" "+")
+                     'pimacs-markdown-table-border-face))
+             (margin-width (string-pixel-width " "))
+             (margin (pimacs--markdown-table-space margin-width))
+             (header-data (mapcar (lambda (cell)
+                                    (mapcar (lambda (line)
+                                              (pimacs--markdown-table-header-face
+                                               (copy-sequence line)))
+                                            cell))
+                                  (mapcar #'pimacs--markdown-table-cell-lines header-cells)))
              (row-data (mapcar (lambda (row)
                                  (mapcar #'pimacs--markdown-table-cell-lines
                                          (pimacs--markdown-node-children row)))
                                rows))
-             (all-rows (append (list header-data delimiter-data) row-data))
+             (all-rows (cons header-data row-data))
+             (minimums (cl-loop for column below column-count
+                                collect (cl-loop for row in all-rows
+                                                 maximize (cl-loop for line in (or (nth column row)
+                                                                                   '(""))
+                                                                   maximize (pimacs--markdown-table-line-minimum-width
+                                                                             line)))))
              (widths (cl-loop for column below column-count
                               collect (cl-loop for row in all-rows
-                                               maximize (cl-loop for cell in row
-                                                                 for index from 0
-                                                                 when (= index column)
-                                                                 maximize (cl-loop for line in cell
-                                                                                   maximize (string-width line))))))
-             (vertical (if pimacs-markdown-use-unicode-tables "│" "|"))
-             (horizontal (if pimacs-markdown-use-unicode-tables ?─ ?-))
-             (intersection (if pimacs-markdown-use-unicode-tables "┼" "+"))
-             (left (if pimacs-markdown-use-unicode-tables "├" "+"))
-             (right (if pimacs-markdown-use-unicode-tables "┤" "+"))
+                                               maximize (cl-loop for line in (or (nth column row)
+                                                                                 '(""))
+                                                                 maximize (string-pixel-width line)))))
+             (horizontal-width
+              (string-pixel-width
+               (pimacs--markdown-propertize-face
+                horizontal 'pimacs-markdown-table-border-face)))
+             (minimum-units (mapcar (lambda (width)
+                                      (ceiling (/ (+ width (* 2 margin-width))
+                                                  horizontal-width)))
+                                    minimums))
+             (width-units (mapcar (lambda (width)
+                                    (ceiling (/ (+ width (* 2 margin-width))
+                                                horizontal-width)))
+                                  widths))
+             (available-units
+              (max (apply #'+ minimum-units)
+                   (floor (/ (- (floor (* 0.9 (window-width nil t)))
+                                (* (1+ column-count)
+                                   (string-pixel-width vertical)))
+                             horizontal-width))))
+             (width-units (pimacs--markdown-table-fit-widths
+                           width-units minimum-units available-units))
+             (widths (cl-mapcar (lambda (units minimum)
+                                  (max minimum
+                                       (- (* units horizontal-width)
+                                          (* 2 margin-width))))
+                                width-units minimums))
+             (wrapped-header-data (pimacs--markdown-table-wrap-row header-data widths))
+             (wrapped-row-data (mapcar (lambda (row)
+                                         (pimacs--markdown-table-wrap-row row widths))
+                                       row-data))
              output)
         (cl-labels
             ((border ()
-               (pimacs--markdown-propertize-face
-                (concat left
-                        (mapconcat (lambda (width) (make-string (+ width 2) horizontal))
-                                   widths intersection)
-                        right)
-                'pimacs-markdown-table-border-face))
+               (concat left
+                       (mapconcat (lambda (width)
+                                    (pimacs--markdown-table-rule
+                                     (+ width (* 2 margin-width)) horizontal))
+                                  widths intersection)
+                       right))
              (render-row (row headerp)
                (let ((height (apply #'max (mapcar #'length row))))
                  (cl-loop for line below height
@@ -655,24 +782,20 @@
                           (let (chunks)
                             (dotimes (column column-count)
                               (let* ((cell (nth column row))
-                                     (text (or (nth line cell) ""))
+                                     (text (copy-sequence (or (nth line cell) "")))
                                      (padded (pimacs--markdown-table-pad
                                               text (nth column widths)
                                               (nth column alignments))))
                                 (when headerp
                                   (setq padded (pimacs--markdown-table-header-face padded)))
-                                (push (pimacs--markdown-propertize-face
-                                       vertical 'pimacs-markdown-table-border-face)
-                                      chunks)
-                                (push " " chunks)
+                                (push vertical chunks)
+                                (push margin chunks)
                                 (push padded chunks)
-                                (push " " chunks)))
-                            (push (pimacs--markdown-propertize-face
-                                   vertical 'pimacs-markdown-table-border-face)
-                                  chunks)
+                                (push margin chunks)))
+                            (push vertical chunks)
                             (apply #'concat (nreverse chunks)))))))
-          (setq output (append (render-row header-data t) (list (border))))
-          (dolist (row row-data)
+          (setq output (append (render-row wrapped-header-data t) (list (border))))
+          (dolist (row wrapped-row-data)
             (setq output (append output (render-row row nil))))
           (concat (mapconcat #'identity output "\n")
                   (if (string-suffix-p "\n" (pimacs--markdown-node-text node)) "\n" "")))))))

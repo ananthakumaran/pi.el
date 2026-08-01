@@ -1,25 +1,29 @@
-│ │ A   │ B   │
+│ │ A  │ B  │
 @ ^ table-border
-@       ^ table-border
-@             ^ table-border
-@   ^^^ table-header
-@         ^^^ table-header
-│ ├─────┼─────┤
-@ ^^^^^^^^^^^^^ table-border
-│ │ a   │ b   │
+@      ^ table-border
+@           ^ table-border
+@   ^^ table-header
+@        ^^ table-header
+│ ├─── ┼─── ┤
+@ ^^^^ table-border
+@      ^^^^ table-border
+@           ^ table-border
+│ │ a  │ b  │
 @ ^ table-border
-@       ^ table-border
-@             ^ table-border
+@      ^ table-border
+@           ^ table-border
 │
-│ │ C   │ D   │
+│ │ C  │ D  │
 @ ^ table-border
-@       ^ table-border
-@             ^ table-border
-@   ^^^ table-header
-@         ^^^ table-header
-│ ├─────┼─────┤
-@ ^^^^^^^^^^^^^ table-border
-│ │ c   │ d   │
+@      ^ table-border
+@           ^ table-border
+@   ^^ table-header
+@        ^^ table-header
+│ ├─── ┼─── ┤
+@ ^^^^ table-border
+@      ^^^^ table-border
+@           ^ table-border
+│ │ c  │ d  │
 @ ^ table-border
-@       ^ table-border
-@             ^ table-border
+@      ^ table-border
+@           ^ table-border

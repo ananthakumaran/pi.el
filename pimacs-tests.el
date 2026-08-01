@@ -396,7 +396,7 @@
         (should (equal (property-at "strike" 'face)
                        '((:strike-through t) pimacs-thinking-face)))
         (should (equal (property-at "code" 'face)
-                       '((:family fixed-pitch) pimacs-thinking-face)))
+                       '((:inherit fixed-pitch) pimacs-thinking-face)))
         (should (equal (property-at "link" 'face)
                        '((:underline t) pimacs-thinking-face)))
         (should (equal (property-at "link" 'help-echo) "https://example.com"))))))

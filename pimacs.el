@@ -438,7 +438,7 @@ with the message plist to insert the custom message content."
                                    pimacs-markdown-code-block-face
                                    pimacs-markdown-table-header-face
                                    pimacs-markdown-table-border-face))
-      (setq attributes (plist-put attributes :family 'fixed-pitch)))
+      (setq attributes (plist-put attributes :inherit 'fixed-pitch)))
     (when (memq 'pimacs-markdown-link-face faces)
       (setq attributes (plist-put attributes :underline t)))
     (if attributes
