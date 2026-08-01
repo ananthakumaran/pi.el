@@ -39,7 +39,7 @@ test: compile
 
 .PHONY: markdown-test
 markdown-test: compile
-	@$(CASK_EMACS) -L . -L test -l pimacs-markdown-tests.el --eval '(pimacs-markdown-tests-run-batch-and-exit "$(MATCH)")'
+	@$(CASK_EMACS) -L . -L test -l pimacs-markdown-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
 
 .PHONY: integration
 integration: compile

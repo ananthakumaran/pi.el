@@ -1,3 +1,2 @@
-│ Pimacs
-@ ^^^^^^ link
+│ [Pimacs]
 @ eof

@@ -19,21 +19,7 @@
                     (file-name-directory (or load-file-name buffer-file-name))))
 
 (defconst pimacs-markdown-tests--tape-files
-  '("autolink.in.markdown"
-    "blockquote-fence.in.markdown"
-    "blockquote.in.markdown"
-    "closed-fence.in.markdown"
-    "equation.in.markdown"
-    "escapes.in.markdown"
-    "heading.in.markdown"
-    "highlight-superscript-subscript.in.markdown"
-    "horizontal-rule.in.markdown"
-    "html-break.in.markdown"
-    "image.in.markdown"
-    "indented-code.in.markdown"
-    "inline.in.markdown"
-    "link.in.markdown"
-    "lists.in.markdown"))
+  (directory-files pimacs-markdown-tests--directory t "\\.in\\.markdown\\'"))
 
 (defun pimacs-markdown-tests--face-only (text)
   (let ((result (substring-no-properties text))
@@ -190,9 +176,7 @@
              (pimacs-markdown-tests--read-file output-file)
              (and (file-exists-p ast-file)
                   (pimacs-markdown-tests--read-file ast-file)))))
-   (mapcar (lambda (file)
-             (expand-file-name file pimacs-markdown-tests--directory))
-           pimacs-markdown-tests--tape-files)))
+   pimacs-markdown-tests--tape-files))
 
 (ert-deftest pimacs-markdown-tape ()
   (dolist (tape (pimacs-markdown-tests--tapes))
@@ -203,21 +187,6 @@
         (should (equal expected
                        (pimacs-markdown-tests--format-tape
                         (pimacs-markdown-tests--render-complete input))))))))
-
-(defun pimacs-markdown-tests-run-batch-and-exit (selector)
-  (let ((stats
-         (ert-run-tests
-          selector
-          (lambda (event-type &rest event-args)
-            (when (eq event-type 'test-ended)
-              (pcase-let ((`(,_ ,test ,result) event-args))
-                (unless (ert-test-result-expected-p test result)
-                  (message "FAILED %S" (ert-test-name test))
-                  (when (ert-test-result-with-condition-p result)
-                    (message "%S"
-                             (ert-test-result-with-condition-condition result))))))
-          nil))))
-    (kill-emacs (if (zerop (ert-stats-completed-unexpected stats)) 0 1))))
 
 (ert-deftest pimacs-markdown-streaming-appends-source-text ()
   (should (equal (pimacs--render-markdown-experimental nil "**Pimacs**" t)

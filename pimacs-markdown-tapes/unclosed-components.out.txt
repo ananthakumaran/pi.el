@@ -1,7 +1,4 @@
-│ code
-@ ^^^^ inline-code
+│ `code
 │ **bold
-@ ^^^^^^ inline-code
 │ [Pimacs]
-@ ^^^^^^^^ inline-code
 @ eof

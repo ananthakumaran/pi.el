@@ -1,3 +1,2 @@
-│ bold
-@ ^^^^ bold
+│ **bold
 @ eof

@@ -1,29 +1,29 @@
 │ Table with descriptive content
-│ │ Feature  │ Description              │ Status │
+│ │ Feature        │ Description                │ Status   │
 @ ^ table-border
-@   ^^^^^^^^ table-header
-@            ^ table-border
-@              ^^^^^^^^^^^^^^^^^^^^^^^^ table-header
-@                                       ^ table-border
-@                                         ^^^^^^ table-header
-@                                                ^ table-border
-│ ├──────────┼──────────────────────────┼────────┤
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ table-border
-│ │ Speed    │ Blazing fast performance │ ✅     │
+@                  ^ table-border
+@                                               ^ table-border
+@                                                          ^ table-border
+@   ^^^^^^^^^^^^^^ table-header
+@                    ^^^^^^^^^^^^^^^^^^^^^^^^^^ table-header
+@                                                 ^^^^^^^^ table-header
+│ ├────────────────┼────────────────────────────┼──────────┤
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ table-border
+│ │ Speed          │ Blazing fast performance   │ ✅       │
 @ ^ table-border
+@                  ^ table-border
+@                                               ^ table-border
+@                                                         ^ table-border
 @   ^^^^^ bold
-@            ^ table-border
-@                                       ^ table-border
-@                                               ^ table-border
-│ │ Security │ End-to-end encryption    │ ✅     │
+│ │ Security       │ End-to-end encryption      │ ✅       │
 @ ^ table-border
+@                  ^ table-border
+@                                               ^ table-border
+@                                                         ^ table-border
 @   ^^^^^^^^ bold
-@            ^ table-border
-@                                       ^ table-border
-@                                               ^ table-border
-│ │ Cost     │ Free for basic users     │ ⚠️      │
+│ │ Cost           │ Free for basic users       │ ⚠️        │
 @ ^ table-border
+@                  ^ table-border
+@                                               ^ table-border
+@                                                           ^ table-border
 @   ^^^^ bold
-@            ^ table-border
-@                                       ^ table-border
-@                                                 ^ table-border

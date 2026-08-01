@@ -1,3 +1,2 @@
-│ old
-@ ^^^ strike-through
+│ ~~old
 @ eof

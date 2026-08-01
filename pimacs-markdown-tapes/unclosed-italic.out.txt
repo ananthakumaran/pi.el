@@ -1,3 +1,2 @@
-│ italic
-@ ^^^^^^ italic
+│ *italic
 @ eof

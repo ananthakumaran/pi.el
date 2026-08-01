@@ -1,2 +1,5 @@
-│ code
-@ ^^^^ code-block
+│ ▎ code
+@ ^^ blockquote
+@   ^^^^ code-block
+│ ▎
+@ ^ blockquote

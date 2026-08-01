@@ -1,9 +1,9 @@
 │ │ A   │ B   │
 @ ^ table-border
-@   ^^^ table-header
 @       ^ table-border
-@         ^^^ table-header
 @             ^ table-border
+@   ^^^ table-header
+@         ^^^ table-header
 │ ├─────┼─────┤
 @ ^^^^^^^^^^^^^ table-border
 │ │ x   │ y   │

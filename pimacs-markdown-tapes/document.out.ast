@@ -460,7 +460,7 @@ document
       text "Mixed Lists"
     list
      list_item
-      list_marker_dot "1. "
+      list_marker_dot "5. "
       paragraph
        inline "Ordered item"
         text "Ordered item"
@@ -478,7 +478,7 @@ document
          inline "Another unordered"
           text "Another unordered"
      list_item
-      list_marker_dot "2. "
+      list_marker_dot "6. "
       paragraph
        inline "Next ordered"
         text "Next ordered"

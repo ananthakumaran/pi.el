@@ -1,24 +1,19 @@
-│ bolditalic
-@ ^^^^^^^^^^ bold
-@     ^^^^^^ italic
+│ bolditalic**
+@ ^^^^^^^^^^ italic
 │ bolditalic
 @ ^^^^^^^^^^ bold
 @ ^^^^ italic
-│ italicbold
-@ ^^^^^^^^^^ italic
-@       ^^^^ bold
+│ *italicbold*
+@        ^^^^ bold
 │ bolditalic
+@ ^^^^^^^^^^ italic
 @ ^^^^ bold
-@ ^^^^^^^^^^ italic
-│ bolditalic
-@ ^^^^^^^^^^ bold
-@     ^^^^^^ italic
-│ bolditalic
-@ ^^^^^^^^^^ bold
-@ ^^^^ italic
-│ italicbold
-@ ^^^^^^^^^^ italic
-@       ^^^^ bold
-│ bolditalic
-@ ^^^^ bold
-@ ^^^^^^^^^^ italic
+│ bold_italic_
+@ ^^^^^^^^^^^ bold
+│ bold_italic
+@ ^^^^^^^^^^^ italic
+@ ^^^^^^^^^^^ bold
+│ italic__bold_
+@ ^^^^^^^^^^^^ italic
+│ __bold__italic
+@   ^^^^^^^^^^^^ italic

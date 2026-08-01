@@ -86,10 +86,10 @@ ___Bold and Italic___ (triple underscore)
 
 ### Mixed Lists
 
-1. Ordered item
+5. Ordered item
    - Unordered nested
    - Another unordered
-2. Next ordered
+6. Next ordered
    1. Ordered nested
    2. Another ordered
 

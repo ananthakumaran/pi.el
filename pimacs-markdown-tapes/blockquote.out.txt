@@ -1,16 +1,20 @@
-│ quoted text
+│ ▎ quoted text
+@ ^^^^^^^^^^^^^ blockquote
+@   ^^^^^^ italic
+│ ▎ continued
 @ ^^^^^^^^^^^ blockquote
-@ ^^^^^^ italic
-│ continued
+│ ▎ ▎ nested
+@ ^^^^^^^^^^ blockquote
+│ ▎ ▎ outer
 @ ^^^^^^^^^ blockquote
-│ nested
-@ ^^^^^^ blockquote
-│ outer
-@ ^^^^^ blockquote
-│ heading
-@ ^^^^^^^ blockquote
-@ ^^^^^^^ heading
-│ nospace
-@ ^^^^^^^ blockquote
+│ ▎ ▎
+@ ^^^ blockquote
+│ ▎ heading
+@ ^^^^^^^^^ blockquote
+@   ^^^^^^^ heading
+│ ▎ nospace
+@ ^^^^^^^^^ blockquote
+│ ▎
+@ ^ blockquote
 │
 │ after

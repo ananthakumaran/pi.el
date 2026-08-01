@@ -1,11 +1,11 @@
 │ │ Name │ Value │ Center │
 @ ^ table-border
-@   ^^^^ table-header
 @        ^ table-border
-@          ^^^^^ table-header
 @                ^ table-border
-@                  ^^^^^^ table-header
 @                         ^ table-border
+@   ^^^^ table-header
+@          ^^^^^ table-header
+@                  ^^^^^^ table-header
 │ ├──────┼───────┼────────┤
 @ ^^^^^^^^^^^^^^^^^^^^^^^^^ table-border
 │ │ a|b  │     7 │   c    │

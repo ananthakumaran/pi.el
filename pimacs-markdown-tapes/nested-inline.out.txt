@@ -3,8 +3,8 @@
 @        ^^^^ bold
 │
 │ triple
-@ ^^^^^^ bold
 @ ^^^^^^ italic
+@ ^^^^^^ bold
 │
 │ bold code link
 @ ^^^^^^^^^^^^^^ bold

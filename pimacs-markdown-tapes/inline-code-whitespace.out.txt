@@ -6,7 +6,6 @@
 @ ^ inline-code
 │ b
 @ ^ inline-code
-│ a
-@ ^ inline-code
+│ `a
 │
-│ b
+│ b`
