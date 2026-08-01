@@ -1,0 +1,16 @@
+markdown:
+document
+ section
+  paragraph
+   inline "paragraph"
+    text "paragraph"
+  pipe_table
+   pipe_table_header
+    pipe_table_cell "Foo "
+    pipe_table_cell "Bar "
+   pipe_table_delimiter_row
+    pipe_table_delimiter_cell "---"
+    pipe_table_delimiter_cell "---"
+   pipe_table_row
+    pipe_table_cell "a "
+    pipe_table_cell "b "

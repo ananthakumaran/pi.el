@@ -1,0 +1,16 @@
+markdown:
+document
+ section
+  paragraph
+   inline "A __bold__ word."
+    text "A "
+    strong_emphasis
+     emphasis_delimiter "_"
+     emphasis_delimiter "_"
+     text "bold"
+     emphasis_delimiter "_"
+     emphasis_delimiter "_"
+    text " word."
+  paragraph
+   inline "__unclosed"
+    text "__unclosed"

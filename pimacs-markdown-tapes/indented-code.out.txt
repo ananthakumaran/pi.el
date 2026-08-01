@@ -5,5 +5,4 @@
 │     deeper
 @ ^^^^^^^^^^ code-block
 │ not code
-│ with tab
-@ ^^^^^^^^ code-block
+│ 	with tab

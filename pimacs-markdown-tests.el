@@ -19,9 +19,18 @@
                     (file-name-directory (or load-file-name buffer-file-name))))
 
 (defconst pimacs-markdown-tests--tape-files
-  '("closed-fence.in.markdown"
+  '("autolink.in.markdown"
+    "blockquote-fence.in.markdown"
+    "blockquote.in.markdown"
+    "closed-fence.in.markdown"
+    "equation.in.markdown"
+    "escapes.in.markdown"
     "heading.in.markdown"
+    "highlight-superscript-subscript.in.markdown"
+    "horizontal-rule.in.markdown"
+    "html-break.in.markdown"
     "image.in.markdown"
+    "indented-code.in.markdown"
     "inline.in.markdown"
     "link.in.markdown"
     "lists.in.markdown"))
@@ -52,79 +61,163 @@
     (insert-file-contents file)
     (buffer-string)))
 
-(defun pimacs-markdown-tests--read-tape (file)
-  (let* ((contents (pimacs-markdown-tests--read-file file))
-         (lines (split-string contents "\n" nil))
-         (ends-with-newline (string-suffix-p "\n" contents))
-         (output-lines nil)
-         (annotations nil)
-         (final-newline t))
-    (when ends-with-newline
+(defun pimacs-markdown-tests--ast-text (text depth)
+  (if (and (not (string-match-p "\n" text))
+           (<= (length text) 60))
+      (concat " " (prin1-to-string text))
+    (concat " [\n"
+            (mapconcat (lambda (line)
+                         (concat (make-string depth ?\s)
+                                 (if (string-empty-p line) "│" (concat "│ " line))))
+                       (split-string text "\n" nil)
+                       "\n")
+            "\n"
+            (make-string depth ?\s)
+            "]")))
+
+(defun pimacs-markdown-tests--ast-text-node (text depth)
+  (concat (make-string depth ?\s)
+          "text"
+          (pimacs-markdown-tests--ast-text text depth)
+          "\n"))
+
+(defun pimacs-markdown-tests--ast-children (node depth inline-tree)
+  (let ((children (pimacs--markdown-node-children node)))
+    (if (and inline-tree
+             (or children (string= (treesit-node-type node) "inline")))
+        (let ((position (treesit-node-start node))
+              output)
+          (dolist (child children)
+            (let ((start (treesit-node-start child)))
+              (when (< position start)
+                (push (pimacs-markdown-tests--ast-text-node
+                       (buffer-substring-no-properties position start) depth)
+                      output))
+              (push (pimacs-markdown-tests--ast-node child depth t) output)
+              (setq position (treesit-node-end child))))
+          (when (< position (treesit-node-end node))
+            (push (pimacs-markdown-tests--ast-text-node
+                   (buffer-substring-no-properties position (treesit-node-end node)) depth)
+                  output))
+          (apply #'concat (nreverse output)))
+      (mapconcat (lambda (child)
+                   (pimacs-markdown-tests--ast-node child depth))
+                 children
+                 ""))))
+
+(defun pimacs-markdown-tests--inline-children (node depth)
+  (with-temp-buffer
+    (insert (treesit-node-text node t))
+    (pimacs-markdown-tests--ast-children
+     (treesit-parser-root-node (treesit-parser-create 'markdown_inline)) depth t)))
+
+(defun pimacs-markdown-tests--ast-node (node depth &optional inline-tree)
+  (let* ((type (treesit-node-type node))
+         (inline-node (and (not inline-tree) (string= type "inline")))
+         (children (pimacs--markdown-node-children node))
+         (indentation (make-string depth ?\s)))
+    (concat indentation
+            type
+            (when (and (not (string-empty-p (treesit-node-text node t)))
+                       (or inline-node
+                           (string= type "code_fence_content")
+                           (and (null children)
+                                (not (and (string= type "inline")
+                                          (= depth 0))))))
+              (pimacs-markdown-tests--ast-text
+               (treesit-node-text node t) depth))
+            "\n"
+            (if inline-node
+                (pimacs-markdown-tests--inline-children node (1+ depth))
+              (pimacs-markdown-tests--ast-children
+               node (1+ depth) inline-tree)))))
+
+(defun pimacs-markdown-tests--ast (input)
+  (with-temp-buffer
+    (insert input)
+    (concat "markdown:\n"
+            (pimacs-markdown-tests--ast-node
+             (treesit-parser-root-node (treesit-parser-create 'markdown)) 0))))
+
+(defun pimacs-markdown-tests--face-name (face)
+  (string-remove-suffix "-face"
+                        (string-remove-prefix "pimacs-markdown-"
+                                              (symbol-name face))))
+
+(defun pimacs-markdown-tests--format-tape (text)
+  (let ((lines (split-string text "\n" nil))
+        (final-newline (string-suffix-p "\n" text))
+        output)
+    (when final-newline
       (setq lines (butlast lines)))
     (dolist (line lines)
-      (cond
-       ((string= line "@ eof")
-        (setq final-newline nil))
-       ((string-match "\\`@ \\( *\\)\\(\\^+\\) \\(.+\\)\\'" line)
-        (unless output-lines
-          (error "Face annotation has no output line: %s" file))
-        (push (list (1- (length output-lines))
-                    (length (match-string 1 line))
-                    (length (match-string 2 line))
-                    (intern (concat "pimacs-markdown-"
-                                    (match-string 3 line)
-                                    "-face")))
-              annotations))
-       ((string= line "│")
-        (push "" output-lines))
-       ((string-prefix-p "│ " line)
-        (push (substring line 2) output-lines))
-       (t
-        (error "Output line is missing its gutter: %s" file))))
-    (let ((text (mapconcat #'identity (nreverse output-lines) "\n")))
-      (when (and final-newline output-lines)
-        (setq text (concat text "\n")))
-      (let ((line-starts (list 0))
-            (position 0))
-        (while (string-match "\n" text position)
-          (setq position (match-end 0))
-          (push position line-starts))
-        (setq line-starts (nreverse line-starts))
-        (dolist (annotation annotations)
-          (let ((start (+ (nth (car annotation) line-starts)
-                          (nth 1 annotation))))
-            (let* ((end (+ start (nth 2 annotation)))
-                   (face (nth 3 annotation))
-                   (existing (get-text-property start 'face text)))
-              (put-text-property start end 'face
-                                 (if existing
-                                     (cons face (if (listp existing)
-                                                    existing
-                                                  (list existing)))
-                                   face)
-                                 text)))))
-      text)))
+      (push (if (string-empty-p line)
+                "│"
+              (concat "│ " (substring-no-properties line)))
+            output)
+      (let (faces)
+        (dotimes (position (length line))
+          (dolist (face (reverse (ensure-list (get-text-property position 'face line))))
+            (cl-pushnew face faces)))
+        (dolist (face (nreverse faces))
+          (let ((position 0))
+            (while (< position (length line))
+              (if (memq face (ensure-list (get-text-property position 'face line)))
+                  (let ((start position))
+                    (while (and (< position (length line))
+                                (memq face (ensure-list (get-text-property position 'face line))))
+                      (setq position (1+ position)))
+                    (push (format "@ %s%s %s"
+                                  (make-string start ?\s)
+                                  (make-string (- position start) ?^)
+                                  (pimacs-markdown-tests--face-name face))
+                          output))
+                (setq position (1+ position))))))))
+    (unless final-newline
+      (push "@ eof" output))
+    (concat (mapconcat #'identity (nreverse output) "\n") "\n")))
 
 (defun pimacs-markdown-tests--tapes ()
   (mapcar
    (lambda (input-file)
-     (let ((output-file
-            (concat (string-remove-suffix ".in.markdown" input-file) ".out.txt")))
+     (let* ((tape-prefix (string-remove-suffix ".in.markdown" input-file))
+            (output-file (concat tape-prefix ".out.txt"))
+            (ast-file (concat tape-prefix ".out.ast")))
        (unless (file-exists-p output-file)
          (error "Missing Markdown output tape: %s" output-file))
        (list input-file
              (pimacs-markdown-tests--read-file input-file)
-             (pimacs-markdown-tests--read-tape output-file))))
+             (pimacs-markdown-tests--read-file output-file)
+             (and (file-exists-p ast-file)
+                  (pimacs-markdown-tests--read-file ast-file)))))
    (mapcar (lambda (file)
              (expand-file-name file pimacs-markdown-tests--directory))
            pimacs-markdown-tests--tape-files)))
 
 (ert-deftest pimacs-markdown-tape ()
   (dolist (tape (pimacs-markdown-tests--tapes))
-    (pcase-let ((`(,input-file ,input ,expected) tape))
+    (pcase-let ((`(,input-file ,input ,expected ,expected-ast) tape))
       (ert-info ((format "Markdown tape: %s" input-file))
+        (when expected-ast
+          (should (equal expected-ast (pimacs-markdown-tests--ast input))))
         (should (equal expected
-                       (pimacs-markdown-tests--render-complete input)))))))
+                       (pimacs-markdown-tests--format-tape
+                        (pimacs-markdown-tests--render-complete input))))))))
+
+(defun pimacs-markdown-tests-run-batch-and-exit (selector)
+  (let ((stats
+         (ert-run-tests
+          selector
+          (lambda (event-type &rest event-args)
+            (when (eq event-type 'test-ended)
+              (pcase-let ((`(,_ ,test ,result) event-args))
+                (unless (ert-test-result-expected-p test result)
+                  (message "FAILED %S" (ert-test-name test))
+                  (when (ert-test-result-with-condition-p result)
+                    (message "%S"
+                             (ert-test-result-with-condition-condition result))))))
+          nil))))
+    (kill-emacs (if (zerop (ert-stats-completed-unexpected stats)) 0 1))))
 
 (ert-deftest pimacs-markdown-streaming-appends-source-text ()
   (should (equal (pimacs--render-markdown-experimental nil "**Pimacs**" t)

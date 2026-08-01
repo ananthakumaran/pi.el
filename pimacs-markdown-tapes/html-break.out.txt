@@ -16,10 +16,10 @@
 @ ^^^^^^^^^^^^^^^ inline-code
 │ │ Key │ Value  │
 @ ^ table-border
-@   ^^^ table-header
 @       ^ table-border
-@         ^^^^^^ table-header
 @                ^ table-border
+@   ^^^ table-header
+@         ^^^^^^ table-header
 │ ├─────┼────────┤
 @ ^^^^^^^^^^^^^^^^ table-border
 │ │ row │ top    │

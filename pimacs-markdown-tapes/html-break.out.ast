@@ -1,0 +1,59 @@
+markdown:
+document
+ section
+  paragraph
+   inline [
+   │ before<br>after<br/>more<br />end
+   │ *italic<br>line<br/>again<br />end*
+   │ escaped \<br> stays
+   │ invalid <bra> <br//> <b
+   │ `code<br>literal`
+   ]
+    text "before"
+    html_tag "<br>"
+    text "after"
+    html_tag "<br/>"
+    text "more"
+    html_tag "<br />"
+    text [
+    │ end
+    │
+    ]
+    emphasis
+     emphasis_delimiter "*"
+     text "italic"
+     html_tag "<br>"
+     text "line"
+     html_tag "<br/>"
+     text "again"
+     html_tag "<br />"
+     text "end"
+     emphasis_delimiter "*"
+    text [
+    │
+    │ escaped 
+    ]
+    backslash_escape "\\<"
+    text [
+    │ br> stays
+    │ invalid 
+    ]
+    html_tag "<bra>"
+    text [
+    │  <br//> <b
+    │
+    ]
+    code_span
+     code_span_delimiter "`"
+     text "code<br>literal"
+     code_span_delimiter "`"
+  pipe_table
+   pipe_table_header
+    pipe_table_cell "Key "
+    pipe_table_cell "Value "
+   pipe_table_delimiter_row
+    pipe_table_delimiter_cell "---"
+    pipe_table_delimiter_cell "-----"
+   pipe_table_row
+    pipe_table_cell "row "
+    pipe_table_cell "top<br>bottom "

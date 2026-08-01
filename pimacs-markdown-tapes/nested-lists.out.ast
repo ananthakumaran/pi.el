@@ -1,0 +1,51 @@
+markdown:
+document
+ section
+  list
+   list_item
+    list_marker_minus "- "
+    paragraph
+     inline "parent"
+      text "parent"
+     block_continuation "  "
+    list
+     list_item
+      list_marker_minus "  - "
+      paragraph
+       inline "child"
+        text "child"
+       block_continuation "      "
+      list
+       list_item
+        list_marker_minus "- "
+        paragraph
+         inline [
+         │ grandchild
+         │         child continuation
+         ]
+          text [
+          │ grandchild
+          │         child continuation
+          ]
+         block_continuation "    "
+     list_item
+      list_marker_minus "- "
+      paragraph
+       inline "second"
+        text "second"
+       block_continuation
+      block_continuation "  "
+    paragraph
+     inline "parent paragraph"
+      text "parent paragraph"
+   list_item
+    list_marker_minus "- "
+    paragraph
+     inline [
+     │ final
+     │ after
+     ]
+      text [
+      │ final
+      │ after
+      ]

@@ -1,0 +1,18 @@
+markdown:
+document
+ section
+  paragraph
+   inline "A `code` and **bold**."
+    text "A "
+    code_span
+     code_span_delimiter "`"
+     text "code"
+     code_span_delimiter "`"
+    text " and "
+    strong_emphasis
+     emphasis_delimiter "*"
+     emphasis_delimiter "*"
+     text "bold"
+     emphasis_delimiter "*"
+     emphasis_delimiter "*"
+    text "."

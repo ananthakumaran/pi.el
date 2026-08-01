@@ -1,0 +1,19 @@
+markdown:
+document
+ section
+  paragraph
+   inline [
+   │ [![Alt text](https://via.placeholder.com/100x50)](https://example.com)
+   ]
+    inline_link
+     text "["
+     link_text
+      image
+       text "!["
+       image_description "Alt text"
+       text "]("
+       link_destination "https://via.placeholder.com/100x50"
+       text ")"
+     text "]("
+     link_destination "https://example.com"
+     text ")"

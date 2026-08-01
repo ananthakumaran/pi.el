@@ -1,0 +1,24 @@
+markdown:
+document
+ section
+  pipe_table
+   pipe_table_header
+    pipe_table_cell "Name "
+    pipe_table_cell "Value "
+    pipe_table_cell "Center "
+   pipe_table_delimiter_row
+    pipe_table_delimiter_cell
+     pipe_table_align_left ":"
+    pipe_table_delimiter_cell
+     pipe_table_align_right ":"
+    pipe_table_delimiter_cell
+     pipe_table_align_left ":"
+     pipe_table_align_right ":"
+   pipe_table_row
+    pipe_table_cell "a\\|b "
+    pipe_table_cell "7 "
+    pipe_table_cell "c "
+   pipe_table_row
+    pipe_table_cell "      "
+    pipe_table_cell "8 "
+    pipe_table_cell "C "

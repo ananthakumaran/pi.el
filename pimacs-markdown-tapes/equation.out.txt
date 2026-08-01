@@ -3,7 +3,6 @@
 @                            ^^^^^^^^^^^ equation
 │ x_1
 @ ^^^ equation
-│
 │ [
 │ y
 │ ]

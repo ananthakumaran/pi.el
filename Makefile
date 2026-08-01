@@ -1,7 +1,7 @@
 export EMACS ?= $(shell command -v emacs 2>/dev/null)
 CASK_DIR := $(shell cask package-directory)
-CASK_TREESIT_EXTRA_LOAD_PATH := $(shell $(EMACS) --batch --eval "(princ (mapconcat (lambda (path) path) treesit-extra-load-path path-separator))")
-CASK_EMACS := PIMACS_TREESIT_EXTRA_LOAD_PATH="$(CASK_TREESIT_EXTRA_LOAD_PATH)" cask emacs --batch --eval '(progn (setq treesit-extra-load-path (split-string (getenv "PIMACS_TREESIT_EXTRA_LOAD_PATH") path-separator t)) (when (seq-some (lambda (directory) (file-exists-p (expand-file-name (concat "libtree-sitter-markdown-inline" module-file-suffix) directory))) treesit-extra-load-path) (add-to-list (quote treesit-load-name-override-list) (quote (markdown_inline "libtree-sitter-markdown-inline" "tree_sitter_markdown_inline")))))'
+CASK_TREESIT_EXTRA_LOAD_PATH := $(shell $(EMACS) --batch --eval "(princ (mapconcat (lambda (path) path) treesit-extra-load-path path-separator))" 2>/dev/null)
+CASK_EMACS := PIMACS_TREESIT_EXTRA_LOAD_PATH="$(CASK_TREESIT_EXTRA_LOAD_PATH)" cask emacs --batch --eval '(setq treesit-extra-load-path (split-string (getenv "PIMACS_TREESIT_EXTRA_LOAD_PATH") path-separator t))'
 
 MATCH ?=
 PIMACS_VERSION := $(shell awk '/^;; Version:/ { print $$3; exit }' pimacs.el)
@@ -39,7 +39,7 @@ test: compile
 
 .PHONY: markdown-test
 markdown-test: compile
-	@$(CASK_EMACS) -L . -L test -l pimacs-markdown-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
+	@$(CASK_EMACS) -L . -L test -l pimacs-markdown-tests.el --eval '(pimacs-markdown-tests-run-batch-and-exit "$(MATCH)")'
 
 .PHONY: integration
 integration: compile

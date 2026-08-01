@@ -1,0 +1,15 @@
+markdown:
+document
+ section
+  indented_code_block
+   block_continuation "    "
+   block_continuation "    "
+  paragraph
+   inline [
+   │ not code
+   │ 	with tab
+   ]
+    text [
+    │ not code
+    │ 	with tab
+    ]

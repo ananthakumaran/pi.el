@@ -1,0 +1,13 @@
+markdown:
+document
+ section
+  pipe_table
+   pipe_table_header
+    pipe_table_cell "A "
+    pipe_table_cell "B "
+   pipe_table_delimiter_row
+    pipe_table_delimiter_cell "---"
+    pipe_table_delimiter_cell "---"
+   pipe_table_row
+    pipe_table_cell "x "
+    pipe_table_cell "y "

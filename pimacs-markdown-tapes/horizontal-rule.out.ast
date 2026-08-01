@@ -1,0 +1,31 @@
+markdown:
+document
+ section
+  thematic_break [
+  │ ---
+  │
+  ]
+  thematic_break [
+  │ * * *
+  │
+  ]
+  thematic_break [
+  │ _ _ _
+  │
+  ]
+  thematic_break [
+  │ -- -
+  │
+  ]
+  list
+   list_item
+    list_marker_minus "- "
+    paragraph
+     inline [
+     │ not a rule
+     │ ---
+     ]
+      text [
+      │ not a rule
+      │ ---
+      ]

@@ -1,0 +1,78 @@
+markdown:
+document
+ section
+  paragraph
+   inline [
+   │ \*literal\* \_literal\_ \`literal\` \[literal\](url) \\ \~literal\~ \a
+   │ a\
+   │ b
+   │ **bold \* literal**
+   │ [link \]](url)
+   │ \> not a quote
+   ]
+    backslash_escape "\\*"
+    text "literal"
+    backslash_escape "\\*"
+    text " "
+    backslash_escape "\\_"
+    text "literal"
+    backslash_escape "\\_"
+    text " "
+    backslash_escape "\\`"
+    text "literal"
+    backslash_escape "\\`"
+    text " "
+    backslash_escape "\\["
+    text "literal"
+    backslash_escape "\\]"
+    text "(url) "
+    backslash_escape "\\\\"
+    text " "
+    backslash_escape "\\~"
+    text "literal"
+    backslash_escape "\\~"
+    text [
+    │  \a
+    │ a
+    ]
+    hard_line_break [
+    │ \
+    │
+    ]
+    text [
+    │ b
+    │
+    ]
+    strong_emphasis
+     emphasis_delimiter "*"
+     emphasis_delimiter "*"
+     text "bold "
+     backslash_escape "\\*"
+     text " literal"
+     emphasis_delimiter "*"
+     emphasis_delimiter "*"
+    text [
+    │
+    │
+    ]
+    inline_link
+     text "["
+     link_text
+      text "link "
+      backslash_escape "\\]"
+     text "]("
+     link_destination "url"
+     text ")"
+    text [
+    │
+    │
+    ]
+    backslash_escape "\\>"
+    text " not a quote"
+  pipe_table
+   pipe_table_header
+    pipe_table_cell "\\| not a table "
+    pipe_table_cell "still text"
+   pipe_table_delimiter_row
+    pipe_table_delimiter_cell "---"
+    pipe_table_delimiter_cell "---"

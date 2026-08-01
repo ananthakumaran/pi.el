@@ -1,0 +1,10 @@
+markdown:
+document
+ section
+  paragraph
+   inline "`code and **bold and [link]"
+    text "`code and **bold and "
+    shortcut_link
+     text "["
+     link_text "link"
+     text "]"

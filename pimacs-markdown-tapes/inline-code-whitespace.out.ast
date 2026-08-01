@@ -1,0 +1,41 @@
+markdown:
+document
+ section
+  paragraph
+   inline [
+   │ ` a `
+   │ `` a ` b ``
+   │ `a
+   │ b`
+   │ `a
+   ]
+    code_span
+     code_span_delimiter "`"
+     text " a "
+     code_span_delimiter "`"
+    text [
+    │
+    │
+    ]
+    code_span
+     code_span_delimiter "``"
+     text " a ` b "
+     code_span_delimiter "``"
+    text [
+    │
+    │
+    ]
+    code_span
+     code_span_delimiter "`"
+     text [
+     │ a
+     │ b
+     ]
+     code_span_delimiter "`"
+    text [
+    │
+    │ `a
+    ]
+  paragraph
+   inline "b`"
+    text "b`"

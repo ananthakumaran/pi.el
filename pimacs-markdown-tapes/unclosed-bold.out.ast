@@ -1,0 +1,6 @@
+markdown:
+document
+ section
+  paragraph
+   inline "**bold"
+    text "**bold"

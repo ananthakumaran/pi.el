@@ -6,5 +6,11 @@
 │ link ]
 @ ^^^^^^ link
 │ > not a quote
-│ | not a table | still text
-│ | --- | --- |
+│ │ | not a table │ still text │
+@ ^ table-border
+@                 ^ table-border
+@                              ^ table-border
+@   ^^^^^^^^^^^^^ table-header
+@                   ^^^^^^^^^^ table-header
+│ ├───────────────┼────────────┤
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ table-border

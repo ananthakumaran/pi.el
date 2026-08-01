@@ -1,0 +1,12 @@
+markdown:
+document
+ section
+  fenced_code_block
+   fenced_code_block_delimiter "```"
+   info_string
+    language "elisp"
+   block_continuation
+   code_fence_content [
+   │ (+ 1 2)
+   │
+   ]

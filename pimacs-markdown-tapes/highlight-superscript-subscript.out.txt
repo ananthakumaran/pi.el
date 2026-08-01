@@ -1,5 +1,4 @@
-│ Highlighted text
-@ ^^^^^^^^^^^^^^^^ highlight
+│ ==Highlighted text==
 │ Superscript
 @ ^^^^^^^^^^^ superscript
 │ Subscript

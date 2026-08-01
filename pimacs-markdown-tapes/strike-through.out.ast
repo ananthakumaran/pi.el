@@ -1,0 +1,14 @@
+markdown:
+document
+ section
+  paragraph
+   inline "Keep ~~old~~ text."
+    text "Keep "
+    strikethrough
+     emphasis_delimiter "~"
+     strikethrough
+      emphasis_delimiter "~"
+      text "old"
+      emphasis_delimiter "~"
+     emphasis_delimiter "~"
+    text " text."
