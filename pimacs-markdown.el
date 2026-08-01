@@ -353,88 +353,148 @@
     (put-text-property 0 (length label) 'pimacs-markdown-image-url url label)
     label))
 
-(defun pimacs--markdown-render-inline-node (node context)
+(defun pimacs--markdown-render-emphasis-node (node context)
   (let* ((type (treesit-node-type node))
          (start (treesit-node-start node))
          (end (treesit-node-end node))
-         (source (pimacs--markdown-node-text node)))
-    (pcase type
-      ((or "emphasis" "strong_emphasis" "strikethrough")
-       (let* ((width (let ((position (treesit-node-start node))
-                           (width 0))
-                       (dolist (child (pimacs--markdown-node-children node))
-                         (when (and (string= (treesit-node-type child)
-                                             "emphasis_delimiter")
-                                    (= (treesit-node-start child) position))
-                           (setq width (+ width
-                                          (length (pimacs--markdown-node-text child))))
-                           (setq position (treesit-node-end child))))
-                       width))
-              (face (pcase type
-                      ("emphasis" 'pimacs-markdown-italic-face)
-                      ("strong_emphasis" 'pimacs-markdown-bold-face)
-                      (_ 'pimacs-markdown-strike-through-face))))
-         (pimacs--markdown-propertize-outer-face
-          (pimacs--markdown-render-inline-range (+ start width) (- end width) context)
-          face)))
-      ("code_span"
-       (let* ((delimiter (pimacs--markdown-node-child node "code_span_delimiter"))
-              (width (if delimiter (length (pimacs--markdown-node-text delimiter)) 0))
-              (text (substring source width (- width))))
-         (when (string-match-p "\\` .* \\'" text)
-           (setq text (substring text 1 -1)))
-         (pimacs--markdown-propertize-face text 'pimacs-markdown-inline-code-face)))
-      ("inline_link"
-       (let ((label (pimacs--markdown-node-child node "link_text"))
-             (destination (pimacs--markdown-node-child node "link_destination"))
-             (title (pimacs--markdown-node-child node "link_title")))
-         (if (and label destination)
-             (pimacs--markdown-link-label
-              (pimacs--markdown-node-text label) nil
-              (string-trim (pimacs--markdown-node-text destination) "<" ">")
-              context
-              (and title (string-trim (pimacs--markdown-node-text title) "\"'(" "\"')")))
-           source)))
-      ((or "full_reference_link" "shortcut_link" "collapsed_reference_link")
-       (let* ((label (pimacs--markdown-node-child node "link_text"))
-              (reference (if (string= type "full_reference_link")
-                             (pimacs--markdown-node-child node "link_label")
-                           label))
-              (definition (and reference
-                               (assoc-string
-                                (pimacs--markdown-reference-label
-                                 (pimacs--markdown-node-text reference))
-                                (pimacs--markdown-render-context-reference-definitions
-                                 context)
-                                t))))
-         (if (and label definition)
-             (pimacs--markdown-link-label
-              (pimacs--markdown-node-text label) nil
-              (car definition) context (cadr definition))
-           source)))
-      ("image"
-       (let ((label (or (pimacs--markdown-node-child node "image_description")
-                        (pimacs--markdown-node-child node "link_text")))
-             (destination (pimacs--markdown-node-child node "link_destination"))
-             (title (pimacs--markdown-node-child node "link_title")))
-         (if (and label destination)
-             (pimacs--markdown-image-label
-              (pimacs--markdown-node-text label) nil
-              (string-trim (pimacs--markdown-node-text destination) "<" ">")
-              context
-              (and title (string-trim (pimacs--markdown-node-text title) "\"'(" "\"')")))
-           source)))
-      ((or "uri_autolink" "email_autolink")
-       (pimacs--markdown-autolink-label (string-trim source "<" ">") nil))
-      ((or "backslash_escape" "hard_line_break")
-       (string-remove-prefix "\\" source))
-      ("html_tag"
-       (if (member source '("<br>" "<br/>" "<br />")) "\n" source))
-      ("latex_block"
-       (pimacs--markdown-propertize-face
-        (string-trim (string-trim source "\\$+" "\\$+"))
-        'pimacs-markdown-equation-face))
-      (_ source))))
+         (width (let ((position start)
+                      (width 0))
+                  (dolist (child (pimacs--markdown-node-children node))
+                    (when (and (string= (treesit-node-type child)
+                                        "emphasis_delimiter")
+                               (= (treesit-node-start child) position))
+                      (setq width (+ width
+                                     (length (pimacs--markdown-node-text child))))
+                      (setq position (treesit-node-end child))))
+                  width))
+         (face (pcase type
+                 ("emphasis" 'pimacs-markdown-italic-face)
+                 ("strong_emphasis" 'pimacs-markdown-bold-face)
+                 (_ 'pimacs-markdown-strike-through-face))))
+    (pimacs--markdown-propertize-outer-face
+     (pimacs--markdown-render-inline-range (+ start width) (- end width) context)
+     face)))
+
+(defun pimacs--markdown-render-code-span-node (node)
+  (let* ((source (pimacs--markdown-node-text node))
+         (delimiter (pimacs--markdown-node-child node "code_span_delimiter"))
+         (width (if delimiter (length (pimacs--markdown-node-text delimiter)) 0))
+         (text (substring source width (- width))))
+    (when (string-match-p "\\` .* \\'" text)
+      (setq text (substring text 1 -1)))
+    (pimacs--markdown-propertize-face text 'pimacs-markdown-inline-code-face)))
+
+(defun pimacs--markdown-render-inline-link-node (node context)
+  (let ((label (pimacs--markdown-node-child node "link_text"))
+        (destination (pimacs--markdown-node-child node "link_destination"))
+        (title (pimacs--markdown-node-child node "link_title")))
+    (if (and label destination)
+        (pimacs--markdown-link-label
+         (pimacs--markdown-node-text label) nil
+         (string-trim (pimacs--markdown-node-text destination) "<" ">")
+         context
+         (and title (string-trim (pimacs--markdown-node-text title) "\"'(" "\"')")))
+      (pimacs--markdown-node-text node))))
+
+(defun pimacs--markdown-render-reference-link-node (node context)
+  (let* ((label (pimacs--markdown-node-child node "link_text"))
+         (reference (if (string= (treesit-node-type node) "full_reference_link")
+                        (pimacs--markdown-node-child node "link_label")
+                      label))
+         (definition (and reference
+                          (assoc-string
+                           (pimacs--markdown-reference-label
+                            (pimacs--markdown-node-text reference))
+                           (pimacs--markdown-render-context-reference-definitions
+                            context)
+                           t))))
+    (if (and label definition)
+        (pimacs--markdown-link-label
+         (pimacs--markdown-node-text label) nil
+         (car definition) context (cadr definition))
+      (pimacs--markdown-node-text node))))
+
+(defun pimacs--markdown-render-image-node (node context)
+  (let ((label (or (pimacs--markdown-node-child node "image_description")
+                   (pimacs--markdown-node-child node "link_text")))
+        (destination (pimacs--markdown-node-child node "link_destination"))
+        (title (pimacs--markdown-node-child node "link_title")))
+    (if (and label destination)
+        (pimacs--markdown-image-label
+         (pimacs--markdown-node-text label) nil
+         (string-trim (pimacs--markdown-node-text destination) "<" ">")
+         context
+         (and title (string-trim (pimacs--markdown-node-text title) "\"'(" "\"')")))
+      (pimacs--markdown-node-text node))))
+
+(defun pimacs--markdown-render-autolink-node (node)
+  (pimacs--markdown-autolink-label
+   (string-trim (pimacs--markdown-node-text node) "<" ">") nil))
+
+(defun pimacs--markdown-render-escaped-inline-node (node)
+  (string-remove-prefix "\\" (pimacs--markdown-node-text node)))
+
+(defun pimacs--markdown-render-html-tag-node (node)
+  (let ((source (pimacs--markdown-node-text node)))
+    (if (member source '("<br>" "<br/>" "<br />")) "\n" source)))
+
+(defun pimacs--markdown-render-latex-node (node)
+  (pimacs--markdown-propertize-face
+   (string-trim
+    (string-trim (pimacs--markdown-node-text node) "\\$+" "\\$+"))
+   'pimacs-markdown-equation-face))
+
+(defun pimacs--markdown-render-inline-node (node context)
+  (pcase (treesit-node-type node)
+    ((or "emphasis" "strong_emphasis" "strikethrough")
+     (pimacs--markdown-render-emphasis-node node context))
+    ("code_span"
+     (pimacs--markdown-render-code-span-node node))
+    ("inline_link"
+     (pimacs--markdown-render-inline-link-node node context))
+    ((or "full_reference_link" "shortcut_link" "collapsed_reference_link")
+     (pimacs--markdown-render-reference-link-node node context))
+    ("image"
+     (pimacs--markdown-render-image-node node context))
+    ((or "uri_autolink" "email_autolink")
+     (pimacs--markdown-render-autolink-node node))
+    ((or "backslash_escape" "hard_line_break")
+     (pimacs--markdown-render-escaped-inline-node node))
+    ("html_tag"
+     (pimacs--markdown-render-html-tag-node node))
+    ("latex_block"
+     (pimacs--markdown-render-latex-node node))
+    (_
+     (pimacs--markdown-node-text node))))
+
+(defun pimacs--markdown-render-inline-html-node (node nodes context)
+  (let ((face (pimacs--markdown-html-tag-face node)))
+    (if face
+        (let ((closing-tag (concat "</" (substring (pimacs--markdown-node-text node) 1 -1) ">"))
+              closing-node
+              remaining)
+          (setq remaining nodes)
+          (while (and remaining (not closing-node))
+            (when (and (string= (treesit-node-type (car remaining)) "html_tag")
+                       (string= (pimacs--markdown-node-text (car remaining)) closing-tag))
+              (setq closing-node (car remaining)))
+            (setq remaining (cdr remaining)))
+          (if closing-node
+              (list
+               (pimacs--markdown-propertize-face
+                (pimacs--markdown-render-inline-range
+                 (treesit-node-end node)
+                 (treesit-node-start closing-node)
+                 context)
+                face)
+               (treesit-node-end closing-node)
+               remaining)
+            (list (pimacs--markdown-render-inline-node node context)
+                  (treesit-node-end node)
+                  nodes)))
+      (list (pimacs--markdown-render-inline-node node context)
+            (treesit-node-end node)
+            nodes))))
 
 (defun pimacs--markdown-render-inline-tree-range (root begin end context)
   (let ((position begin)
@@ -446,31 +506,15 @@
              (finish (treesit-node-end node)))
         (when (and (>= start position) (<= finish end))
           (push (buffer-substring-no-properties position start) chunks)
-          (let ((face (and (string= (treesit-node-type node) "html_tag")
-                           (pimacs--markdown-html-tag-face node))))
-            (if face
-                (let ((closing-tag (concat "</" (substring (pimacs--markdown-node-text node) 1 -1) ">"))
-                      closing-node
-                      remaining)
-                  (setq remaining nodes)
-                  (while (and remaining (not closing-node))
-                    (when (and (string= (treesit-node-type (car remaining)) "html_tag")
-                               (string= (pimacs--markdown-node-text (car remaining)) closing-tag))
-                      (setq closing-node (car remaining)))
-                    (setq remaining (cdr remaining)))
-                  (if closing-node
-                      (progn
-                        (push (pimacs--markdown-propertize-face
-                               (pimacs--markdown-render-inline-range
-                                finish (treesit-node-start closing-node) context)
-                               face)
-                              chunks)
-                        (setq position (treesit-node-end closing-node))
-                        (setq nodes remaining))
-                    (push (pimacs--markdown-render-inline-node node context) chunks)
-                    (setq position finish)))
-              (push (pimacs--markdown-render-inline-node node context) chunks)
-              (setq position finish))))))
+          (let ((rendered (if (string= (treesit-node-type node) "html_tag")
+                              (pimacs--markdown-render-inline-html-node
+                               node nodes context)
+                            (list (pimacs--markdown-render-inline-node node context)
+                                  finish
+                                  nodes))))
+            (push (nth 0 rendered) chunks)
+            (setq position (nth 1 rendered))
+            (setq nodes (nth 2 rendered))))))
     (push (buffer-substring-no-properties position end) chunks)
     (apply #'concat (nreverse chunks))))
 
