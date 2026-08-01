@@ -1,4 +1,4 @@
-;;; pimacs-markdown.el --- Incremental Markdown rendering -*- lexical-binding: t; -*-
+;;; pimacs-markdown.el --- Markdown rendering -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Anantha Kumaran.
 
@@ -17,9 +17,7 @@
 
 ;;; Commentary:
 
-;; Markdown is parsed by tree-sitter.  The block parser and the inline parser
-;; are persistent parsers over a private buffer, so inserting a stream delta
-;; reparses only tree-sitter's changed range.
+;; Markdown is parsed by tree-sitter after streaming has completed.
 
 ;;; Code:
 
@@ -27,36 +25,10 @@
 (require 'subr-x)
 (require 'treesit)
 
-(cl-defstruct pimacs-markdown-parser
-  buffer
-  block-parser
-  inline-parser
-  block-root
-  inline-root
-  blocks
-  rendered
-  operations)
-
 (cl-defstruct pimacs-markdown-context
-  parser
   content-begin
   content-end
   rendered-length)
-
-(defun pimacs--markdown-parser-new ()
-  (let ((buffer (generate-new-buffer " *pimacs-markdown*")))
-    (condition-case error
-        (with-current-buffer buffer
-          (make-pimacs-markdown-parser
-           :buffer buffer
-           :block-parser (treesit-parser-create 'markdown)
-           :inline-parser (treesit-parser-create 'markdown_inline)
-           :rendered ""))
-      (error
-       (kill-buffer buffer)
-       (user-error
-        "Pimacs Markdown requires tree-sitter grammars `markdown' and `markdown_inline': %s"
-        (error-message-string error))))))
 
 (defun pimacs--markdown-node-children (node)
   (cl-loop for index below (treesit-node-child-count node t)
@@ -69,23 +41,6 @@
 (defun pimacs--markdown-node-text (node)
   (treesit-node-text node t))
 
-(defun pimacs--markdown-inline-ranges (node)
-  (append
-   (when (string= (treesit-node-type node) "inline")
-     (list (cons (treesit-node-start node) (treesit-node-end node))))
-   (cl-mapcan #'pimacs--markdown-inline-ranges
-              (pimacs--markdown-node-children node))))
-
-(defun pimacs--markdown-parser-update-trees (parser)
-  (with-current-buffer (pimacs-markdown-parser-buffer parser)
-    (let ((block-root (treesit-parser-root-node
-                       (pimacs-markdown-parser-block-parser parser))))
-      (setf (pimacs-markdown-parser-block-root parser) block-root))))
-
-(defun pimacs--markdown-node-has-parent-p (node types)
-  (while (and node (not (member (treesit-node-type node) types)))
-    (setq node (treesit-node-parent node)))
-  node)
 
 (defun pimacs--markdown-inline-special-nodes (root begin end)
   (let (nodes)
@@ -111,7 +66,7 @@
     (put-text-property 0 (length text) 'face face text))
   text)
 
-(defun pimacs--markdown-render-inline-node (parser node)
+(defun pimacs--markdown-render-inline-node (node)
   (let* ((type (treesit-node-type node))
          (start (treesit-node-start node))
          (end (treesit-node-end node))
@@ -126,7 +81,7 @@
                       ("strong_emphasis" 'pimacs-markdown-bold-face)
                       (_ 'pimacs-markdown-strike-through-face))))
          (pimacs--markdown-propertize-face
-          (pimacs--markdown-render-inline-range parser (+ start width) (- end width))
+          (pimacs--markdown-render-inline-range (+ start width) (- end width))
           face)))
       ("code_span"
        (let* ((delimiter (pimacs--markdown-node-child node "code_span_delimiter"))
@@ -163,16 +118,15 @@
         (string-trim source "$") 'pimacs-markdown-equation-face))
       (_ source))))
 
-(defun pimacs--markdown-render-inline-tree-range (parser begin end)
+(defun pimacs--markdown-render-inline-tree-range (root begin end)
   (let ((position begin)
-        (root (pimacs-markdown-parser-inline-root parser))
         chunks)
     (dolist (node (pimacs--markdown-inline-special-nodes root begin end))
       (let ((start (treesit-node-start node))
             (finish (treesit-node-end node)))
         (when (and (>= start position) (<= finish end))
           (push (buffer-substring-no-properties position start) chunks)
-          (push (pimacs--markdown-render-inline-node parser node) chunks)
+          (push (pimacs--markdown-render-inline-node node) chunks)
           (setq position finish))))
     (push (buffer-substring-no-properties position end) chunks)
     (apply #'concat (nreverse chunks))))
@@ -182,14 +136,12 @@
     (unwind-protect
         (with-current-buffer buffer
           (insert text)
-          (let* ((inline-parser (treesit-parser-create 'markdown_inline))
-                 (parser (make-pimacs-markdown-parser
-                          :buffer buffer :inline-parser inline-parser
-                          :inline-root (treesit-parser-root-node inline-parser))))
-            (pimacs--markdown-render-inline-tree-range parser 1 (point-max))))
+          (let ((inline-parser (treesit-parser-create 'markdown_inline)))
+            (pimacs--markdown-render-inline-tree-range
+             (treesit-parser-root-node inline-parser) 1 (point-max))))
       (kill-buffer buffer))))
 
-(defun pimacs--markdown-render-inline-range (_parser begin end)
+(defun pimacs--markdown-render-inline-range (begin end)
   (pimacs--markdown-render-inline-source
    (buffer-substring-no-properties begin end)))
 
@@ -211,13 +163,12 @@
              (pimacs--markdown-node-text content) language)
           source)))))
 
-(defun pimacs--markdown-render-block-node (parser node)
+(defun pimacs--markdown-render-block-node (node)
   (let ((type (treesit-node-type node))
         (source (pimacs--markdown-node-text node)))
     (pcase type
       ((or "document" "section")
-       (apply #'concat (mapcar (lambda (child)
-                                 (pimacs--markdown-render-block-node parser child))
+       (apply #'concat (mapcar #'pimacs--markdown-render-block-node
                                (pimacs--markdown-node-children node))))
       ("atx_heading"
        (let ((inline (pimacs--markdown-node-child node "inline")))
@@ -225,7 +176,7 @@
           (if inline
               (pimacs--markdown-propertize-face
                (pimacs--markdown-render-inline-range
-                parser (treesit-node-start inline) (treesit-node-end inline))
+                (treesit-node-start inline) (treesit-node-end inline))
                'pimacs-markdown-heading-face)
             "")
           (if (string-suffix-p "\n" source) "\n" ""))))
@@ -234,13 +185,12 @@
          (if inline
              (concat
               (pimacs--markdown-render-inline-range
-               parser (treesit-node-start inline) (treesit-node-end inline))
+               (treesit-node-start inline) (treesit-node-end inline))
               (substring source (- (treesit-node-end inline)
                                    (treesit-node-start node))))
            source)))
       ("list"
-       (apply #'concat (mapcar (lambda (child)
-                                 (pimacs--markdown-render-block-node parser child))
+       (apply #'concat (mapcar #'pimacs--markdown-render-block-node
                                (pimacs--markdown-node-children node))))
       ("list_item"
        (let* ((marker (cl-find-if (lambda (child)
@@ -264,17 +214,15 @@
            ((and marker (string-match-p "[.)]" (pimacs--markdown-node-text marker)))
             (concat (string-trim (pimacs--markdown-node-text marker)) " "))
            (t (pimacs--markdown-propertize-face "● " 'pimacs-markdown-list-marker-face)))
-          (apply #'concat (mapcar (lambda (child)
-                                    (pimacs--markdown-render-block-node parser child))
-                                  children)))))
+          (apply #'concat (mapcar #'pimacs--markdown-render-block-node children)))))
       ("block_quote"
        (pimacs--markdown-propertize-face
-        (apply #'concat (mapcar (lambda (child)
-                                  (pimacs--markdown-render-block-node parser child))
-                                (cl-remove-if (lambda (child)
-                                                (string= (treesit-node-type child)
-                                                         "block_quote_marker"))
-                                              (pimacs--markdown-node-children node))))
+        (apply #'concat
+               (mapcar #'pimacs--markdown-render-block-node
+                       (cl-remove-if (lambda (child)
+                                       (string= (treesit-node-type child)
+                                                "block_quote_marker"))
+                                     (pimacs--markdown-node-children node))))
         'pimacs-markdown-blockquote-face))
       ((or "fenced_code_block" "indented_code_block")
        (pimacs--markdown-render-code-block node))
@@ -286,84 +234,20 @@
       ("link_reference_definition" "")
       (_ source))))
 
-(defun pimacs--markdown-parser-block-nodes (node)
-  (if (member (treesit-node-type node) '("document" "section"))
-      (cl-mapcan #'pimacs--markdown-parser-block-nodes
-                 (pimacs--markdown-node-children node))
-    (list node)))
-
-(defun pimacs--markdown-parser-block-record (node rendered)
-  (list :start (treesit-node-start node)
-        :end (treesit-node-end node)
-        :type (treesit-node-type node)
-        :rendered rendered))
-
-(defun pimacs--markdown-parser-same-block-p (record node)
-  (and (= (plist-get record :start) (treesit-node-start node))
-       (= (plist-get record :end) (treesit-node-end node))
-       (string= (plist-get record :type) (treesit-node-type node))))
-
-(defun pimacs--markdown-parser-render (parser)
-  (with-current-buffer (pimacs-markdown-parser-buffer parser)
-    (pimacs--markdown-parser-update-trees parser)
-    (let* ((old-rendered (pimacs-markdown-parser-rendered parser))
-           (nodes (pimacs--markdown-parser-block-nodes
-                   (pimacs-markdown-parser-block-root parser)))
-           (previous (pimacs-markdown-parser-blocks parser))
-           (stable nil))
-      (while (and previous nodes
-                  (pimacs--markdown-parser-same-block-p (car previous)
-                                                        (car nodes)))
-        (push (pop previous) stable)
-        (pop nodes))
-      (setq stable (nreverse stable))
-      (let* ((prefix (apply #'+ 0 (mapcar (lambda (record)
-                                            (length (plist-get record :rendered)))
-                                          stable)))
-             (tail-records
-              (mapcar (lambda (node)
-                        (pimacs--markdown-parser-block-record
-                         node (pimacs--markdown-render-block-node parser node)))
-                      nodes))
-             (tail (apply #'concat (mapcar (lambda (record)
-                                             (plist-get record :rendered))
-                                           tail-records)))
-             (rendered (concat (apply #'concat (mapcar (lambda (record)
-                                                         (plist-get record :rendered))
-                                                       stable))
-                               tail)))
-        (let (operations)
-          (when (> (length old-rendered) prefix)
-            (push (list :delete (- (length old-rendered) prefix)) operations))
-          (when (> (length tail) 0)
-            (push (list :append tail) operations))
-          (setf (pimacs-markdown-parser-blocks parser) (append stable tail-records)
-                (pimacs-markdown-parser-rendered parser) rendered
-                (pimacs-markdown-parser-operations parser) (nreverse operations)))))))
-
-(defconst pimacs--markdown-special-regexp
-  (regexp-opt '("\n" "`" "*" "_" "~" "!" "$" "<" "[" "]")))
-
-(defun pimacs--markdown-parser-plain-tail-p (parser delta)
-  (and (not (string-match-p pimacs--markdown-special-regexp delta))
-       (with-current-buffer (pimacs-markdown-parser-buffer parser)
-         (let ((end (point-max)))
-           (not (string-match-p pimacs--markdown-special-regexp
-                                (buffer-substring-no-properties
-                                 (line-beginning-position) end)))))))
-
-(defun pimacs--markdown-parser-write (parser delta)
-  (with-current-buffer (pimacs-markdown-parser-buffer parser)
-    (goto-char (point-max))
-    (insert delta))
-  (if (pimacs--markdown-parser-plain-tail-p parser delta)
-      (setf (pimacs-markdown-parser-rendered parser)
-            (concat (pimacs-markdown-parser-rendered parser) delta)
-            (pimacs-markdown-parser-operations parser) (list (list :append delta)))
-    (pimacs--markdown-parser-render parser)))
-
-(defun pimacs--markdown-parser-finish (parser _final-p)
-  (pimacs--markdown-parser-render parser))
+(defun pimacs--markdown-render-source (text)
+  (let ((buffer (generate-new-buffer " *pimacs-markdown*")))
+    (unwind-protect
+        (condition-case error
+            (with-current-buffer buffer
+              (let ((parser (treesit-parser-create 'markdown)))
+                (insert text)
+                (pimacs--markdown-render-block-node
+                 (treesit-parser-root-node parser))))
+          (error
+           (user-error
+            "Pimacs Markdown requires tree-sitter grammars `markdown' and `markdown_inline': %s"
+            (error-message-string error))))
+      (kill-buffer buffer))))
 
 ;;; Markdown Renderer
 
@@ -527,25 +411,9 @@
         (put-text-property 0 (length text) 'face 'pimacs-markdown-code-block-face text)
         text))))
 
-(defun pimacs--render-markdown-experimental (context text streaming)
-  (if streaming
-      (let ((parser (or (pimacs-markdown-context-parser context)
-                        (pimacs--markdown-parser-new))))
-        (setf (pimacs-markdown-context-parser context) parser)
-        (pimacs--markdown-parser-write parser text)
-        (prog1 (pimacs-markdown-parser-operations parser)
-          (setf (pimacs-markdown-parser-operations parser) nil)))
-    (let ((streaming-parser (pimacs-markdown-context-parser context))
-          (parser (pimacs--markdown-parser-new)))
-      (unwind-protect
-          (progn
-            (pimacs--markdown-parser-write parser text)
-            (list (list :delete (pimacs-markdown-context-rendered-length context))
-                  (list :append (pimacs-markdown-parser-rendered parser))))
-        (kill-buffer (pimacs-markdown-parser-buffer parser))
-        (when streaming-parser
-          (kill-buffer (pimacs-markdown-parser-buffer streaming-parser))
-          (setf (pimacs-markdown-context-parser context) nil))))))
+(defun pimacs--render-markdown-experimental (_context text streaming)
+  (list (list :append
+              (if streaming text (pimacs--markdown-render-source text)))))
 
 (provide 'pimacs-markdown)
 

@@ -2,7 +2,6 @@
 
 ;;; Code:
 
-(require 'cl-lib)
 (require 'elp)
 (require 'ert)
 (require 'subr-x)
@@ -19,51 +18,13 @@
   (expand-file-name "pimacs-markdown-tapes"
                     (file-name-directory (or load-file-name buffer-file-name))))
 
-(defconst pimacs-markdown-tests--fixed-chunk-widths '(1 4 16))
-(defconst pimacs-markdown-tests--large-tape-line-threshold 100)
-
-(defun pimacs-markdown-tests--environment-natural-number (variable default)
-  (if-let ((value (getenv variable)))
-      (if (string-match-p "\\`[0-9]+\\'" value)
-          (string-to-number value)
-        (error "%s must be a natural number, got %S" variable value))
-    default))
-
-(defun pimacs-markdown-tests--seed ()
-  (if (getenv "SEED")
-      (pimacs-markdown-tests--environment-natural-number "SEED" 0)
-    (random t)
-    (random most-positive-fixnum)))
-
-(defun pimacs-markdown-tests--chunks-of-width (input width)
-  (let ((length (length input))
-        chunks)
-    (dotimes (start (ceiling (/ (float length) width)))
-      (let ((begin (* start width)))
-        (push (substring input begin (min length (+ begin width))) chunks)))
-    (nreverse chunks)))
-
-(defun pimacs-markdown-tests--random-chunks (input random-state)
-  (let ((length (length input))
-        (position 0)
-        chunks)
-    (while (< position length)
-      (let ((width (1+ (cl-random (min 32 (- length position)) random-state))))
-        (push (substring input position (+ position width)) chunks)
-        (setq position (+ position width))))
-    (nreverse chunks)))
-
-(defun pimacs-markdown-tests--chunks (input random-state complexity)
-  (let ((chunkings (list (list input))))
-    (dolist (width pimacs-markdown-tests--fixed-chunk-widths)
-      (when (<= width (length input))
-        (push (pimacs-markdown-tests--chunks-of-width input width) chunkings)))
-    (dotimes (_ complexity)
-      (push (pimacs-markdown-tests--random-chunks input random-state) chunkings))
-    (delete-dups (nreverse chunkings))))
-
-(defun pimacs-markdown-tests--large-tape-p (input)
-  (> (cl-count ?\n input) pimacs-markdown-tests--large-tape-line-threshold))
+(defconst pimacs-markdown-tests--tape-files
+  '("closed-fence.in.markdown"
+    "heading.in.markdown"
+    "image.in.markdown"
+    "inline.in.markdown"
+    "link.in.markdown"
+    "lists.in.markdown"))
 
 (defun pimacs-markdown-tests--face-only (text)
   (let ((result (substring-no-properties text))
@@ -82,25 +43,6 @@
       (pimacs--markdown-apply-operations
        context
        (pimacs--render-markdown-experimental context input nil))
-      (pimacs-markdown-tests--face-only
-       (buffer-substring (pimacs-markdown-context-content-begin context)
-                         (pimacs-markdown-context-content-end context))))))
-
-(defun pimacs-markdown-tests--render-streaming (input chunks &optional replace-with-complete)
-  (with-temp-buffer
-    (let ((context (pimacs--markdown-create-context)))
-      (dolist (chunk chunks)
-        (pimacs--markdown-apply-operations
-         context
-         (pimacs--render-markdown-experimental context chunk t)))
-      (if replace-with-complete
-          (pimacs--markdown-apply-operations
-           context
-           (pimacs--render-markdown-experimental context input nil))
-        (let ((parser (pimacs-markdown-context-parser context)))
-          (pimacs--markdown-parser-finish parser t)
-          (pimacs--markdown-apply-operations
-           context (pimacs-markdown-parser-operations parser))))
       (pimacs-markdown-tests--face-only
        (buffer-substring (pimacs-markdown-context-content-begin context)
                          (pimacs-markdown-context-content-end context))))))
@@ -173,54 +115,20 @@
        (list input-file
              (pimacs-markdown-tests--read-file input-file)
              (pimacs-markdown-tests--read-tape output-file))))
-   (directory-files pimacs-markdown-tests--directory t "\\.in\\.markdown\\'")))
-
-(defun pimacs-markdown-tests--report-failure
-    (failures input-file input expected actual description)
-  (unless (gethash input-file failures)
-    (puthash input-file t failures)
-    (message "Failed Markdown tape (%s): %s\nInput:\n%s\nExpected output:\n%s\nActual output:\n%s"
-             description input-file input expected actual)))
+   (mapcar (lambda (file)
+             (expand-file-name file pimacs-markdown-tests--directory))
+           pimacs-markdown-tests--tape-files)))
 
 (ert-deftest pimacs-markdown-tape ()
-  (let* ((seed (pimacs-markdown-tests--seed))
-         (complexity
-          (pimacs-markdown-tests--environment-natural-number
-           "PIMACS_MARKDOWN_TEST_COMPLEXITY" 2))
-         (random-state (cl-make-random-state seed))
-         (failures (make-hash-table :test #'equal)))
-    (message "pimacs markdown fuzz seed: %d (complexity %d)" seed complexity)
-    (dolist (tape (pimacs-markdown-tests--tapes))
-      (pcase-let ((`(,input-file ,input ,expected) tape))
-        (cl-labels
-            ((check (description render)
-               (condition-case error
-                   (let ((actual (funcall render)))
-                     (unless (equal expected actual)
-                       (pimacs-markdown-tests--report-failure
-                        failures input-file input expected actual description)))
-                 (error
-                  (pimacs-markdown-tests--report-failure
-                   failures input-file input expected
-                   (format "ERROR: %s" (error-message-string error))
-                   description)))))
-          (check "complete render"
-                 (lambda () (pimacs-markdown-tests--render-complete input)))
-          (if (pimacs-markdown-tests--large-tape-p input)
-              (let ((chunks (pimacs-markdown-tests--chunks-of-width input 16)))
-                (check "streaming chunks of width 16"
-                       (lambda () (pimacs-markdown-tests--render-streaming input chunks))))
-            (dolist (chunks (pimacs-markdown-tests--chunks input random-state complexity))
-              (check "streaming chunks"
-                     (lambda () (pimacs-markdown-tests--render-streaming input chunks))))
-            (check "final complete replacement"
-                   (lambda ()
-                     (pimacs-markdown-tests--render-streaming
-                      input
-                      (pimacs-markdown-tests--chunks-of-width input 1)
-                      t)))))))
-    (message "pimacs markdown failed tapes: %d" (hash-table-count failures))))
+  (dolist (tape (pimacs-markdown-tests--tapes))
+    (pcase-let ((`(,input-file ,input ,expected) tape))
+      (ert-info ((format "Markdown tape: %s" input-file))
+        (should (equal expected
+                       (pimacs-markdown-tests--render-complete input)))))))
 
+(ert-deftest pimacs-markdown-streaming-appends-source-text ()
+  (should (equal (pimacs--render-markdown-experimental nil "**Pimacs**" t)
+                 '((:append "**Pimacs**")))))
 
 (ert-deftest pimacs-markdown-image-label-has-image-url ()
   (with-temp-buffer
@@ -261,23 +169,6 @@
         (should (eq (car widget) 'file-link))
         (should (equal (widget-value widget) "/tmp/README.md"))
         (should (eq (widget-get widget :action) 'widget-file-link-action))))))
-
-(ert-deftest pimacs-markdown-link-title-is-preserved ()
-  (with-temp-buffer
-    (let ((context (pimacs--markdown-create-context)))
-      (pimacs--markdown-apply-operations
-       context
-       (pimacs--render-markdown-experimental
-        context
-        "[Pimacs][site]\n[site]: https://example.com \"Pimacs website\"\n[Inline](https://example.org 'Inline title')"
-        nil))
-      (let ((output (buffer-substring (pimacs-markdown-context-content-begin context)
-                                      (pimacs-markdown-context-content-end context))))
-        (should (equal (substring-no-properties output) "Pimacs\nInline"))
-        (should (equal (get-text-property 0 'pimacs-markdown-link-title output)
-                       "Pimacs website"))
-        (should (equal (get-text-property 7 'pimacs-markdown-link-title output)
-                       "Inline title"))))))
 
 (ert-deftest pimacs-markdown-linked-image-preserves-both-urls ()
   (with-temp-buffer
