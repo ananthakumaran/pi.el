@@ -1,5 +1,7 @@
 export EMACS ?= $(shell command -v emacs 2>/dev/null)
 CASK_DIR := $(shell cask package-directory)
+CASK_TREESIT_EXTRA_LOAD_PATH := $(shell $(EMACS) --batch --eval "(princ (mapconcat (lambda (path) path) treesit-extra-load-path path-separator))")
+CASK_EMACS := PIMACS_TREESIT_EXTRA_LOAD_PATH="$(CASK_TREESIT_EXTRA_LOAD_PATH)" cask emacs --batch --eval '(progn (setq treesit-extra-load-path (split-string (getenv "PIMACS_TREESIT_EXTRA_LOAD_PATH") path-separator t)) (when (seq-some (lambda (directory) (file-exists-p (expand-file-name (concat "libtree-sitter-markdown-inline" module-file-suffix) directory))) treesit-extra-load-path) (add-to-list (quote treesit-load-name-override-list) (quote (markdown_inline "libtree-sitter-markdown-inline" "tree_sitter_markdown_inline")))))'
 
 MATCH ?=
 PIMACS_VERSION := $(shell awk '/^;; Version:/ { print $$3; exit }' pimacs.el)
@@ -20,32 +22,32 @@ setup: cask
 
 .PHONY: compile
 compile: cask
-	@cask emacs -batch -L . -L test \
+	@$(CASK_EMACS) -L . -L test \
 	  -f batch-byte-compile pimacs-utils.el pimacs-markdown.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el; \
 	  (ret=$$? ; cask clean-elc && exit $$ret)
 
 .PHONY: package-lint
 package-lint: cask
-	@cask emacs -Q --batch \
+	@$(CASK_EMACS) -Q \
 	  --eval "(setq package-lint-main-file \"pimacs.el\")" \
 	  -f package-lint-batch-and-exit \
 	  pimacs-utils.el pimacs-markdown.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el
 
 .PHONY: test
 test: compile
-	@cask emacs --batch -L . -L test -l pimacs-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
+	@$(CASK_EMACS) -L . -L test -l pimacs-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
 
 .PHONY: markdown-test
 markdown-test: compile
-	@cask emacs --batch -L . -L test -l pimacs-markdown-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
+	@$(CASK_EMACS) -L . -L test -l pimacs-markdown-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
 
 .PHONY: integration
 integration: compile
-	@cask emacs --batch -L . -L test -l integration/pimacs-integration-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
+	@$(CASK_EMACS) -L . -L test -l integration/pimacs-integration-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
 
 .PHONY: markdown-profile
 markdown-profile: compile
-	@cask emacs --batch -L . -L test -l pimacs-markdown-tests.el -f pimacs-markdown-profile-run
+	@$(CASK_EMACS) -L . -L test -l pimacs-markdown-tests.el -f pimacs-markdown-profile-run
 
 .PHONY: coverage
 coverage: export UNDERCOVER_FORCE=true
@@ -54,7 +56,7 @@ coverage: test integration
 
 .PHONY: format
 format:
-	@cask emacs --batch -L . -l pimacs-utils.el -l pimacs-markdown.el -l pimacs-state-line.el -l pimacs-core.el -l pimacs.el -l pimacs-section.el -l pimacs-edit.el -l pimacs-agent.el -l pimacs-session.el -l pimacs-tests.el -l pimacs-markdown-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el -l integration/pimacs-integration-tests.el \
+	@$(CASK_EMACS) -L . -l pimacs-utils.el -l pimacs-markdown.el -l pimacs-state-line.el -l pimacs-core.el -l pimacs.el -l pimacs-section.el -l pimacs-edit.el -l pimacs-agent.el -l pimacs-session.el -l pimacs-tests.el -l pimacs-markdown-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el -l integration/pimacs-integration-tests.el \
 	  --eval " \
 	  (let ((inhibit-message t) \
                 (message-log-max nil)) \
@@ -148,7 +150,7 @@ export ESCRIPT
 
 .PHONY: docs-lint
 docs-lint:
-	@cask emacs --batch -L . \
+	@$(CASK_EMACS) -L . \
 	  --eval "(require 'checkdoc)" \
 	  --eval "(checkdoc-file \"pimacs.el\")" \
 	  --eval "(checkdoc-file \"pimacs-section.el\")" \

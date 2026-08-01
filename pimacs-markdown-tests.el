@@ -175,35 +175,51 @@
              (pimacs-markdown-tests--read-tape output-file))))
    (directory-files pimacs-markdown-tests--directory t "\\.in\\.markdown\\'")))
 
+(defun pimacs-markdown-tests--report-failure
+    (failures input-file input expected actual description)
+  (unless (gethash input-file failures)
+    (puthash input-file t failures)
+    (message "Failed Markdown tape (%s): %s\nInput:\n%s\nExpected output:\n%s\nActual output:\n%s"
+             description input-file input expected actual)))
+
 (ert-deftest pimacs-markdown-tape ()
   (let* ((seed (pimacs-markdown-tests--seed))
          (complexity
           (pimacs-markdown-tests--environment-natural-number
            "PIMACS_MARKDOWN_TEST_COMPLEXITY" 2))
-         (random-state (cl-make-random-state seed)))
+         (random-state (cl-make-random-state seed))
+         (failures (make-hash-table :test #'equal)))
     (message "pimacs markdown fuzz seed: %d (complexity %d)" seed complexity)
-    (ert-info ((format "seed=%d; rerun with SEED=%d (complexity %d)"
-                       seed seed complexity))
-      (dolist (tape (pimacs-markdown-tests--tapes))
-        (pcase-let ((`(,input-file ,input ,expected) tape))
-          (ert-info ((format "%s: complete render" input-file))
-            (should (equal expected
-                           (pimacs-markdown-tests--render-complete input))))
+    (dolist (tape (pimacs-markdown-tests--tapes))
+      (pcase-let ((`(,input-file ,input ,expected) tape))
+        (cl-labels
+            ((check (description render)
+               (condition-case error
+                   (let ((actual (funcall render)))
+                     (unless (equal expected actual)
+                       (pimacs-markdown-tests--report-failure
+                        failures input-file input expected actual description)))
+                 (error
+                  (pimacs-markdown-tests--report-failure
+                   failures input-file input expected
+                   (format "ERROR: %s" (error-message-string error))
+                   description)))))
+          (check "complete render"
+                 (lambda () (pimacs-markdown-tests--render-complete input)))
           (if (pimacs-markdown-tests--large-tape-p input)
               (let ((chunks (pimacs-markdown-tests--chunks-of-width input 16)))
-                (ert-info ((format "%s: streaming chunks of width 16" input-file))
-                  (should (equal expected
-                                 (pimacs-markdown-tests--render-streaming input chunks)))))
+                (check "streaming chunks of width 16"
+                       (lambda () (pimacs-markdown-tests--render-streaming input chunks))))
             (dolist (chunks (pimacs-markdown-tests--chunks input random-state complexity))
-              (ert-info ((format "%s: streaming chunks %S" input-file chunks))
-                (should (equal expected
-                               (pimacs-markdown-tests--render-streaming input chunks)))))
-            (ert-info ((format "%s: final complete replacement" input-file))
-              (should (equal expected
-                             (pimacs-markdown-tests--render-streaming
-                              input
-                              (pimacs-markdown-tests--chunks-of-width input 1)
-                              t))))))))))
+              (check "streaming chunks"
+                     (lambda () (pimacs-markdown-tests--render-streaming input chunks))))
+            (check "final complete replacement"
+                   (lambda ()
+                     (pimacs-markdown-tests--render-streaming
+                      input
+                      (pimacs-markdown-tests--chunks-of-width input 1)
+                      t)))))))
+    (message "pimacs markdown failed tapes: %d" (hash-table-count failures))))
 
 
 (ert-deftest pimacs-markdown-image-label-has-image-url ()

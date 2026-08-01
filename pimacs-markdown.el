@@ -17,1833 +17,353 @@
 
 ;;; Commentary:
 
-;; The parser in this file deliberately owns no chat-buffer state.  It turns
-;; each streamed delta into append/delete operations; pimacs.el applies them.
+;; Markdown is parsed by tree-sitter.  The block parser and the inline parser
+;; are persistent parsers over a private buffer, so inserting a stream delta
+;; reparses only tree-sitter's changed range.
 
 ;;; Code:
 
 (require 'cl-lib)
 (require 'subr-x)
-
-;;; Markdown Parser
-
-(defconst pimacs--markdown-root-indented-code 0)
-(defconst pimacs--markdown-root-equation-block 1)
-(defconst pimacs--markdown-root-reference-definition 2)
-(defconst pimacs--markdown-root-blockquote-prefix 3)
-(defconst pimacs--markdown-root-fence 4)
-(defconst pimacs--markdown-root-table 5)
-(defconst pimacs--markdown-root-table-candidate 6)
-(defconst pimacs--markdown-root-heading 7)
-(defconst pimacs--markdown-root-list 8)
-(defconst pimacs--markdown-root-prefix 9)
-(defconst pimacs--markdown-root-text 10)
+(require 'treesit)
 
 (cl-defstruct pimacs-markdown-parser
-  token
-  tokens
-  text
-  pending
-  spaces
-  indent
-  indent-length
-  fence-start
-  fence-end
-  blockquote-index
-  table-state
-  provisional
-  operations
-  operations-tail
-  append-chunks
-  output-length
-  source
-  line
-  line-output-start
-  line-kind
-  root-state
-  prefix
-  at-line-start
-  paragraph-start
-  autolink-boundary
-  escaped-delimiter
-  indented-code
-  list-stack
-  task
-  fence
-  references)
+  buffer
+  block-parser
+  inline-parser
+  block-root
+  inline-root
+  blocks
+  rendered
+  operations)
+
+(cl-defstruct pimacs-markdown-context
+  parser
+  content-begin
+  content-end
+  rendered-length)
 
 (defun pimacs--markdown-parser-new ()
-  (make-pimacs-markdown-parser
-   :tokens nil :text "" :pending "" :spaces nil :indent 0 :indent-length 0
-   :table-state nil :blockquote-index 0 :provisional nil :operations nil :operations-tail nil
-   :append-chunks nil :output-length 0 :source nil :line "" :line-output-start 0 :line-kind nil
-   :root-state pimacs--markdown-root-prefix :prefix "" :at-line-start t
-   :paragraph-start t :autolink-boundary t))
+  (let ((buffer (generate-new-buffer " *pimacs-markdown*")))
+    (condition-case error
+        (with-current-buffer buffer
+          (make-pimacs-markdown-parser
+           :buffer buffer
+           :block-parser (treesit-parser-create 'markdown)
+           :inline-parser (treesit-parser-create 'markdown_inline)
+           :rendered ""))
+      (error
+       (kill-buffer buffer)
+       (user-error
+        "Pimacs Markdown requires tree-sitter grammars `markdown' and `markdown_inline': %s"
+        (error-message-string error))))))
 
-(defun pimacs--markdown-reference-id (identifier)
-  (downcase (replace-regexp-in-string "[ \t\n]+" " " (string-trim identifier))))
+(defun pimacs--markdown-node-children (node)
+  (cl-loop for index below (treesit-node-child-count node t)
+           collect (treesit-node-child node index t)))
 
-(defun pimacs--markdown-link-destination (source)
-  (when (string-match
-         "\\`\\(?:<\\([^>\n]+\\)>\\|\\([^ \t\n]+\\)\\)\\(?:[ \t]+\\(?:\"\\([^\"]*\\)\"\\|'\\([^']*\\)'\\|(\\([^)]+\\))\\)\\)?\\'"
-         source)
-    (list :url (or (match-string 1 source) (match-string 2 source))
-          :title (or (match-string 3 source)
-                     (match-string 4 source)
-                     (match-string 5 source)))))
+(defun pimacs--markdown-node-child (node type)
+  (cl-find type (pimacs--markdown-node-children node)
+           :key #'treesit-node-type :test #'string=))
 
-(defun pimacs--markdown-reference-definition (line)
-  (when (string-match
-         "\\`[ \t]\\{0,3\\}\\[\\([^]]+\\)\\]:[ \t]*\\(.+\\)\\'"
-         line)
-    (let ((identifier (match-string 1 line))
-          (destination-source (match-string 2 line)))
-      (when-let ((destination (pimacs--markdown-link-destination destination-source)))
-        (append (list :id (pimacs--markdown-reference-id identifier)) destination)))))
+(defun pimacs--markdown-node-text (node)
+  (treesit-node-text node t))
 
-(defun pimacs--markdown-parser-add-reference (parser definition)
-  (let ((references (pimacs-markdown-parser-references parser)))
-    (setf (alist-get (plist-get definition :id) references nil nil #'equal)
-          definition
-          (pimacs-markdown-parser-references parser) references)))
+(defun pimacs--markdown-inline-ranges (node)
+  (append
+   (when (string= (treesit-node-type node) "inline")
+     (list (cons (treesit-node-start node) (treesit-node-end node))))
+   (cl-mapcan #'pimacs--markdown-inline-ranges
+              (pimacs--markdown-node-children node))))
 
-(defun pimacs--markdown-parser-collect-reference-definitions (parser text)
-  (dolist (line (split-string text "\n"))
-    (when-let ((definition (pimacs--markdown-reference-definition line)))
-      (pimacs--markdown-parser-add-reference parser definition))))
+(defun pimacs--markdown-parser-update-trees (parser)
+  (with-current-buffer (pimacs-markdown-parser-buffer parser)
+    (let ((block-root (treesit-parser-root-node
+                       (pimacs-markdown-parser-block-parser parser))))
+      (setf (pimacs-markdown-parser-block-root parser) block-root))))
 
-(defun pimacs--markdown-link-complete (parser candidate url &optional title)
-  (let* ((start (plist-get candidate :output-start))
-         (count (- (pimacs-markdown-parser-output-length parser) start))
-         (label-source (plist-get candidate :label-source))
-         (renderer (if (eq (plist-get candidate :kind) 'image)
-                       #'pimacs--markdown-image-label
-                     #'pimacs--markdown-link-label)))
-    (pimacs--markdown-parser-delete parser count)
-    (pimacs--markdown-parser-end-token parser)
-    (pimacs--markdown-provisional-close parser)
-    (pimacs--markdown-parser-emit
-     parser
-     (list :append
-           (funcall renderer label-source (pimacs--markdown-parser-faces parser) url title)))))
+(defun pimacs--markdown-node-has-parent-p (node types)
+  (while (and node (not (member (treesit-node-type node) types)))
+    (setq node (treesit-node-parent node)))
+  node)
 
-(defun pimacs--markdown-link-resolve-reference (parser candidate identifier)
-  (when-let ((definition (alist-get (pimacs--markdown-reference-id identifier)
-                                    (pimacs-markdown-parser-references parser)
-                                    nil nil #'equal)))
-    (pimacs--markdown-link-complete parser candidate
-                                    (plist-get definition :url)
-                                    (plist-get definition :title))
-    t))
+(defun pimacs--markdown-inline-special-nodes (root begin end)
+  (let (nodes)
+    (cl-labels
+        ((walk (node)
+           (let ((type (treesit-node-type node))
+                 (start (treesit-node-start node))
+                 (finish (treesit-node-end node)))
+             (cond
+              ((or (<= finish begin) (>= start end)))
+              ((member type '("emphasis" "strong_emphasis" "strikethrough"
+                              "code_span" "inline_link" "image"
+                              "uri_autolink" "email_autolink" "latex_block"))
+               (push node nodes))
+              (t
+               (mapc #'walk (pimacs--markdown-node-children node)))))))
+      (walk root))
+    (sort nodes (lambda (left right)
+                  (< (treesit-node-start left) (treesit-node-start right))))))
 
-(defun pimacs--markdown-parser-emit-operation (parser operation)
-  (let ((node (list operation)))
-    (if-let ((tail (pimacs-markdown-parser-operations-tail parser)))
-        (setcdr tail node)
-      (setf (pimacs-markdown-parser-operations parser) node))
-    (setf (pimacs-markdown-parser-operations-tail parser) node)))
+(defun pimacs--markdown-propertize-face (text face)
+  (when (> (length text) 0)
+    (put-text-property 0 (length text) 'face face text))
+  text)
 
-(defun pimacs--markdown-parser-flush-append (parser)
-  (when-let ((chunks (pimacs-markdown-parser-append-chunks parser)))
-    (setf (pimacs-markdown-parser-append-chunks parser) nil)
-    (pimacs--markdown-parser-emit-operation
-     parser
-     (list :append
-           (if (null (cdr chunks))
-               (car chunks)
-             (apply #'concat (nreverse chunks)))))))
+(defun pimacs--markdown-render-inline-node (parser node)
+  (let* ((type (treesit-node-type node))
+         (start (treesit-node-start node))
+         (end (treesit-node-end node))
+         (source (pimacs--markdown-node-text node)))
+    (pcase type
+      ((or "emphasis" "strong_emphasis" "strikethrough")
+       (let* ((width (if (string-match "\\`[*_~]+" source)
+                         (length (match-string 0 source))
+                       0))
+              (face (pcase type
+                      ("emphasis" 'pimacs-markdown-italic-face)
+                      ("strong_emphasis" 'pimacs-markdown-bold-face)
+                      (_ 'pimacs-markdown-strike-through-face))))
+         (pimacs--markdown-propertize-face
+          (pimacs--markdown-render-inline-range parser (+ start width) (- end width))
+          face)))
+      ("code_span"
+       (let* ((delimiter (pimacs--markdown-node-child node "code_span_delimiter"))
+              (width (if delimiter (length (pimacs--markdown-node-text delimiter)) 0))
+              (text (substring source width (- width))))
+         (when (string-match-p "\\` .* \\'" text)
+           (setq text (substring text 1 -1)))
+         (pimacs--markdown-propertize-face text 'pimacs-markdown-inline-code-face)))
+      ("inline_link"
+       (let ((label (pimacs--markdown-node-child node "link_text"))
+             (destination (pimacs--markdown-node-child node "link_destination"))
+             (title (pimacs--markdown-node-child node "link_title")))
+         (if (and label destination)
+             (pimacs--markdown-link-label
+              (pimacs--markdown-node-text label) nil
+              (string-trim (pimacs--markdown-node-text destination) "<" ">")
+              (and title (string-trim (pimacs--markdown-node-text title) "\"'(" "\"')")))
+           source)))
+      ("image"
+       (let ((label (or (pimacs--markdown-node-child node "image_description")
+                        (pimacs--markdown-node-child node "link_text")))
+             (destination (pimacs--markdown-node-child node "link_destination"))
+             (title (pimacs--markdown-node-child node "link_title")))
+         (if (and label destination)
+             (pimacs--markdown-image-label
+              (pimacs--markdown-node-text label) nil
+              (string-trim (pimacs--markdown-node-text destination) "<" ">")
+              (and title (string-trim (pimacs--markdown-node-text title) "\"'(" "\"')")))
+           source)))
+      ((or "uri_autolink" "email_autolink")
+       (pimacs--markdown-autolink-label (string-trim source "<" ">") nil))
+      ("latex_block"
+       (pimacs--markdown-propertize-face
+        (string-trim source "$") 'pimacs-markdown-equation-face))
+      (_ source))))
 
-(defun pimacs--markdown-parser-emit (parser operation)
-  (pcase operation
-    (`(:append ,text)
-     (push text (pimacs-markdown-parser-append-chunks parser))
-     (cl-incf (pimacs-markdown-parser-output-length parser) (length text)))
-    (`(:delete ,count)
-     (pimacs--markdown-parser-flush-append parser)
-     (pimacs--markdown-parser-emit-operation parser operation)
-     (cl-decf (pimacs-markdown-parser-output-length parser) count))))
+(defun pimacs--markdown-render-inline-tree-range (parser begin end)
+  (let ((position begin)
+        (root (pimacs-markdown-parser-inline-root parser))
+        chunks)
+    (dolist (node (pimacs--markdown-inline-special-nodes root begin end))
+      (let ((start (treesit-node-start node))
+            (finish (treesit-node-end node)))
+        (when (and (>= start position) (<= finish end))
+          (push (buffer-substring-no-properties position start) chunks)
+          (push (pimacs--markdown-render-inline-node parser node) chunks)
+          (setq position finish))))
+    (push (buffer-substring-no-properties position end) chunks)
+    (apply #'concat (nreverse chunks))))
 
-(defun pimacs--markdown-parser-paragraph-p (parser)
-  (and (not (pimacs-markdown-parser-indented-code parser))
-       (not (pimacs-markdown-parser-fence parser))
-       (not (pimacs-markdown-parser-table-state parser))
-       (not (memq (pimacs-markdown-parser-line-kind parser)
-                  '(fence-open heading list reference-definition table-candidate)))
-       (not (memq 'equation-block
-                  (mapcar (lambda (token) (plist-get token :kind))
-                          (pimacs-markdown-parser-tokens parser))))
-       (let ((tokens (pimacs-markdown-parser-tokens parser)))
-         (while (and tokens
-                     (not (memq (plist-get (car tokens) :kind)
-                                '(heading horizontal-rule indented-code))))
-           (setq tokens (cdr tokens)))
-         (null tokens))))
+(defun pimacs--markdown-render-inline-source (text)
+  (let ((buffer (generate-new-buffer " *pimacs-markdown-inline*")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (insert text)
+          (let* ((inline-parser (treesit-parser-create 'markdown_inline))
+                 (parser (make-pimacs-markdown-parser
+                          :buffer buffer :inline-parser inline-parser
+                          :inline-root (treesit-parser-root-node inline-parser))))
+            (pimacs--markdown-render-inline-tree-range parser 1 (point-max))))
+      (kill-buffer buffer))))
 
-(defun pimacs--markdown-parser-faces (parser)
-  (when-let ((tokens (pimacs-markdown-parser-tokens parser)))
-    (if (null (cdr tokens))
-        (when-let ((face (plist-get (car tokens) :face)))
-          (list face))
-      (delq nil (mapcar (lambda (token) (plist-get token :face))
-                        (reverse tokens))))))
+(defun pimacs--markdown-render-inline-range (_parser begin end)
+  (pimacs--markdown-render-inline-source
+   (buffer-substring-no-properties begin end)))
 
-(defun pimacs--markdown-parser-append (parser text &optional properties)
-  (when (not (string-empty-p text))
-    (let ((faces (pimacs--markdown-parser-faces parser))
-          (paragraph (pimacs--markdown-parser-paragraph-p parser)))
-      (when faces
-        (setq text (propertize text 'face (if (= (length faces) 1)
-                                              (car faces)
-                                            faces))))
-      (when properties
-        (setq text (apply #'propertize text properties)))
-      (when paragraph
-        (put-text-property 0 (length text) 'pimacs-markdown-paragraph t text))
-      (pimacs--markdown-parser-emit parser (list :append text))
-      (setf (pimacs-markdown-parser-autolink-boundary parser)
-            (memq (aref text (1- (length text))) '(?\s ?\t ?\n))))))
+(defun pimacs--markdown-render-inline (text)
+  (pimacs--markdown-render-inline-source text))
 
-(defun pimacs--markdown-parser-delete (parser count)
-  (when (> count 0)
-    (pimacs--markdown-parser-emit parser (list :delete count))))
+(defun pimacs--markdown-render-code-block (node)
+  (let ((source (pimacs--markdown-node-text node)))
+    (if (string= (treesit-node-type node) "indented_code_block")
+        (pimacs--markdown-propertize-face
+         (replace-regexp-in-string "^    " "" source)
+         'pimacs-markdown-code-block-face)
+      (let* ((delimiter (pimacs--markdown-node-child node "fenced_code_block_delimiter"))
+             (language-node (pimacs--markdown-node-child node "language"))
+             (content (pimacs--markdown-node-child node "code_fence_content"))
+             (language (and language-node (pimacs--markdown-node-text language-node))))
+        (if (and delimiter content)
+            (pimacs--markdown-fontify-code
+             (pimacs--markdown-node-text content) language)
+          source)))))
 
-(defun pimacs--markdown-parser-add-token (parser kind &optional attributes)
-  (let ((token (append (list :kind kind) attributes)))
-    (push token (pimacs-markdown-parser-tokens parser))
-    (setf (pimacs-markdown-parser-token parser) token)
-    token))
-
-(defun pimacs--markdown-parser-end-token (parser)
-  (pop (pimacs-markdown-parser-tokens parser))
-  (setf (pimacs-markdown-parser-token parser)
-        (car (pimacs-markdown-parser-tokens parser))))
-
-(defun pimacs--markdown-provisional-open (parser kind raw &optional attributes)
-  (dolist (record (pimacs-markdown-parser-provisional parser))
-    (setf (plist-get record :raw) (concat (plist-get record :raw) raw)))
-  (let ((record (append (list :kind kind
-                              :output-start (pimacs-markdown-parser-output-length parser)
-                              :raw raw
-                              :token-depth (length (pimacs-markdown-parser-tokens parser)))
-                        attributes)))
-    (push record (pimacs-markdown-parser-provisional parser))
-    record))
-
-(defun pimacs--markdown-provisional-current (parser)
-  (car (pimacs-markdown-parser-provisional parser)))
-
-(defun pimacs--markdown-provisional-put (parser key value)
-  (setf (plist-get (car (pimacs-markdown-parser-provisional parser)) key) value))
-
-(defun pimacs--markdown-provisional-add-raw (parser string)
-  (dolist (record (pimacs-markdown-parser-provisional parser))
-    (setf (plist-get record :raw) (concat (plist-get record :raw) string))))
-
-(defun pimacs--markdown-provisional-close (parser)
-  (pop (pimacs-markdown-parser-provisional parser)))
-
-(defun pimacs--markdown-provisional-fail (parser)
-  (let* ((record (pimacs--markdown-provisional-current parser))
-         (start (plist-get record :output-start))
-         (count (- (pimacs-markdown-parser-output-length parser) start)))
-    (pimacs--markdown-parser-delete parser count)
-    (while (> (length (pimacs-markdown-parser-tokens parser))
-              (plist-get record :token-depth))
-      (pimacs--markdown-parser-end-token parser))
-    (pimacs--markdown-provisional-close parser)
-    (pimacs--markdown-parser-append parser (plist-get record :raw))))
-
-(defun pimacs--markdown-open-inline (parser kind raw face &optional attributes)
-  (pimacs--markdown-provisional-open parser kind raw attributes)
-  (pimacs--markdown-parser-add-token parser kind (list :face face)))
-
-(defun pimacs--markdown-close-inline (parser)
-  (pimacs--markdown-parser-end-token parser)
-  (pimacs--markdown-provisional-close parser))
-
-(defun pimacs--markdown-close-triple-emphasis (parser delimiter)
-  (pimacs--markdown-provisional-add-raw parser (make-string 3 delimiter))
-  (pimacs--markdown-close-inline parser)
-  (pimacs--markdown-close-inline parser))
-
-(defun pimacs--markdown-eligible-bold-p (char)
-  (and char (not (memq char '(?\s ?\t ?\n ?\r)))))
-
-(defun pimacs--markdown-equation-start-p (char)
-  (not (or (and (>= char ?0) (<= char ?9))
-           (memq char '(?\s ?: ?\; ?\) ?, ?! ?. ?? ?\] ?\n)))))
-
-(defun pimacs--markdown-equation-eligible-p (parser)
-  (not (memq (plist-get (pimacs--markdown-provisional-current parser) :kind)
-             '(code link image equation-inline equation-block equation-block-candidate))))
-
-(defun pimacs--markdown-inline-code-append (parser candidate char &optional raw-added)
-  (unless raw-added
-    (pimacs--markdown-provisional-add-raw parser (string char)))
-  (cond
-   ((and (plist-get candidate :leading)
-         (eq char ?\s))
-    (pimacs--markdown-provisional-put parser :leading nil))
-   (t
-    (pimacs--markdown-provisional-put parser :leading nil)
-    (when (plist-get candidate :trailing-space)
-      (pimacs--markdown-parser-append parser " "))
-    (pimacs--markdown-provisional-put parser :trailing-space nil)
-    (if (eq char ?\s)
-        (pimacs--markdown-provisional-put parser :trailing-space t)
-      (pimacs--markdown-parser-append parser (string char))))))
-
-(defconst pimacs--markdown-html-break-tags '("<br>" "<br/>" "<br />"))
-
-(defconst pimacs--markdown-html-inline-tags
-  '("<br>" "<br/>" "<br />" "<sup>" "<sub>"))
-
-(defun pimacs--markdown-html-inline-eligible-p (parser)
-  (let ((candidate (pimacs--markdown-provisional-current parser)))
-    (or (null candidate)
-        (memq (plist-get candidate :kind)
-              '(bold italic strike highlight superscript subscript))
-        (and (eq (plist-get candidate :kind) 'link)
-             (eq (plist-get candidate :stage) 'label)))))
-
-(defun pimacs--markdown-html-inline-add-to-link-label (parser source)
-  (when-let ((candidate (pimacs--markdown-provisional-current parser)))
-    (when (and (eq (plist-get candidate :kind) 'link)
-               (eq (plist-get candidate :stage) 'label))
-      (pimacs--markdown-provisional-put
-       parser :label (concat (plist-get candidate :label) source))
-      (pimacs--markdown-provisional-put
-       parser :label-source (concat (plist-get candidate :label-source) source)))))
-
-(defun pimacs--markdown-html-break-close (parser)
-  (let ((source (plist-get (pimacs--markdown-provisional-current parser) :raw)))
-    (pimacs--markdown-provisional-close parser)
-    (pimacs--markdown-html-inline-add-to-link-label parser source)
-    (pimacs--markdown-parser-append parser "\n")))
-
-(defun pimacs--markdown-html-break-fail (parser)
-  (let ((source (plist-get (pimacs--markdown-provisional-current parser) :raw)))
-    (pimacs--markdown-provisional-close parser)
-    (pimacs--markdown-html-inline-add-to-link-label parser source)
-    (pimacs--markdown-parser-append parser source)))
-
-(defconst pimacs--markdown-escaped-angle-autolink
-  "<https://example.com?find=\\*>")
-
-(defun pimacs--markdown-html-inline-char (parser char)
-  (pimacs--markdown-provisional-add-raw parser (string char))
-  (let ((source (plist-get (pimacs--markdown-provisional-current parser) :raw)))
-    (cond
-     ((member source pimacs--markdown-html-break-tags)
-      (pimacs--markdown-html-break-close parser))
-     ((string= source "<sup>")
-      (pimacs--markdown-provisional-put parser :kind 'superscript)
-      (pimacs--markdown-provisional-put parser :delimiter "</sup>")
-      (pimacs--markdown-parser-add-token
-       parser 'superscript (list :face 'pimacs-markdown-superscript-face)))
-     ((string= source "<sub>")
-      (pimacs--markdown-provisional-put parser :kind 'subscript)
-      (pimacs--markdown-provisional-put parser :delimiter "</sub>")
-      (pimacs--markdown-parser-add-token
-       parser 'subscript (list :face 'pimacs-markdown-subscript-face)))
-     ((string= source pimacs--markdown-escaped-angle-autolink)
-      (let ((url (substring source 1 -1)))
-        (pimacs--markdown-provisional-close parser)
-        (pimacs--markdown-parser-emit
-         parser
-         (list :append
-               (pimacs--markdown-autolink-label
-                url (pimacs--markdown-parser-faces parser))))))
-     ((not (or (string-prefix-p source pimacs--markdown-escaped-angle-autolink)
-               (cl-some (lambda (tag) (string-prefix-p source tag))
-                        pimacs--markdown-html-inline-tags)))
-      (pimacs--markdown-html-break-fail parser)))))
-
-(defun pimacs--markdown-autolink-eligible-p (parser)
-  (let ((candidate (pimacs--markdown-provisional-current parser)))
-    (and (pimacs-markdown-parser-autolink-boundary parser)
-         (string-empty-p (pimacs-markdown-parser-pending parser))
-         (or (null candidate)
-             (memq (plist-get candidate :kind) '(bold italic strike))))))
-
-(defun pimacs--markdown-autolink-open (parser url)
-  (pimacs--markdown-provisional-close parser)
-  (push (list :kind 'autolink
-              :output-start (pimacs-markdown-parser-output-length parser)
-              :raw url
-              :token-depth (length (pimacs-markdown-parser-tokens parser)))
-        (pimacs-markdown-parser-provisional parser))
-  (pimacs--markdown-parser-add-token parser 'autolink
-                                     (list :face 'pimacs-markdown-link-face))
-  (pimacs--markdown-parser-append parser url))
-
-(defun pimacs--markdown-autolink-close (parser)
-  (let* ((candidate (pimacs--markdown-provisional-current parser))
-         (start (plist-get candidate :output-start))
-         (url (plist-get candidate :raw)))
-    (pimacs--markdown-parser-delete
-     parser (- (pimacs-markdown-parser-output-length parser) start))
-    (pimacs--markdown-parser-end-token parser)
-    (pimacs--markdown-provisional-close parser)
-    (pimacs--markdown-parser-emit
-     parser (list :append
-                  (pimacs--markdown-autolink-label
-                   url (pimacs--markdown-parser-faces parser))))))
-
-(defun pimacs--markdown-autolink-prefix-fail (parser)
-  (let ((source (plist-get (pimacs--markdown-provisional-current parser) :raw)))
-    (pimacs--markdown-provisional-close parser)
-    (pimacs--markdown-parser-append parser source)))
-
-(defun pimacs--markdown-autolink-prefix-char (parser char)
-  (pimacs--markdown-provisional-add-raw parser (string char))
-  (let ((source (plist-get (pimacs--markdown-provisional-current parser) :raw)))
-    (cond
-     ((member source '("http://" "https://"))
-      (pimacs--markdown-autolink-open parser source))
-     ((not (or (string-prefix-p source "http://")
-               (string-prefix-p source "https://")))
-      (pimacs--markdown-autolink-prefix-fail parser)))))
-
-(defun pimacs--markdown-autolink-char (parser char)
-  (if (memq char '(?\s ?\t ?\n ?\\))
-      (progn
-        (pimacs--markdown-autolink-close parser)
-        (pimacs--markdown-inline-write-raw parser (string char)))
-    (pimacs--markdown-provisional-add-raw parser (string char))
-    (pimacs--markdown-parser-append parser (string char))))
-
-(defun pimacs--markdown-image-prefix-fail (parser)
-  (let ((source (plist-get (pimacs--markdown-provisional-current parser) :raw)))
-    (pimacs--markdown-provisional-close parser)
-    (pimacs--markdown-parser-append parser source)))
-
-(defun pimacs--markdown-image-prefix-char (parser char)
-  (if (eq char ?\[)
-      (progn
-        (pimacs--markdown-provisional-add-raw parser "[")
-        (pimacs--markdown-provisional-put parser :kind 'image)
-        (pimacs--markdown-provisional-put parser :stage 'label)
-        (pimacs--markdown-provisional-put parser :label "")
-        (pimacs--markdown-provisional-put parser :label-source "")
-        (pimacs--markdown-provisional-put parser :url "")
-        (pimacs--markdown-parser-add-token
-         parser 'image (list :face 'pimacs-markdown-link-face)))
-    (pimacs--markdown-image-prefix-fail parser)
-    (pimacs--markdown-inline-write-raw parser (string char))))
-
-(defun pimacs--markdown-escape-character-p (char)
-  (and (>= char 33)
-       (<= char 126)
-       (not (or (and (>= char ?0) (<= char ?9))
-                (and (>= char ?A) (<= char ?Z))
-                (and (>= char ?a) (<= char ?z))))))
-
-(defun pimacs--markdown-inline-escaped-char (parser char)
-  (let ((candidate (pimacs--markdown-provisional-current parser)))
-    (pcase (plist-get candidate :kind)
-      ((or 'link 'image)
-       (pcase (plist-get candidate :stage)
-         ('label
-          (pimacs--markdown-provisional-add-raw parser (string char))
-          (pimacs--markdown-provisional-put
-           parser :label (concat (plist-get candidate :label) (string char)))
-          (pimacs--markdown-provisional-put
-           parser :label-source
-           (concat (plist-get candidate :label-source) "\\" (string char)))
-          (pimacs--markdown-parser-append parser (string char)))
-         ('after-label
-          (pimacs--markdown-provisional-fail parser)
-          (pimacs--markdown-parser-append parser (string char)))
-         ('url
-          (pimacs--markdown-provisional-add-raw parser (string char))
-          (pimacs--markdown-provisional-put
-           parser :url (concat (plist-get candidate :url) (string char))))))
-      (_
-       (when candidate
-         (pimacs--markdown-provisional-add-raw parser (string char)))
-       (when (memq char '(?* ?_ ?` ?~ ?=))
-         (setf (pimacs-markdown-parser-escaped-delimiter parser) char))
-       (pimacs--markdown-parser-append parser (string char))))))
-
-(defun pimacs--markdown-linked-image-append (parser candidate source visible)
-  (pimacs--markdown-provisional-put
-   parser :label (concat (plist-get candidate :label) source))
-  (pimacs--markdown-provisional-put
-   parser :label-source (concat (plist-get candidate :label-source) source))
-  (pimacs--markdown-parser-append parser visible))
-
-(defun pimacs--markdown-linked-image-char (parser char)
-  (let* ((candidate (pimacs--markdown-provisional-current parser))
-         (stage (plist-get candidate :linked-image-stage))
-         (source (plist-get candidate :linked-image-source)))
-    (pcase stage
-      ('maybe
-       (if (eq char ?\[)
-           (progn
-             (pimacs--markdown-provisional-add-raw parser "[")
-             (pimacs--markdown-provisional-put parser :linked-image-stage 'alt)
-             (pimacs--markdown-provisional-put parser :linked-image-source "![")
-             (pimacs--markdown-provisional-put parser :linked-image-alt ""))
-         (pimacs--markdown-linked-image-append parser candidate "!" "!")
-         (pimacs--markdown-provisional-put parser :linked-image-stage nil)
-         (pimacs--markdown-inline-char parser char)))
-      ('alt
-       (cond
-        ((eq char ?\])
-         (pimacs--markdown-provisional-add-raw parser "]")
-         (pimacs--markdown-provisional-put
-          parser :linked-image-source (concat source "]"))
-         (pimacs--markdown-provisional-put parser :linked-image-stage 'after-alt))
-        ((eq char ?\n)
-         (pimacs--markdown-provisional-fail parser)
-         (pimacs--markdown-inline-char parser char))
-        (t
-         (pimacs--markdown-provisional-add-raw parser (string char))
-         (pimacs--markdown-provisional-put
-          parser :linked-image-source (concat source (string char)))
-         (pimacs--markdown-provisional-put
-          parser :linked-image-alt
-          (concat (plist-get candidate :linked-image-alt) (string char))))))
-      ('after-alt
-       (if (eq char ?\()
-           (progn
-             (pimacs--markdown-provisional-add-raw parser "(")
-             (pimacs--markdown-provisional-put
-              parser :linked-image-source (concat source "("))
-             (pimacs--markdown-provisional-put parser :linked-image-stage 'url))
-         (pimacs--markdown-linked-image-append parser candidate source source)
-         (pimacs--markdown-provisional-put parser :linked-image-stage nil)
-         (pimacs--markdown-inline-char parser char)))
-      ('url
-       (cond
-        ((eq char ?\))
-         (pimacs--markdown-provisional-add-raw parser ")")
-         (setq source (concat source ")"))
-         (if (pimacs--markdown-link-destination
-              (substring source (1+ (string-match "(" source)) -1))
-             (pimacs--markdown-linked-image-append
-              parser candidate source (plist-get candidate :linked-image-alt))
-           (pimacs--markdown-linked-image-append parser candidate source source))
-         (pimacs--markdown-provisional-put parser :linked-image-stage nil))
-        ((eq char ?\n)
-         (pimacs--markdown-provisional-fail parser)
-         (pimacs--markdown-inline-char parser char))
-        (t
-         (pimacs--markdown-provisional-add-raw parser (string char))
-         (pimacs--markdown-provisional-put
-          parser :linked-image-source (concat source (string char)))))))))
-
-(defun pimacs--markdown-inline-char (parser char)
-  (let ((candidate (pimacs--markdown-provisional-current parser)))
-    (pcase (plist-get candidate :kind)
-      ('equation-block-candidate
-       (if (eq char ?\n)
-           (progn
-             (pimacs--markdown-parser-add-token
-              parser 'equation-block (list :face 'pimacs-markdown-equation-face))
-             (pimacs--markdown-provisional-put parser :kind 'equation-block))
-         (pimacs--markdown-provisional-fail parser)
-         (pimacs--markdown-inline-write-raw parser (string char))))
-      ((or 'equation-inline 'equation-block)
-       (pimacs--markdown-provisional-add-raw parser (string char))
-       (let* ((delimiter (plist-get candidate :delimiter))
-              (pending (concat (pimacs-markdown-parser-pending parser) (string char))))
-         (if (string-prefix-p pending delimiter)
-             (progn
-               (setf (pimacs-markdown-parser-pending parser) pending)
-               (when (string= pending delimiter)
-                 (setf (pimacs-markdown-parser-pending parser) "")
-                 (pimacs--markdown-close-inline parser)))
-           (setf (pimacs-markdown-parser-pending parser) "")
-           (pimacs--markdown-parser-append parser pending))))
-      ('code
-       (cond
-        ((eq char ?\n)
-         (let ((pending (pimacs-markdown-parser-pending parser)))
-           (setf (pimacs-markdown-parser-pending parser) "")
-           (if (and pending (= (length pending) (plist-get candidate :width)))
-               (progn
-                 (pimacs--markdown-provisional-add-raw parser pending)
-                 (pimacs--markdown-close-inline parser)
-                 (pimacs--markdown-inline-char parser char))
-             (when pending
-               (pimacs--markdown-provisional-add-raw parser pending)
-               (mapc (lambda (pending-char)
-                       (pimacs--markdown-inline-code-append
-                        parser candidate pending-char t))
-                     pending))
-             (if (plist-get candidate :line-break)
-                 (progn
-                   (pimacs--markdown-close-inline parser)
-                   (pimacs--markdown-inline-char parser char))
-               (pimacs--markdown-inline-code-append parser candidate char)
-               (pimacs--markdown-provisional-put parser :line-break t)))))
-        ((eq char ?`)
-         (pimacs--markdown-provisional-put parser :line-break nil)
-         (setf (pimacs-markdown-parser-pending parser)
-               (concat (pimacs-markdown-parser-pending parser) (string char))))
-        ((not (string-empty-p (pimacs-markdown-parser-pending parser)))
-         (let ((pending (pimacs-markdown-parser-pending parser)))
-           (setf (pimacs-markdown-parser-pending parser) "")
-           (pimacs--markdown-provisional-add-raw parser pending)
-           (cond
-            ((= (length pending) (plist-get candidate :width))
-             (pimacs--markdown-close-inline parser))
-            ((< (length pending) (plist-get candidate :width))
-             (mapc (lambda (pending-char)
-                     (pimacs--markdown-inline-code-append
-                      parser candidate pending-char t))
-                   pending))
-            (t
-             (pimacs--markdown-provisional-fail parser)))
-           (pimacs--markdown-inline-char parser char)))
-        (t
-         (pimacs--markdown-provisional-put parser :line-break nil)
-         (pimacs--markdown-inline-code-append parser candidate char))))
-      ((or 'highlight 'superscript 'subscript)
-       (let ((delimiter (plist-get candidate :delimiter)))
-         (cond
-          ((eq char ?\n)
-           (pimacs--markdown-provisional-fail parser)
-           (pimacs--markdown-inline-char parser char))
-          (t
-           (pimacs--markdown-provisional-add-raw parser (string char))
-           (let ((pending (concat (pimacs-markdown-parser-pending parser)
-                                  (string char))))
-             (if (string-prefix-p pending delimiter)
-                 (progn
-                   (setf (pimacs-markdown-parser-pending parser) pending)
-                   (when (string= pending delimiter)
-                     (let ((source (plist-get candidate :raw)))
-                       (setf (pimacs-markdown-parser-pending parser) "")
-                       (pimacs--markdown-close-inline parser)
-                       (pimacs--markdown-html-inline-add-to-link-label parser source))))
-               (setf (pimacs-markdown-parser-pending parser) "")
-               (pimacs--markdown-parser-append parser pending)))))))
-      ((or 'bold 'italic 'strike)
-       (let ((delimiter (pcase (plist-get candidate :kind)
-                          ('bold (or (plist-get candidate :delimiter) "**"))
-                          ('strike "~~")
-                          (_ (plist-get candidate :delimiter)))))
-         (cond
-          ((and (eq char ?\\)
-                (string-empty-p (pimacs-markdown-parser-pending parser)))
-           (setf (pimacs-markdown-parser-pending parser) "\\"))
-          ((eq char ?\n)
-           (pimacs--markdown-provisional-fail parser)
-           (pimacs--markdown-inline-char parser char))
-          ((and (string-empty-p (pimacs-markdown-parser-pending parser))
-                (memq char '(?` ?\[)))
-           (if (eq char ?`)
-               (pimacs--markdown-open-inline
-                parser 'code "`" 'pimacs-markdown-inline-code-face
-                (list :width 1 :leading t :trailing-space nil :line-break nil))
-             (pimacs--markdown-open-inline
-              parser 'link "[" 'pimacs-markdown-link-face
-              (list :stage 'label :label "" :label-source "" :url ""))))
-          ((eq char (aref delimiter 0))
-           (setf (pimacs-markdown-parser-pending parser)
-                 (concat (pimacs-markdown-parser-pending parser) (string char))))
-          ((not (string-empty-p (pimacs-markdown-parser-pending parser)))
-           (let ((pending (pimacs-markdown-parser-pending parser)))
-             (setf (pimacs-markdown-parser-pending parser) "")
-             (pimacs--markdown-provisional-add-raw parser pending)
-             (if (string= pending delimiter)
-                 (pimacs--markdown-close-inline parser)
-               (pimacs--markdown-parser-append parser pending))
-             (pimacs--markdown-inline-char parser char)))
-          (t
-           (if (and (eq char ?h)
-                    (pimacs--markdown-autolink-eligible-p parser))
-               (pimacs--markdown-provisional-open parser 'autolink-prefix "h")
-             (pimacs--markdown-provisional-add-raw parser (string char))
-             (pimacs--markdown-parser-append parser (string char)))))))
-      ((or 'link 'image)
-       (pcase (plist-get candidate :stage)
-         ('label
+(defun pimacs--markdown-render-block-node (parser node)
+  (let ((type (treesit-node-type node))
+        (source (pimacs--markdown-node-text node)))
+    (pcase type
+      ((or "document" "section")
+       (apply #'concat (mapcar (lambda (child)
+                                 (pimacs--markdown-render-block-node parser child))
+                               (pimacs--markdown-node-children node))))
+      ("atx_heading"
+       (let ((inline (pimacs--markdown-node-child node "inline")))
+         (concat
+          (if inline
+              (pimacs--markdown-propertize-face
+               (pimacs--markdown-render-inline-range
+                parser (treesit-node-start inline) (treesit-node-end inline))
+               'pimacs-markdown-heading-face)
+            "")
+          (if (string-suffix-p "\n" source) "\n" ""))))
+      ("paragraph"
+       (let ((inline (pimacs--markdown-node-child node "inline")))
+         (if inline
+             (concat
+              (pimacs--markdown-render-inline-range
+               parser (treesit-node-start inline) (treesit-node-end inline))
+              (substring source (- (treesit-node-end inline)
+                                   (treesit-node-start node))))
+           source)))
+      ("list"
+       (apply #'concat (mapcar (lambda (child)
+                                 (pimacs--markdown-render-block-node parser child))
+                               (pimacs--markdown-node-children node))))
+      ("list_item"
+       (let* ((marker (cl-find-if (lambda (child)
+                                    (string-prefix-p "list_marker_"
+                                                     (treesit-node-type child)))
+                                  (pimacs--markdown-node-children node)))
+              (checked (pimacs--markdown-node-child node "task_list_marker_checked"))
+              (unchecked (pimacs--markdown-node-child node "task_list_marker_unchecked"))
+              (children (cl-remove-if
+                         (lambda (child)
+                           (member (treesit-node-type child)
+                                   '("list_marker_dot" "list_marker_minus"
+                                     "list_marker_parenthesis" "list_marker_plus"
+                                     "list_marker_star" "task_list_marker_checked"
+                                     "task_list_marker_unchecked")))
+                         (pimacs--markdown-node-children node))))
+         (concat
           (cond
-           ((and (eq (plist-get candidate :kind) 'link)
-                 (plist-get candidate :linked-image-stage))
-            (pimacs--markdown-linked-image-char parser char))
-           ((and (eq (plist-get candidate :kind) 'link)
-                 (eq char ?!))
-            (pimacs--markdown-provisional-add-raw parser "!")
-            (pimacs--markdown-provisional-put parser :linked-image-stage 'maybe))
-           ((eq char ?\\)
-            (setf (pimacs-markdown-parser-pending parser) "\\"))
-           ((eq char ?\])
-            (pimacs--markdown-provisional-add-raw parser "]")
-            (pimacs--markdown-provisional-put parser :stage 'after-label))
-           ((eq char ?\n)
-            (pimacs--markdown-provisional-fail parser)
-            (pimacs--markdown-inline-char parser char))
-           (t
-            (pimacs--markdown-provisional-add-raw parser (string char))
-            (pimacs--markdown-provisional-put
-             parser :label (concat (plist-get candidate :label) (string char)))
-            (pimacs--markdown-provisional-put
-             parser :label-source
-             (concat (plist-get candidate :label-source) (string char)))
-            (pimacs--markdown-parser-append parser (string char)))))
-         ('after-label
-          (cond
-           ((eq char ?\\)
-            (setf (pimacs-markdown-parser-pending parser) "\\"))
-           ((eq char ?\()
-            (pimacs--markdown-provisional-add-raw parser "(")
-            (pimacs--markdown-provisional-put parser :stage 'url))
-           ((eq char ?\[)
-            (pimacs--markdown-provisional-add-raw parser "[")
-            (pimacs--markdown-provisional-put parser :stage 'reference)
-            (pimacs--markdown-provisional-put parser :reference ""))
-           ((pimacs--markdown-link-resolve-reference
-             parser candidate (plist-get candidate :label))
-            (pimacs--markdown-inline-char parser char))
-           (t
-            (pimacs--markdown-provisional-fail parser)
-            (pimacs--markdown-inline-char parser char))))
-         ('reference
-          (cond
-           ((eq char ?\])
-            (pimacs--markdown-provisional-add-raw parser "]")
-            (unless (pimacs--markdown-link-resolve-reference
-                     parser candidate
-                     (let ((reference (plist-get candidate :reference)))
-                       (if (string-empty-p reference)
-                           (plist-get candidate :label)
-                         reference)))
-              (pimacs--markdown-provisional-fail parser)))
-           ((eq char ?\n)
-            (pimacs--markdown-provisional-fail parser)
-            (pimacs--markdown-inline-char parser char))
-           (t
-            (pimacs--markdown-provisional-add-raw parser (string char))
-            (pimacs--markdown-provisional-put
-             parser :reference (concat (plist-get candidate :reference) (string char))))))
-         ('url
-          (cond
-           ((eq char ?\\)
-            (setf (pimacs-markdown-parser-pending parser) "\\"))
-           ((eq char ?\))
-            (pimacs--markdown-provisional-add-raw parser ")")
-            (if-let ((destination
-                      (pimacs--markdown-link-destination
-                       (plist-get candidate :url))))
-                (pimacs--markdown-link-complete parser candidate
-                                                (plist-get destination :url)
-                                                (plist-get destination :title))
-              (pimacs--markdown-provisional-fail parser)))
-           ((eq char ?\n)
-            (pimacs--markdown-provisional-fail parser)
-            (pimacs--markdown-inline-char parser char))
-           (t
-            (pimacs--markdown-provisional-add-raw parser (string char))
-            (pimacs--markdown-provisional-put
-             parser :url (concat (plist-get candidate :url) (string char))))))))
-      (_
-       (cond
-        ((eq char ?\[)
-         (pimacs--markdown-open-inline
-          parser 'link "[" 'pimacs-markdown-link-face
-          (list :stage 'label :label "" :label-source "" :url "")))
-        ((and (eq char ?\\)
-              (string-empty-p (pimacs-markdown-parser-pending parser)))
-         (setf (pimacs-markdown-parser-pending parser) "\\"))
-        ((memq char '(?` ?* ?_ ?~ ?= ?$))
-         (setf (pimacs-markdown-parser-pending parser)
-               (concat (pimacs-markdown-parser-pending parser) (string char))))
-        (t
-         (pimacs--markdown-parser-append parser (string char))))))))
+           (checked (pimacs--markdown-propertize-face "☑ " 'pimacs-markdown-checkbox-face))
+           (unchecked (pimacs--markdown-propertize-face "☐ " 'pimacs-markdown-checkbox-face))
+           ((and marker (string-match-p "[.)]" (pimacs--markdown-node-text marker)))
+            (concat (string-trim (pimacs--markdown-node-text marker)) " "))
+           (t (pimacs--markdown-propertize-face "● " 'pimacs-markdown-list-marker-face)))
+          (apply #'concat (mapcar (lambda (child)
+                                    (pimacs--markdown-render-block-node parser child))
+                                  children)))))
+      ("block_quote"
+       (pimacs--markdown-propertize-face
+        (apply #'concat (mapcar (lambda (child)
+                                  (pimacs--markdown-render-block-node parser child))
+                                (cl-remove-if (lambda (child)
+                                                (string= (treesit-node-type child)
+                                                         "block_quote_marker"))
+                                              (pimacs--markdown-node-children node))))
+        'pimacs-markdown-blockquote-face))
+      ((or "fenced_code_block" "indented_code_block")
+       (pimacs--markdown-render-code-block node))
+      ("thematic_break"
+       (concat (pimacs--markdown-propertize-face
+                (make-string (min 80 (window-width)) ?─)
+                'pimacs-markdown-horizontal-rule-face)
+               (if (string-suffix-p "\n" source) "\n" "")))
+      ("link_reference_definition" "")
+      (_ source))))
 
-(defun pimacs--markdown-inline-flush-pending (parser &optional final)
-  (let ((pending (pimacs-markdown-parser-pending parser))
-        (candidate (pimacs--markdown-provisional-current parser)))
-    (pcase (plist-get candidate :kind)
-      ('equation-block-candidate (pimacs--markdown-provisional-fail parser))
-      ((or 'equation-inline 'equation-block)
-       (unless (string-empty-p pending)
-         (pimacs--markdown-provisional-add-raw parser pending)
-         (pimacs--markdown-parser-append parser pending)
-         (setf (pimacs-markdown-parser-pending parser) ""))
-       (when final
-         (pimacs--markdown-close-inline parser)))
-      ((or 'html-break 'html-tag) (pimacs--markdown-html-break-fail parser))
-      ('autolink (pimacs--markdown-autolink-close parser))
-      ('autolink-prefix (pimacs--markdown-autolink-prefix-fail parser))
-      ('image-prefix (pimacs--markdown-image-prefix-fail parser)))
-    (setq candidate (pimacs--markdown-provisional-current parser))
-    (unless (or (string-empty-p pending)
-                (memq (plist-get candidate :kind)
-                      '(equation-inline equation-block))
-                (and (string= pending "\\") (not final)))
-      (setf (pimacs-markdown-parser-pending parser) "")
-      (if (string= pending "\\")
-          (progn
-            (when candidate
-              (pimacs--markdown-provisional-add-raw parser pending))
-            (if (and (memq (plist-get candidate :kind) '(link image))
-                     (eq (plist-get candidate :stage) 'url))
-                (pimacs--markdown-provisional-put
-                 parser :url (concat (plist-get candidate :url) pending))
-              (pimacs--markdown-parser-append parser pending)))
-        (pcase (plist-get candidate :kind)
-          ('code
-           (pimacs--markdown-provisional-add-raw parser pending)
-           (if (= (length pending) (plist-get candidate :width))
-               (pimacs--markdown-close-inline parser)
-             (pimacs--markdown-provisional-fail parser)))
-          ((or 'highlight 'superscript 'subscript)
-           (pimacs--markdown-provisional-add-raw parser pending)
-           (if (string= pending (plist-get candidate :delimiter))
-               (let ((source (plist-get candidate :raw)))
-                 (pimacs--markdown-close-inline parser)
-                 (pimacs--markdown-html-inline-add-to-link-label parser source))
-             (pimacs--markdown-provisional-fail parser)))
-          ((or 'bold 'italic 'strike)
-           (let ((delimiter (pcase (plist-get candidate :kind)
-                              ('bold (or (plist-get candidate :delimiter) "**"))
-                              ('strike "~~")
-                              (_ (plist-get candidate :delimiter)))))
-             (if (and (eq (plist-get candidate :kind) 'italic)
-                      (string= pending "***")
-                      (eq (plist-get (cadr (pimacs-markdown-parser-provisional parser))
-                                     :kind)
-                          'bold))
-                 (pimacs--markdown-close-triple-emphasis parser ?*)
-               (pimacs--markdown-provisional-add-raw parser pending)
-               (if (string= pending delimiter)
-                   (pimacs--markdown-close-inline parser)
-                 (pimacs--markdown-provisional-fail parser)))))
-          (_
-           (cond
-            ((and (> (length pending) 0)
-                  (eq (aref pending 0) ?`))
-             (pimacs--markdown-open-inline
-              parser 'code pending 'pimacs-markdown-inline-code-face
-              (list :width (length pending) :leading t :trailing-space nil
-                    :line-break nil)))
-            ((member pending '("**" "__" "*" "_" "~~" "=="))
-             (if final
-                 (pimacs--markdown-parser-append parser pending)
-               (setf (pimacs-markdown-parser-pending parser) pending)))
-            (t
-             (pimacs--markdown-parser-append parser pending)))))))))
+(defun pimacs--markdown-parser-block-nodes (node)
+  (if (member (treesit-node-type node) '("document" "section"))
+      (cl-mapcan #'pimacs--markdown-parser-block-nodes
+                 (pimacs--markdown-node-children node))
+    (list node)))
 
-(defun pimacs--markdown-inline-write-raw (parser string)
-  (dotimes (index (length string))
-    (let* ((char (aref string index))
-           (candidate (pimacs--markdown-provisional-current parser))
-           (pending (pimacs-markdown-parser-pending parser)))
-      (cond
-       ((eq (plist-get candidate :kind) 'html-tag)
-        (pimacs--markdown-html-inline-char parser char))
-       ((eq (plist-get candidate :kind) 'autolink-prefix)
-        (pimacs--markdown-autolink-prefix-char parser char))
-       ((eq (plist-get candidate :kind) 'image-prefix)
-        (pimacs--markdown-image-prefix-char parser char))
-       ((eq (plist-get candidate :kind) 'autolink)
-        (pimacs--markdown-autolink-char parser char))
-       ((and (eq char ?h)
-             (pimacs--markdown-autolink-eligible-p parser))
-        (pimacs--markdown-provisional-open parser 'autolink-prefix "h"))
-       ((and (eq char ?!)
-             (null candidate)
-             (string-empty-p pending))
-        (pimacs--markdown-provisional-open parser 'image-prefix "!"))
-       ((memq (plist-get candidate :kind)
-              '(equation-inline equation-block equation-block-candidate))
-        (pimacs--markdown-inline-char parser char))
-       ((and (eq char ?$)
-             (string-empty-p pending)
-             (pimacs--markdown-equation-eligible-p parser))
-        (setf (pimacs-markdown-parser-pending parser) "$"))
-       ((and (string= pending "$")
-             (pimacs--markdown-equation-eligible-p parser))
-        (setf (pimacs-markdown-parser-pending parser) "")
-        (cond
-         ((eq char ?$)
-          (pimacs--markdown-provisional-open
-           parser 'equation-block-candidate "$$" (list :delimiter "$$")))
-         ((pimacs--markdown-equation-start-p char)
-          (pimacs--markdown-open-inline
-           parser 'equation-inline "$" 'pimacs-markdown-equation-face
-           (list :delimiter "$"))
-          (pimacs--markdown-inline-char parser char))
-         (t
-          (pimacs--markdown-parser-append parser "$")
-          (pimacs--markdown-inline-write-raw parser (string char)))))
-       ((and (string= pending "\\")
-             (not (eq (plist-get candidate :kind) 'code)))
-        (setf (pimacs-markdown-parser-pending parser) "")
-        (cond
-         ((eq char ?\n)
-          (pimacs--markdown-inline-char parser char))
-         ((pimacs--markdown-escape-character-p char)
-          (pimacs--markdown-inline-escaped-char parser char))
-         (t
-          (pimacs--markdown-inline-escaped-char parser ?\\)
-          (pimacs--markdown-inline-escaped-char parser char))))
-       ((and candidate
-             (not (string-empty-p pending))
-             (eq char ?\n))
-        (pimacs--markdown-inline-flush-pending parser)
-        (pimacs--markdown-inline-char parser char))
-       ((memq (plist-get candidate :kind) '(highlight superscript subscript))
-        (pimacs--markdown-inline-char parser char))
-       ((and (eq char ?<)
-             (string-empty-p pending)
-             (pimacs--markdown-html-inline-eligible-p parser))
-        (pimacs--markdown-provisional-open parser 'html-tag "<"))
-       ((and (null candidate)
-             (member pending '("**" "__"))
-             (eq char (aref pending 0)))
-        (let ((delimiter (aref pending 0)))
-          (setf (pimacs-markdown-parser-pending parser) "")
-          (pimacs--markdown-open-inline
-           parser 'bold (make-string 2 delimiter) 'pimacs-markdown-bold-face
-           (list :delimiter (make-string 2 delimiter) :triple t))
-          (pimacs--markdown-open-inline
-           parser 'italic (string delimiter) 'pimacs-markdown-italic-face
-           (list :delimiter (string delimiter)))))
-       ((and (eq (plist-get candidate :kind) 'italic)
-             (let* ((delimiter (plist-get candidate :delimiter))
-                    (outer (cadr (pimacs-markdown-parser-provisional parser))))
-               (and (string= pending (make-string 2 (aref delimiter 0)))
-                    (eq char (aref delimiter 0))
-                    (eq (plist-get outer :kind) 'bold)
-                    (string= (or (plist-get outer :delimiter) "**")
-                             (make-string 2 (aref delimiter 0))))))
-        (let ((delimiter (aref (plist-get candidate :delimiter) 0)))
-          (setf (pimacs-markdown-parser-pending parser) "")
-          (pimacs--markdown-close-triple-emphasis parser delimiter)))
-       ((and (eq (plist-get candidate :kind) 'bold)
-             (let* ((delimiter (or (plist-get candidate :delimiter) "**"))
-                    (outer (cadr (pimacs-markdown-parser-provisional parser))))
-               (and (string= pending delimiter)
-                    (eq char (aref delimiter 0))
-                    (eq (plist-get outer :kind) 'italic)))
-             (let ((delimiter (or (plist-get candidate :delimiter) "**")))
-               (setf (pimacs-markdown-parser-pending parser) "")
-               (pimacs--markdown-provisional-add-raw parser delimiter)
-               (pimacs--markdown-close-inline parser)
-               (pimacs--markdown-inline-char parser char))))
-       ((and (eq (plist-get candidate :kind) 'italic)
-             (let* ((delimiter (plist-get candidate :delimiter))
-                    (outer (cadr (pimacs-markdown-parser-provisional parser))))
-               (and (string= pending (make-string 2 (aref delimiter 0)))
-                    (not (eq char (aref delimiter 0)))
-                    (plist-get outer :triple)))
-             (pimacs--markdown-eligible-bold-p char))
-        (let ((delimiter (plist-get candidate :delimiter)))
-          (setf (pimacs-markdown-parser-pending parser) "")
-          (pimacs--markdown-provisional-add-raw parser (make-string 2 (aref delimiter 0)))
-          (pimacs--markdown-close-inline parser)
-          (pimacs--markdown-close-inline parser)
-          (pimacs--markdown-open-inline
-           parser 'italic (string (aref delimiter 0)) 'pimacs-markdown-italic-face
-           (list :delimiter (string (aref delimiter 0))))
-          (pimacs--markdown-inline-char parser char)))
-       ((and (eq (plist-get candidate :kind) 'italic)
-             (let ((delimiter (plist-get candidate :delimiter)))
-               (and (string= pending (make-string 2 (aref delimiter 0)))
-                    (not (eq char (aref delimiter 0)))))
-             (pimacs--markdown-eligible-bold-p char))
-        (let ((delimiter (plist-get candidate :delimiter)))
-          (setf (pimacs-markdown-parser-pending parser) "")
-          (pimacs--markdown-open-inline
-           parser 'bold (make-string 2 (aref delimiter 0))
-           'pimacs-markdown-bold-face
-           (list :delimiter (make-string 2 (aref delimiter 0))))
-          (pimacs--markdown-inline-char parser char)))
-       ((and (eq (plist-get candidate :kind) 'bold)
-             (let ((delimiter (or (plist-get candidate :delimiter) "**")))
-               (and (string= pending (string (aref delimiter 0)))
-                    (not (eq char (aref delimiter 0)))))
-             (pimacs--markdown-eligible-bold-p char))
-        (let ((delimiter (or (plist-get candidate :delimiter) "**")))
-          (setf (pimacs-markdown-parser-pending parser) "")
-          (pimacs--markdown-open-inline
-           parser 'italic (string (aref delimiter 0)) 'pimacs-markdown-italic-face
-           (list :delimiter (string (aref delimiter 0))))
-          (pimacs--markdown-inline-char parser char)))
-       (t
-        (when (and (null candidate)
-                   (not (string-empty-p pending))
-                   (not (eq char (aref pending 0))))
-          (pimacs--markdown-inline-flush-pending parser))
-        (setq candidate (pimacs--markdown-provisional-current parser))
-        (cond
-         ((and (null candidate)
-               (string= (pimacs-markdown-parser-pending parser) "==")
-               (not (eq char ?=))
-               (pimacs--markdown-eligible-bold-p char))
-          (setf (pimacs-markdown-parser-pending parser) "")
-          (pimacs--markdown-open-inline
-           parser 'highlight "==" 'pimacs-markdown-highlight-face
-           (list :delimiter "=="))
-          (pimacs--markdown-inline-char parser char))
-         ((and (memq (plist-get candidate :kind) '(nil italic))
-               (member (pimacs-markdown-parser-pending parser) '("**" "__"))
-               (not (eq char (aref (pimacs-markdown-parser-pending parser) 0)))
-               (pimacs--markdown-eligible-bold-p char))
-          (let ((delimiter (pimacs-markdown-parser-pending parser)))
-            (setf (pimacs-markdown-parser-pending parser) "")
-            (pimacs--markdown-open-inline
-             parser 'bold delimiter 'pimacs-markdown-bold-face
-             (list :delimiter delimiter))
-            (pimacs--markdown-inline-char parser char)))
-         ((and (memq (plist-get candidate :kind) '(nil bold))
-               (member (pimacs-markdown-parser-pending parser) '("*" "_"))
-               (not (eq char (aref (pimacs-markdown-parser-pending parser) 0)))
-               (pimacs--markdown-eligible-bold-p char))
-          (let ((delimiter (pimacs-markdown-parser-pending parser)))
-            (setf (pimacs-markdown-parser-pending parser) "")
-            (pimacs--markdown-open-inline
-             parser 'italic delimiter 'pimacs-markdown-italic-face
-             (list :delimiter delimiter))
-            (pimacs--markdown-inline-char parser char)))
-         ((and (null candidate)
-               (string= (pimacs-markdown-parser-pending parser) "~~")
-               (not (eq char ?~))
-               (pimacs--markdown-eligible-bold-p char))
-          (setf (pimacs-markdown-parser-pending parser) "")
-          (pimacs--markdown-open-inline
-           parser 'strike "~~" 'pimacs-markdown-strike-through-face)
-          (pimacs--markdown-inline-char parser char))
-         (t
-          (pimacs--markdown-inline-char parser char))))))))
+(defun pimacs--markdown-parser-block-record (node rendered)
+  (list :start (treesit-node-start node)
+        :end (treesit-node-end node)
+        :type (treesit-node-type node)
+        :rendered rendered))
 
-(defun pimacs--markdown-inline-flush-text (parser)
-  (when-let ((text (pimacs-markdown-parser-text parser)))
-    (unless (string-empty-p text)
-      (setf (pimacs-markdown-parser-text parser) "")
-      (pimacs--markdown-inline-write-raw parser text))))
+(defun pimacs--markdown-parser-same-block-p (record node)
+  (and (= (plist-get record :start) (treesit-node-start node))
+       (= (plist-get record :end) (treesit-node-end node))
+       (string= (plist-get record :type) (treesit-node-type node))))
 
-(defun pimacs--markdown-inline-write (parser string)
-  (dotimes (index (length string))
-    (let* ((char (aref string index))
-           (candidate (pimacs--markdown-provisional-current parser)))
-      (when (and (memq char '(?\s ?\t))
-                 (string= (pimacs-markdown-parser-pending parser) "\\"))
-        (setf (pimacs-markdown-parser-pending parser) "")
-        (pimacs--markdown-parser-append parser "\\"))
-      (cond
-       ((eq char ?\n)
-        (when (and (null candidate)
-                   (= (length (pimacs-markdown-parser-pending parser)) 1)
-                   (eq (aref (pimacs-markdown-parser-pending parser) 0)
-                       (pimacs-markdown-parser-escaped-delimiter parser)))
-          (pimacs--markdown-parser-append
-           parser (pimacs-markdown-parser-pending parser))
-          (setf (pimacs-markdown-parser-pending parser) ""))
-        (setf (pimacs-markdown-parser-escaped-delimiter parser) nil
-              (pimacs-markdown-parser-text parser) "")
-        (pimacs--markdown-inline-write-raw parser (string char)))
-       ((and (eq (plist-get candidate :kind) 'autolink)
-             (memq char '(?\s ?\t)))
-        (pimacs--markdown-autolink-close parser)
-        (setf (pimacs-markdown-parser-autolink-boundary parser) t)
-        (unless (pimacs-markdown-parser-paragraph-start parser)
-          (setf (pimacs-markdown-parser-text parser) " ")))
-       ((and (memq char '(?\s ?\t))
-             (not (memq (plist-get candidate :kind)
-                        '(code equation-inline equation-block equation-block-candidate))))
-        (setf (pimacs-markdown-parser-autolink-boundary parser) t)
-        (unless (pimacs-markdown-parser-paragraph-start parser)
-          (setf (pimacs-markdown-parser-text parser) " ")))
-       (t
-        (pimacs--markdown-inline-flush-text parser)
-        (pimacs--markdown-inline-write-raw parser (string char))
-        (setf (pimacs-markdown-parser-paragraph-start parser) nil))))))
+(defun pimacs--markdown-parser-render (parser)
+  (with-current-buffer (pimacs-markdown-parser-buffer parser)
+    (pimacs--markdown-parser-update-trees parser)
+    (let* ((old-rendered (pimacs-markdown-parser-rendered parser))
+           (nodes (pimacs--markdown-parser-block-nodes
+                   (pimacs-markdown-parser-block-root parser)))
+           (previous (pimacs-markdown-parser-blocks parser))
+           (stable nil))
+      (while (and previous nodes
+                  (pimacs--markdown-parser-same-block-p (car previous)
+                                                        (car nodes)))
+        (push (pop previous) stable)
+        (pop nodes))
+      (setq stable (nreverse stable))
+      (let* ((prefix (apply #'+ 0 (mapcar (lambda (record)
+                                            (length (plist-get record :rendered)))
+                                          stable)))
+             (tail-records
+              (mapcar (lambda (node)
+                        (pimacs--markdown-parser-block-record
+                         node (pimacs--markdown-render-block-node parser node)))
+                      nodes))
+             (tail (apply #'concat (mapcar (lambda (record)
+                                             (plist-get record :rendered))
+                                           tail-records)))
+             (rendered (concat (apply #'concat (mapcar (lambda (record)
+                                                         (plist-get record :rendered))
+                                                       stable))
+                               tail)))
+        (let (operations)
+          (when (> (length old-rendered) prefix)
+            (push (list :delete (- (length old-rendered) prefix)) operations))
+          (when (> (length tail) 0)
+            (push (list :append tail) operations))
+          (setf (pimacs-markdown-parser-blocks parser) (append stable tail-records)
+                (pimacs-markdown-parser-rendered parser) rendered
+                (pimacs-markdown-parser-operations parser) (nreverse operations)))))))
 
-(defun pimacs--markdown-table-escaped-p (string position)
-  (let ((slashes 0)
-        (position (1- position)))
-    (while (and (>= position 0) (eq (aref string position) ?\\))
-      (cl-incf slashes)
-      (cl-decf position))
-    (= (mod slashes 2) 1)))
+(defconst pimacs--markdown-special-regexp
+  (regexp-opt '("\n" "`" "*" "_" "~" "!" "$" "<" "[" "]")))
 
-(defun pimacs--markdown-table-cells (line)
-  (let ((line (string-trim line))
-        (cells nil)
-        (cell "")
-        (index 0))
-    (when (string-prefix-p "|" line)
-      (setq line (substring line 1)))
-    (when (and (string-suffix-p "|" line)
-               (not (pimacs--markdown-table-escaped-p line (1- (length line)))))
-      (setq line (substring line 0 -1)))
-    (while (< index (length line))
-      (let ((char (aref line index)))
-        (cond
-         ((and (eq char ?\\) (< (1+ index) (length line)))
-          (setq cell (concat cell (string char (aref line (1+ index))))
-                index (+ index 2)))
-         ((eq char ?|)
-          (push (string-trim cell) cells)
-          (setq cell ""
-                index (1+ index)))
-         (t
-          (setq cell (concat cell (string char))
-                index (1+ index))))))
-    (nreverse (cons (string-trim cell) cells))))
-
-(defun pimacs--markdown-table-separator-alignments (cells count)
-  (when (and (= (length cells) count)
-             (cl-every (lambda (cell)
-                         (string-match-p "\\`:?---+:?\\'" cell))
-                       cells))
-    (mapcar (lambda (cell)
-              (cond
-               ((and (string-prefix-p ":" cell) (string-suffix-p ":" cell)) 'center)
-               ((string-prefix-p ":" cell) 'left)
-               ((string-suffix-p ":" cell) 'right)
-               (t 'left)))
-            cells)))
-
-(defun pimacs--markdown-reset-line (parser)
-  (setf (pimacs-markdown-parser-line parser) ""
-        (pimacs-markdown-parser-line-output-start parser)
-        (pimacs-markdown-parser-output-length parser)
-        (pimacs-markdown-parser-line-kind parser) nil
-        (pimacs-markdown-parser-prefix parser) ""
-        (pimacs-markdown-parser-at-line-start parser) t)
-  (pimacs--markdown-root-update-state parser))
-
-(defun pimacs--markdown-set-blockquote-depth (parser depth)
-  (let ((current (pimacs-markdown-parser-blockquote-index parser)))
-    (while (> current depth)
-      (pimacs--markdown-parser-end-token parser)
-      (setq current (1- current)))
-    (while (< current depth)
-      (pimacs--markdown-parser-add-token
-       parser 'blockquote
-       (when (zerop current)
-         (list :face 'pimacs-markdown-blockquote-face)))
-      (setq current (1+ current)))
-    (setf (pimacs-markdown-parser-blockquote-index parser) depth)))
-
-(defun pimacs--markdown-expand-tabs (text)
-  (let ((column 0)
-        expanded)
-    (dotimes (index (length text))
-      (let ((char (aref text index)))
-        (if (eq char ?\t)
-            (let ((width (- 4 (% column 4))))
-              (push (make-string width ?\s) expanded)
-              (cl-incf column width))
-          (push (string char) expanded)
-          (cl-incf column))))
-    (apply #'concat (nreverse expanded))))
-
-(defun pimacs--markdown-blockquote-prefix-p (prefix)
-  (string-match-p "\\`[ \t]\\{0,3\\}\\(?:>[ \t]?\\)*\\'" prefix))
-
-(defun pimacs--markdown-horizontal-rule-prefix-p (prefix)
-  (when (string-match "\\`[ \t]*" prefix)
-    (let ((start (match-end 0)))
-      (and (<= start 3)
-           (< start (length prefix))
-           (let ((delimiter (aref prefix start)))
-             (and (memq delimiter '(?* ?- ?_))
-                  (cl-every (lambda (char)
-                              (memq char (list delimiter ?\s ?\t)))
-                            (substring prefix start))))))))
-
-(defun pimacs--markdown-horizontal-rule-p (line)
-  (and (pimacs--markdown-horizontal-rule-prefix-p line)
-       (>= (cl-count (aref (string-trim-left line) 0) line) 3)))
-
-(defun pimacs--markdown-render-horizontal-rule (parser terminated)
-  (pimacs--markdown-parser-add-token
-   parser 'horizontal-rule (list :face 'pimacs-markdown-horizontal-rule-face))
-  (pimacs--markdown-parser-append
-   parser
-   (concat (make-string (min 80 (window-width)) ?─) (if terminated "\n" "")))
-  (pimacs--markdown-parser-end-token parser)
-  (setf (pimacs-markdown-parser-paragraph-start parser) t))
-
-(defun pimacs--markdown-indented-code-prefix-p (prefix)
-  (let ((width 0)
-        (index 0))
-    (while (and (< index (length prefix)) (< width 4))
-      (pcase (aref prefix index)
-        (?\s (setq width (1+ width)))
-        (?\t (setq width (+ width 4)))
-        (_ (setq width -100)))
-      (setq index (1+ index)))
-    (>= width 4)))
-
-(defun pimacs--markdown-indented-code-content (prefix)
-  (let ((width 0)
-        (index 0))
-    (while (< width 4)
-      (setq width (+ width (if (eq (aref prefix index) ?\t) 4 1))
-            index (1+ index)))
-    (substring prefix index)))
-
-(defun pimacs--markdown-open-indented-code (parser)
-  (pimacs--markdown-parser-add-token
-   parser 'indented-code (list :face 'pimacs-markdown-code-block-face))
-  (setf (pimacs-markdown-parser-indented-code parser) t
-        (pimacs-markdown-parser-prefix parser) ""
-        (pimacs-markdown-parser-at-line-start parser) nil
-        (pimacs-markdown-parser-paragraph-start parser) t))
-
-(defun pimacs--markdown-close-indented-code (parser)
-  (pimacs--markdown-parser-end-token parser)
-  (setf (pimacs-markdown-parser-indented-code parser) nil
-        (pimacs-markdown-parser-paragraph-start parser) t))
-
-(defun pimacs--markdown-activate-indented-code-prefix (parser prefix)
-  (when (pimacs--markdown-indented-code-prefix-p prefix)
-    (pimacs--markdown-open-indented-code parser)
-    (pimacs--markdown-parser-append
-     parser (pimacs--markdown-indented-code-content prefix))
-    t))
-
-(defun pimacs--markdown-indented-code-char (parser char)
-  (if (pimacs-markdown-parser-at-line-start parser)
-      (let ((prefix (concat (pimacs-markdown-parser-prefix parser) (string char))))
-        (setf (pimacs-markdown-parser-prefix parser) prefix)
-        (cond
-         ((pimacs--markdown-indented-code-prefix-p prefix)
-          (pimacs--markdown-parser-append
-           parser (pimacs--markdown-indented-code-content prefix))
-          (setf (pimacs-markdown-parser-prefix parser) ""
-                (pimacs-markdown-parser-at-line-start parser) nil))
-         ((eq char ?\n)
-          (pimacs--markdown-close-indented-code parser)
-          (pimacs--markdown-reset-line parser)
-          (pimacs--markdown-root-char parser char t))
-         ((not (memq char '(?\s ?\t)))
-          (let ((source prefix))
-            (pimacs--markdown-close-indented-code parser)
-            (pimacs--markdown-reset-line parser)
-            (pimacs--markdown-parser-write parser source)))))
-    (pimacs--markdown-parser-append parser (string char))
-    (when (eq char ?\n)
-      (pimacs--markdown-reset-line parser))))
-
-(defun pimacs--markdown-prefix-width (prefix)
-  (cl-loop for char across prefix
-           sum (if (eq char ?\t) 4 1)))
-
-(defun pimacs--markdown-list-stack-to (parser length)
-  (setf (pimacs-markdown-parser-list-stack parser)
-        (cl-subseq (pimacs-markdown-parser-list-stack parser) 0 length)))
-
-(defun pimacs--markdown-list-prefix-p (prefix)
-  (if (string-match-p "\t" prefix)
-      (string-match-p "\\`[ \t]*\\(?:[-+*]\\|[0-9]+\\.\\)?[ \t]*\\'" prefix)
-    (string-match-p "\\`[ \t]*\\(?:[-+*]?\\|[0-9]*\\.?\\)?\\'" prefix)))
-
-(defun pimacs--markdown-continue-or-add-list (parser type indent marker-width)
-  (let ((list-length nil)
-        (item-length nil))
-    (cl-loop for level in (pimacs-markdown-parser-list-stack parser)
-             for length from 1
-             do (when (eq (plist-get level :type) type)
-                  (setq list-length length))
-             if (< indent (plist-get level :content-indent))
-             do (setq item-length nil)
-             and return nil
-             else do (setq item-length length))
-    (cond
-     (item-length
-      (pimacs--markdown-list-stack-to parser item-length)
-      (setf (pimacs-markdown-parser-list-stack parser)
-            (append (pimacs-markdown-parser-list-stack parser)
-                    (list (list :type type
-                                :content-indent (+ indent marker-width)))))
-      t)
-     (list-length
-      (pimacs--markdown-list-stack-to parser list-length)
-      (setf (plist-get (car (last (pimacs-markdown-parser-list-stack parser)))
-                       :content-indent)
-            (+ indent marker-width))
-      nil)
-     (t
-      (setf (pimacs-markdown-parser-list-stack parser)
-            (list (list :type type
-                        :content-indent (+ indent marker-width))))
-      t))))
-
-(defconst pimacs--markdown-list-bullets
-  '("●" "◎" "○" "◆" "◇" "►" "•"))
-
-(defun pimacs--markdown-list-marker (parser type marker)
-  (if (eq type 'unordered)
-      (nth (mod (1- (length (pimacs-markdown-parser-list-stack parser)))
-                (length pimacs--markdown-list-bullets))
-           pimacs--markdown-list-bullets)
-    marker))
-
-(defun pimacs--markdown-list-indent (parser)
-  (make-string (* 2 (1- (length (pimacs-markdown-parser-list-stack parser)))) ?\s))
-
-(defun pimacs--markdown-task-write (parser string)
-  (dotimes (index (length string))
-    (let* ((char (aref string index))
-           (task (pimacs-markdown-parser-task parser)))
-      (cond
-       ((null task)
-        (pimacs--markdown-inline-write parser (string char)))
-       ((string-empty-p task)
-        (if (eq char ?\[)
-            (setf (pimacs-markdown-parser-task parser) "[")
-          (setf (pimacs-markdown-parser-task parser) nil)
-          (pimacs--markdown-inline-write parser (string char))))
-       ((string= task "[")
-        (if (memq char '(?\s ?x))
-            (setf (pimacs-markdown-parser-task parser) (concat task (string char)))
-          (setf (pimacs-markdown-parser-task parser) nil)
-          (pimacs--markdown-inline-write parser (concat task (string char)))))
-       ((member task '("[ " "[x"))
-        (if (eq char ?\])
-            (setf (pimacs-markdown-parser-task parser) (concat task "]"))
-          (setf (pimacs-markdown-parser-task parser) nil)
-          (pimacs--markdown-inline-write parser (concat task (string char)))))
-       ((member task '("[ ]" "[x]"))
-        (if (eq char ?\s)
-            (progn
-              (pimacs--markdown-parser-append
-               parser (if (string= task "[x]") "☑" "☐")
-               (list 'face 'pimacs-markdown-checkbox-face))
-              (pimacs--markdown-parser-append parser " ")
-              (setf (pimacs-markdown-parser-task parser) nil
-                    (pimacs-markdown-parser-paragraph-start parser) nil))
-          (setf (pimacs-markdown-parser-task parser) nil)
-          (pimacs--markdown-inline-write parser (concat task (string char)))))))))
-
-(defun pimacs--markdown-task-flush (parser)
-  (when-let ((task (pimacs-markdown-parser-task parser)))
-    (unless (string-empty-p task)
-      (pimacs--markdown-inline-write parser task))
-    (setf (pimacs-markdown-parser-task parser) nil)))
-
-(defun pimacs--markdown-list-write-content (parser content &optional indented-code)
-  (if (and indented-code
-           (pimacs--markdown-indented-code-prefix-p content))
-      (progn
-        (pimacs--markdown-open-indented-code parser)
-        (pimacs--markdown-parser-append
-         parser (pimacs--markdown-indented-code-content content))
-        (pimacs--markdown-root-update-state parser))
-    (pimacs--markdown-task-write parser content)))
-
-(defun pimacs--markdown-activate-list-prefix (parser prefix)
-  (let ((indented-code (string-match-p "\t" prefix))
-        (prefix (pimacs--markdown-expand-tabs prefix)))
-    (when (string-match
-           "\\`\\( *\\)\\([-+*]\\|[0-9]+\\.\\)\\( +\\)\\(.*\\)\\'" prefix)
-      (let* ((indent (length (match-string 1 prefix)))
-             (marker (match-string 2 prefix))
-             (content (concat (substring (match-string 3 prefix) 1)
-                              (match-string 4 prefix)))
-             (type (if (string-suffix-p "." marker) 'ordered 'unordered))
-             (marker-width (1+ (length marker)))
-             (added (pimacs--markdown-continue-or-add-list parser type indent marker-width))
-             (source-number (and (eq type 'ordered)
-                                 (string-to-number (string-remove-suffix "." marker))))
-             (level (car (last (pimacs-markdown-parser-list-stack parser))))
-             (start (and added source-number)))
-        (when start
-          (setq level (plist-put level :start start)
-                level (plist-put level :next-number start))
-          (setcar (last (pimacs-markdown-parser-list-stack parser)) level))
-        (setf (pimacs-markdown-parser-prefix parser) ""
-              (pimacs-markdown-parser-at-line-start parser) nil
-              (pimacs-markdown-parser-line-kind parser) 'list
-              (pimacs-markdown-parser-root-state parser) pimacs--markdown-root-list
-              (pimacs-markdown-parser-task parser) "")
-        (pimacs--markdown-parser-append parser (pimacs--markdown-list-indent parser))
-        (pimacs--markdown-parser-add-token
-         parser 'list (list :face 'pimacs-markdown-list-marker-face))
-        (let ((rendered-marker
-               (if source-number
-                   (prog1 (format "%d." (plist-get level :next-number))
-                     (cl-incf (plist-get level :next-number)))
-                 marker)))
-          (pimacs--markdown-parser-append
-           parser (concat (pimacs--markdown-list-marker parser type rendered-marker) " ")
-           (when (and start (/= start 1))
-             (list 'pimacs-markdown-list-start start))))
-        (pimacs--markdown-parser-end-token parser)
-        (pimacs--markdown-list-write-content
-         parser content indented-code)
-        t))))
-
-(defun pimacs--markdown-activate-list-continuation (parser prefix)
-  (let* ((leading (progn (string-match "\\`[ \t]*" prefix) (match-string 0 prefix)))
-         (content (substring prefix (length leading)))
-         (indent (pimacs--markdown-prefix-width leading))
-         (length 0))
-    (cl-loop for level in (pimacs-markdown-parser-list-stack parser)
-             for index from 1
-             do (setq indent (- indent (plist-get level :content-indent)))
-             if (< indent 0)
-             return nil
-             else do (setq length index))
-    (when (and (> length 0)
-               (not (string-empty-p content))
-               (not (pimacs--markdown-list-prefix-p prefix)))
-      (pimacs--markdown-list-stack-to parser length)
-      (setf (pimacs-markdown-parser-prefix parser) ""
-            (pimacs-markdown-parser-at-line-start parser) nil
-            (pimacs-markdown-parser-line-kind parser) 'list
-            (pimacs-markdown-parser-root-state parser) pimacs--markdown-root-list
-            (pimacs-markdown-parser-task parser) nil)
-      (pimacs--markdown-parser-append parser (pimacs--markdown-list-indent parser))
-      (pimacs--markdown-list-write-content
-       parser (concat (make-string (max 0 indent) ?\s) content)
-       (string-match-p "\t" leading))
-      t)))
-
-(defun pimacs--markdown-activate-blockquote-prefix (parser prefix)
-  (let ((expanded-prefix (pimacs--markdown-expand-tabs prefix)))
-    (when (string-match "\\` \\{0,3\\}\\(\\(?:> ?\\)+\\)" expanded-prefix)
-      (let* ((marker (match-string 1 expanded-prefix))
-             (depth (cl-count ?> marker))
-             (content (substring expanded-prefix (match-end 0)))
-             (line (pimacs-markdown-parser-line parser))
-             (line-end (- (length line) (if (string-suffix-p "\n" line) 1 0)))
-             (line-start (- line-end (length prefix))))
-        (setf (pimacs-markdown-parser-line parser)
-              (concat (substring line 0 line-start) content (substring line line-end)))
-        (pimacs--markdown-set-blockquote-depth parser depth)
-        (setf (pimacs-markdown-parser-prefix parser) ""
-              (pimacs-markdown-parser-at-line-start parser)
-              (not (or (pimacs-markdown-parser-fence parser)
-                       (pimacs-markdown-parser-table-state parser)
-                       (eq (pimacs-markdown-parser-line-kind parser) 'table-candidate))))
-        (pimacs--markdown-root-update-state parser)
-        (dotimes (index (length content))
-          (pimacs--markdown-root-char parser (aref content index) t))
-        content))))
-
-(defun pimacs--markdown-fence-closing-p (fence line)
-  (let ((character (plist-get fence :character))
-        (width (plist-get fence :width)))
-    (string-match-p
-     (format "\\`[ \t]\\{0,3\\}%c\\{%d,\\}[ \t]*\\'" character width)
-     line)))
-
-(defun pimacs--markdown-reference-definition-prefix-p (line)
-  (string-match-p "\\`[ \t]*\\[[^]]+\\]:" line))
-
-(defun pimacs--markdown-start-reference-definition (parser)
-  (pimacs--markdown-parser-delete
-   parser
-   (- (pimacs-markdown-parser-output-length parser)
-      (pimacs-markdown-parser-line-output-start parser)))
-  (when-let ((candidate (pimacs--markdown-provisional-current parser)))
-    (while (> (length (pimacs-markdown-parser-tokens parser))
-              (plist-get candidate :token-depth))
-      (pimacs--markdown-parser-end-token parser))
-    (pimacs--markdown-provisional-close parser))
-  (setf (pimacs-markdown-parser-pending parser) ""
-        (pimacs-markdown-parser-line-kind parser) 'reference-definition
-        (pimacs-markdown-parser-at-line-start parser) nil))
-
-(defun pimacs--markdown-finish-reference-definition (parser line terminated)
-  (if-let ((definition (pimacs--markdown-reference-definition line)))
-      (pimacs--markdown-parser-add-reference parser definition)
-    (pimacs--markdown-parser-append parser (concat line (if terminated "\n" ""))))
-  (setf (pimacs-markdown-parser-paragraph-start parser) t))
-
-(defun pimacs--markdown-finish-table-line (parser line terminated)
-  (let ((state (pimacs-markdown-parser-table-state parser)))
-    (pcase (plist-get state :phase)
-      ('separator
-       (let ((headers (plist-get state :headers))
-             (cells (pimacs--markdown-table-cells line)))
-         (if-let ((alignments
-                   (pimacs--markdown-table-separator-alignments cells (length headers))))
-             (let ((new-state (list :phase 'rows
-                                    :headers (mapcar #'pimacs--markdown-render-inline headers)
-                                    :alignments alignments
-                                    :rows nil
-                                    :start (plist-get state :start))))
-               (pimacs--markdown-parser-delete
-                parser (- (pimacs-markdown-parser-output-length parser)
-                          (plist-get state :start)))
-               (setf (pimacs-markdown-parser-table-state parser) new-state)
-               (pimacs--markdown-parser-append parser
-                                               (pimacs--markdown-table-render new-state)))
-           (setf (pimacs-markdown-parser-table-state parser) nil))))
-      ('rows
-       (let ((cells (pimacs--markdown-table-cells line)))
-         (if (= (length cells) (length (plist-get state :headers)))
-             (let ((cells (mapcar #'pimacs--markdown-render-inline cells)))
-               (setf (plist-get state :rows)
-                     (if (and (plist-get state :rows)
-                              (string-empty-p (car cells)))
-                         (append (butlast (plist-get state :rows))
-                                 (list (cl-mapcar (lambda (previous cell)
-                                                    (concat previous "\n" cell))
-                                                  (car (last (plist-get state :rows))) cells)))
-                       (append (plist-get state :rows) (list cells))))
-               (pimacs--markdown-parser-delete
-                parser (- (pimacs-markdown-parser-output-length parser)
-                          (plist-get state :start)))
-               (pimacs--markdown-parser-append parser (pimacs--markdown-table-render state)))
-           ;; The non-table line was appended literally.  Remove it and scan
-           ;; it normally now that the preceding table has been closed.
-           (let ((start (pimacs-markdown-parser-line-output-start parser))
-                 (source (concat line (if terminated "\n" ""))))
-             (pimacs--markdown-parser-delete
-              parser (- (pimacs-markdown-parser-output-length parser) start))
-             (setf (pimacs-markdown-parser-table-state parser) nil)
-             (pimacs--markdown-reset-line parser)
-             (pimacs--markdown-parser-write parser source))))))))
-
-(defun pimacs--markdown-render-fence (parser)
-  (let ((fence (pimacs-markdown-parser-fence parser)))
-    (pimacs--markdown-parser-delete
-     parser (- (pimacs-markdown-parser-output-length parser)
-               (plist-get fence :start)))
-    (pimacs--markdown-parser-append
-     parser
-     (pimacs--markdown-fontify-code (plist-get fence :body)
-                                    (plist-get fence :language)))
-    (setf (pimacs-markdown-parser-fence parser) nil
-          (pimacs-markdown-parser-paragraph-start parser) t)))
-
-(defun pimacs--markdown-finish-fence-line (parser line)
-  (let ((fence (pimacs-markdown-parser-fence parser)))
-    (if (pimacs--markdown-fence-closing-p fence line)
-        (pimacs--markdown-render-fence parser)
-      (setf (plist-get fence :body)
-            (concat (plist-get fence :body) line "\n")))))
-
-(defun pimacs--markdown-root-update-state (parser)
-  (let ((kind (pimacs-markdown-parser-line-kind parser))
-        (table-state (pimacs-markdown-parser-table-state parser)))
-    (setf (pimacs-markdown-parser-root-state parser)
-          (cond
-           ((pimacs-markdown-parser-indented-code parser)
-            pimacs--markdown-root-indented-code)
-           ((eq (plist-get (pimacs--markdown-provisional-current parser) :kind) 'equation-block)
-            pimacs--markdown-root-equation-block)
-           ((eq kind 'reference-definition)
-            pimacs--markdown-root-reference-definition)
-           ((and (pimacs-markdown-parser-at-line-start parser)
-                 (> (pimacs-markdown-parser-blockquote-index parser) 0)
-                 (or (pimacs-markdown-parser-fence parser)
-                     table-state
-                     (eq kind 'table-candidate)))
-            pimacs--markdown-root-blockquote-prefix)
-           ((pimacs-markdown-parser-fence parser)
-            pimacs--markdown-root-fence)
-           ((and table-state (memq (plist-get table-state :phase) '(separator rows)))
-            pimacs--markdown-root-table)
-           ((eq kind 'table-candidate)
-            pimacs--markdown-root-table-candidate)
-           ((eq kind 'heading)
-            pimacs--markdown-root-heading)
-           ((eq kind 'list)
-            pimacs--markdown-root-list)
-           ((pimacs-markdown-parser-at-line-start parser)
-            pimacs--markdown-root-prefix)
-           (t pimacs--markdown-root-text)))))
-
-(defun pimacs--markdown-root-char (parser char &optional reprocessing)
-  (let ((text (string char))
-        (state (pimacs-markdown-parser-root-state parser)))
-    (unless reprocessing
-      (setf (pimacs-markdown-parser-line parser)
-            (concat (pimacs-markdown-parser-line parser) text)))
-    (cond
-     ((eq state pimacs--markdown-root-text)
-      (cond
-       ((eq char ?:)
-        (if (pimacs--markdown-reference-definition-prefix-p
-             (pimacs-markdown-parser-line parser))
-            (progn
-              (pimacs--markdown-start-reference-definition parser)
-              (setf (pimacs-markdown-parser-root-state parser)
-                    pimacs--markdown-root-reference-definition))
-          (pimacs--markdown-inline-write parser text)))
-       ((eq char ?|)
-        (when (and (null (pimacs--markdown-provisional-current parser))
-                   (not (string= (pimacs-markdown-parser-pending parser) "\\"))
-                   (not (string-match-p
-                         (regexp-quote "\\|")
-                         (pimacs-markdown-parser-line parser))))
-          (let ((start (pimacs-markdown-parser-line-output-start parser)))
-            (pimacs--markdown-parser-delete
-             parser (- (pimacs-markdown-parser-output-length parser) start))
-            (pimacs--markdown-parser-append parser (pimacs-markdown-parser-line parser))
-            (setf (pimacs-markdown-parser-text parser) ""
-                  (pimacs-markdown-parser-line-kind parser) 'table-candidate
-                  (pimacs-markdown-parser-root-state parser)
-                  pimacs--markdown-root-table-candidate)))
-        (unless (eq (pimacs-markdown-parser-root-state parser)
-                    pimacs--markdown-root-table-candidate)
-          (pimacs--markdown-inline-write parser text)))
-       ((eq char ?\n)
-        (pimacs--markdown-inline-write parser text)
-        (pimacs--markdown-reset-line parser))
-       (t
-        (pimacs--markdown-inline-write parser text))))
-     ((eq state pimacs--markdown-root-prefix)
-      (pimacs--markdown-prefix-char parser char)
-      (pimacs--markdown-root-update-state parser))
-     ((eq state pimacs--markdown-root-indented-code)
-      (pimacs--markdown-indented-code-char parser char))
-     ((eq state pimacs--markdown-root-equation-block)
-      (pimacs--markdown-inline-write-raw parser text)
-      (when (eq char ?\n)
-        (pimacs--markdown-reset-line parser)))
-     ((eq state pimacs--markdown-root-reference-definition)
-      (when (eq char ?\n)
-        (pimacs--markdown-finish-reference-definition
-         parser (string-remove-suffix "\n" (pimacs-markdown-parser-line parser)) t)
-        (pimacs--markdown-reset-line parser)))
-     ((eq state pimacs--markdown-root-blockquote-prefix)
-      (pimacs--markdown-prefix-char parser char)
-      (pimacs--markdown-root-update-state parser))
-     ((eq state pimacs--markdown-root-fence)
-      (let ((fence (pimacs-markdown-parser-fence parser)))
-        (pimacs--markdown-parser-append parser text)
-        (when (eq char ?\n)
-          (if (plist-get fence :opening)
-              (progn
-                (when (string-match "\\`[ \t]*[`~]+\\(?:[ \t]+\\([^ \t\n]+\\)\\)?"
-                                    (pimacs-markdown-parser-line parser))
-                  (setf (plist-get fence :language)
-                        (match-string 1 (pimacs-markdown-parser-line parser))))
-                (setf (plist-get fence :opening) nil)
-                (pimacs--markdown-reset-line parser))
-            (pimacs--markdown-finish-fence-line
-             parser (string-remove-suffix "\n" (pimacs-markdown-parser-line parser)))
-            (pimacs--markdown-reset-line parser)))))
-     ((eq state pimacs--markdown-root-table)
-      (pimacs--markdown-parser-append parser text)
-      (when (eq char ?\n)
-        (pimacs--markdown-finish-table-line
-         parser (string-remove-suffix "\n" (pimacs-markdown-parser-line parser)) t)
-        (when (pimacs-markdown-parser-at-line-start parser)
-          (pimacs--markdown-reset-line parser))))
-     ((eq state pimacs--markdown-root-table-candidate)
-      (pimacs--markdown-parser-append parser text)
-      (when (eq char ?\n)
-        (setf (pimacs-markdown-parser-table-state parser)
-              (list :phase 'separator
-                    :headers (pimacs--markdown-table-cells
-                              (string-remove-suffix "\n" (pimacs-markdown-parser-line parser)))
-                    :start (pimacs-markdown-parser-line-output-start parser)))
-        (pimacs--markdown-reset-line parser)))
-     ((eq state pimacs--markdown-root-heading)
-      (pimacs--markdown-inline-write parser text)
-      (when (eq char ?\n)
-        (pimacs--markdown-parser-end-token parser)
-        (pimacs--markdown-reset-line parser)
-        (setf (pimacs-markdown-parser-paragraph-start parser) t)))
-     ((eq state pimacs--markdown-root-list)
-      (pimacs--markdown-task-write parser text)
-      (when (eq char ?\n)
-        (pimacs--markdown-reset-line parser)
-        (setf (pimacs-markdown-parser-paragraph-start parser) t))))))
-
-(defun pimacs--markdown-prefix-flush (parser)
-  (let ((prefix (pimacs-markdown-parser-prefix parser)))
-    (setf (pimacs-markdown-parser-prefix parser) ""
-          (pimacs-markdown-parser-at-line-start parser) nil)
-    (unless (or (string-match-p "\\`[ \t\n]*\\'" prefix)
-                (pimacs-markdown-parser-fence parser)
-                (pimacs-markdown-parser-table-state parser)
-                (eq (pimacs-markdown-parser-line-kind parser) 'table-candidate))
-      (setf (pimacs-markdown-parser-list-stack parser) nil))
-    (pimacs--markdown-root-update-state parser)
-    (if (or (pimacs-markdown-parser-fence parser)
-            (pimacs-markdown-parser-table-state parser)
-            (eq (pimacs-markdown-parser-line-kind parser) 'table-candidate))
-        (dotimes (index (length prefix))
-          (pimacs--markdown-root-char parser (aref prefix index) t))
-      (pimacs--markdown-inline-write parser prefix))))
-
-(defun pimacs--markdown-prefix-char (parser char)
-  (let ((prefix (concat (pimacs-markdown-parser-prefix parser) (string char))))
-    (setf (pimacs-markdown-parser-prefix parser) prefix)
-    (cond
-     ((eq char ?\n)
-      (let ((line (string-remove-suffix "\n" prefix)))
-        (cond
-         ((pimacs--markdown-horizontal-rule-p line)
-          (pimacs--markdown-render-horizontal-rule parser t)
-          (pimacs--markdown-reset-line parser))
-         ((let ((content (pimacs--markdown-activate-blockquote-prefix parser line)))
-            (when content
-              (if (string-empty-p content)
-                  (progn
-                    (pimacs--markdown-parser-append parser "\n")
-                    (pimacs--markdown-reset-line parser))
-                (pimacs--markdown-root-char parser char t))
-              t)))
-         ((pimacs--markdown-activate-list-prefix parser line)
-          (pimacs--markdown-root-char parser char t))
-         (t
-          (let ((blank (string-match-p "\\`[ \t]*\\'" line))
-                (continuation nil))
-            (when blank
-              (pimacs--markdown-set-blockquote-depth parser 0)
-              (setf (pimacs-markdown-parser-paragraph-start parser) t))
-            (unless blank
-              (setq continuation
-                    (pimacs--markdown-activate-list-continuation parser line))
-              (unless continuation
-                (setf (pimacs-markdown-parser-list-stack parser) nil)))
-            (if continuation
-                (pimacs--markdown-root-char parser char t)
-              (pimacs--markdown-prefix-flush parser))
-            (pimacs--markdown-reset-line parser))))))
-     ((pimacs--markdown-horizontal-rule-prefix-p prefix))
-     ((pimacs--markdown-blockquote-prefix-p prefix))
-     ((pimacs--markdown-activate-blockquote-prefix parser prefix))
-     ((pimacs--markdown-activate-list-prefix parser prefix))
-     ((pimacs--markdown-activate-list-continuation parser prefix))
-     ((and (null (pimacs-markdown-parser-list-stack parser))
-           (pimacs--markdown-activate-indented-code-prefix parser prefix)))
-     ((and (string-match-p "\\`[ \t]*\\'" prefix) (<= (length prefix) 3)))
-     ((string-match "\\`[ \t]*\\(#+\\)[ \t]+" prefix)
-      (let ((hashes (match-string 1 prefix)))
-        (if (<= (length hashes) 6)
-            (progn
-              (setf (pimacs-markdown-parser-prefix parser) ""
-                    (pimacs-markdown-parser-at-line-start parser) nil
-                    (pimacs-markdown-parser-line-kind parser) 'heading)
-              (pimacs--markdown-parser-add-token
-               parser 'heading (list :face 'pimacs-markdown-heading-face)))
-          (pimacs--markdown-prefix-flush parser))))
-     ((string-match "\\`[ \t]*\\([`~]\\)\\1\\1" prefix)
-      (let* ((run (match-string 0 prefix))
-             (character (aref run (1- (length run))))
-             (width (length (replace-regexp-in-string "\\`[ \t]*" "" run)))
-             (start (pimacs-markdown-parser-line-output-start parser)))
-        (setf (pimacs-markdown-parser-prefix parser) ""
-              (pimacs-markdown-parser-at-line-start parser) nil
-              (pimacs-markdown-parser-line-kind parser) 'fence-open
-              (pimacs-markdown-parser-fence parser)
-              (list :start start :character character :width width :language nil :body "" :opening t))
-        (pimacs--markdown-parser-append parser prefix)))
-     ((eq char ?\n)
-      (pimacs--markdown-prefix-flush parser)
-      (pimacs--markdown-reset-line parser))
-     ((or (> (length prefix) 12)
-          (and (null (pimacs-markdown-parser-list-stack parser))
-               (> (length prefix) 3)
-               (string-match-p "\\`[ \t]+" prefix))
-          (and (string-match-p "\\`[ \t]*#+\\'" prefix) (> (length (string-trim prefix)) 6))
-          (and (not (string-match-p "\\`[ \t]*[-+*0-9.`~#]+\\'" prefix))
-               (not (string-match-p "\\`[ \t]*\\'" prefix))))
-      (pimacs--markdown-prefix-flush parser)))))
+(defun pimacs--markdown-parser-plain-tail-p (parser delta)
+  (and (not (string-match-p pimacs--markdown-special-regexp delta))
+       (with-current-buffer (pimacs-markdown-parser-buffer parser)
+         (let ((end (point-max)))
+           (not (string-match-p pimacs--markdown-special-regexp
+                                (buffer-substring-no-properties
+                                 (line-beginning-position) end)))))))
 
 (defun pimacs--markdown-parser-write (parser delta)
-  (dotimes (index (length delta))
-    (pimacs--markdown-root-char parser (aref delta index))))
+  (with-current-buffer (pimacs-markdown-parser-buffer parser)
+    (goto-char (point-max))
+    (insert delta))
+  (if (pimacs--markdown-parser-plain-tail-p parser delta)
+      (setf (pimacs-markdown-parser-rendered parser)
+            (concat (pimacs-markdown-parser-rendered parser) delta)
+            (pimacs-markdown-parser-operations parser) (list (list :append delta)))
+    (pimacs--markdown-parser-render parser)))
 
-(defun pimacs--markdown-parser-finish (parser final-p)
-  (catch 'finished
-    (when (and final-p (pimacs-markdown-parser-source parser))
-      (let* ((source (apply #'concat
-                            (nreverse (pimacs-markdown-parser-source parser))))
-             (complete (pimacs--markdown-parser-new)))
-        (setf (pimacs-markdown-parser-source parser) nil)
-        (pimacs--markdown-parser-collect-reference-definitions complete source)
-        (pimacs--markdown-parser-write complete source)
-        (pimacs--markdown-parser-finish complete t)
-        (pimacs--markdown-parser-delete
-         parser (pimacs-markdown-parser-output-length parser))
-        (pimacs--markdown-parser-emit
-         parser
-         (list :append
-               (pimacs--markdown-operations-string
-                (pimacs-markdown-parser-operations complete))))
-        (pimacs--markdown-parser-flush-append parser)
-        (throw 'finished nil)))
-    (when final-p
-      (when (eq (pimacs-markdown-parser-line-kind parser) 'reference-definition)
-        (pimacs--markdown-finish-reference-definition
-         parser (pimacs-markdown-parser-line parser) nil)
-        (pimacs--markdown-reset-line parser))
-      (when (pimacs-markdown-parser-indented-code parser)
-        (pimacs--markdown-close-indented-code parser))
-      (when-let ((fence (pimacs-markdown-parser-fence parser)))
-        (when (not (string-empty-p (pimacs-markdown-parser-line parser)))
-          (if (plist-get fence :opening)
-              (progn
-                (when (string-match "\\`[ \t]*[`~]+\\(?:[ \t]+\\([^ \t\n]+\\)\\)?"
-                                    (pimacs-markdown-parser-line parser))
-                  (setf (plist-get fence :language)
-                        (match-string 1 (pimacs-markdown-parser-line parser))))
-                (setf (plist-get fence :opening) nil))
-            (pimacs--markdown-finish-fence-line
-             parser (pimacs-markdown-parser-line parser))))
-        (when (pimacs-markdown-parser-fence parser)
-          (pimacs--markdown-render-fence parser))
-        (pimacs--markdown-reset-line parser))
-      (when (and (pimacs-markdown-parser-table-state parser)
-                 (not (string-empty-p (pimacs-markdown-parser-line parser))))
-        (pimacs--markdown-finish-table-line parser (pimacs-markdown-parser-line parser) nil)
-        (pimacs--markdown-reset-line parser))
-      (when (and (pimacs-markdown-parser-at-line-start parser)
-                 (not (string-empty-p (pimacs-markdown-parser-prefix parser))))
-        (let ((prefix (pimacs-markdown-parser-prefix parser)))
-          (cond
-           ((pimacs--markdown-horizontal-rule-p prefix)
-            (pimacs--markdown-render-horizontal-rule parser nil)
-            (pimacs--markdown-reset-line parser))
-           ((pimacs--markdown-activate-list-prefix parser prefix))
-           (t
-            (pimacs--markdown-prefix-flush parser)))))
-      (pimacs--markdown-task-flush parser)
-      (pimacs--markdown-inline-flush-text parser)
-      (pimacs--markdown-inline-flush-pending parser t)
-      (when-let ((candidate (pimacs--markdown-provisional-current parser)))
-        (when (and (memq (plist-get candidate :kind) '(link image))
-                   (eq (plist-get candidate :stage) 'after-label))
-          (pimacs--markdown-link-resolve-reference
-           parser candidate (plist-get candidate :label))))
-      (when (pimacs--markdown-provisional-current parser)
-        (pimacs--markdown-close-inline parser))
-      (when (eq (pimacs-markdown-parser-line-kind parser) 'heading)
-        (pimacs--markdown-parser-end-token parser))
-      (pimacs--markdown-parser-wrap-paragraphs parser)
-      (pimacs--markdown-parser-flush-append parser))))
-
-(defun pimacs--markdown-wrap-paragraph-line (text begin end)
-  (when (text-property-any begin end 'pimacs-markdown-paragraph t text)
-    (let ((column 0)
-          break
-          break-column)
-      (cl-loop for position from begin below end
-               for character = (aref text position)
-               do (cl-incf column (char-width character))
-               if (memq character '(?\s ?\t))
-               do (setq break position
-                        break-column column)
-               when (and (> column fill-column) break)
-               do (aset text break ?\n)
-               and do (setq column (- column break-column)
-                            break nil)))))
-
-(defun pimacs--markdown-parser-wrap-paragraphs (parser)
-  (pimacs--markdown-parser-flush-append parser)
-  (let ((rendered (copy-sequence
-                   (pimacs--markdown-operations-string
-                    (pimacs-markdown-parser-operations parser))))
-        (begin 0))
-    (while (string-match "\n" rendered begin)
-      (pimacs--markdown-wrap-paragraph-line rendered begin (match-beginning 0))
-      (setq begin (match-end 0)))
-    (pimacs--markdown-wrap-paragraph-line rendered begin (length rendered))
-    (setq rendered (pimacs--markdown-strip-paragraph-properties rendered))
-    (pimacs--markdown-parser-delete parser (pimacs-markdown-parser-output-length parser))
-    (pimacs--markdown-parser-emit parser (list :append rendered))))
+(defun pimacs--markdown-parser-finish (parser _final-p)
+  (pimacs--markdown-parser-render parser))
 
 ;;; Markdown Renderer
 
@@ -1953,26 +473,18 @@
     ("bash" . sh-mode))
   "Alist mapping Markdown fence language names to major modes.")
 
-(cl-defstruct pimacs-markdown-context
-  parser
-  content-begin
-  content-end
-  rendered-length)
-
 (defun pimacs--markdown-link-label (source faces url &optional title)
   (let ((label (pimacs--markdown-render-inline source)))
     (dotimes (index (length label))
       (let* ((existing (get-text-property index 'face label))
              (label-faces (delete-dups
-                           (delq nil
-                                 (append faces
-                                         (if (listp existing) existing (list existing))
-                                         '(pimacs-markdown-link-face))))))
-        (put-text-property
-         index (1+ index) 'face (if (= (length label-faces) 1)
-                                    (car label-faces)
-                                  label-faces)
-         label)))
+                           (delq nil (append faces
+                                             (if (listp existing) existing (list existing))
+                                             '(pimacs-markdown-link-face))))))
+        (put-text-property index (1+ index) 'face
+                           (if (= (length label-faces) 1)
+                               (car label-faces) label-faces)
+                           label)))
     (put-text-property 0 (length label) 'pimacs-markdown-link-url url label)
     (put-text-property 0 (length label) 'mouse-face 'highlight label)
     (put-text-property 0 (length label) 'help-echo url label)
@@ -1989,101 +501,16 @@
   (let ((label (copy-sequence url))
         (link-faces (delq nil (append faces '(pimacs-markdown-link-face)))))
     (put-text-property 0 (length label) 'face
-                       (if (= (length link-faces) 1)
-                           (car link-faces)
-                         link-faces)
+                       (if (= (length link-faces) 1) (car link-faces) link-faces)
                        label)
     (put-text-property 0 (length label) 'pimacs-markdown-link-url url label)
     (put-text-property 0 (length label) 'mouse-face 'highlight label)
     (put-text-property 0 (length label) 'help-echo url label)
     label))
 
-(defun pimacs--markdown-strip-paragraph-properties (text)
-  (let ((result (copy-sequence text)))
-    (remove-text-properties 0 (length result)
-                            '(pimacs-markdown-paragraph nil)
-                            result)
-    result))
-
-(defun pimacs--markdown-render-inline (text)
-  (let ((parser (pimacs--markdown-parser-new)))
-    (pimacs--markdown-inline-write parser text)
-    (pimacs--markdown-inline-flush-text parser)
-    (pimacs--markdown-inline-flush-pending parser t)
-    (when (pimacs--markdown-provisional-current parser)
-      (pimacs--markdown-close-inline parser))
-    (pimacs--markdown-parser-flush-append parser)
-    (pimacs--markdown-strip-paragraph-properties
-     (pimacs--markdown-operations-string
-      (pimacs-markdown-parser-operations parser)))))
-
-(defun pimacs--markdown-table-cell-lines (cell)
-  (split-string cell "\n" nil))
-
-(defun pimacs--markdown-table-cell-width (cell)
-  (apply #'max 0 (mapcar #'string-width (pimacs--markdown-table-cell-lines cell))))
-
-(defun pimacs--markdown-table-cell (cell width face alignment)
-  (let ((text (copy-sequence cell))
-        (padding (- width (string-width cell)))
-        (start 0)
-        (end (length cell)))
-    (when face
-      (while (< start end)
-        (let ((next (next-single-property-change start 'face text end)))
-          (unless (get-text-property start 'face text)
-            (put-text-property start next 'face face text))
-          (setq start next))))
-    (pcase alignment
-      ('right (concat (propertize (make-string padding ? ) 'face face) text))
-      ('center (let ((left (/ padding 2)))
-                 (concat (propertize (make-string left ? ) 'face face)
-                         text
-                         (propertize (make-string (- padding left) ? ) 'face face))))
-      (_ (concat text (propertize (make-string padding ? ) 'face face))))))
-
-(defun pimacs--markdown-table-render (state)
-  (let* ((headers (plist-get state :headers))
-         (rows (plist-get state :rows))
-         (alignments (plist-get state :alignments))
-         (widths (mapcar (lambda (column)
-                           (apply #'max 3 (mapcar #'pimacs--markdown-table-cell-width column)))
-                         (apply #'cl-mapcar #'list headers rows)))
-         (vertical (if pimacs-markdown-use-unicode-tables "│" "|"))
-         (horizontal (if pimacs-markdown-use-unicode-tables ?─ ?-))
-         (junction (if pimacs-markdown-use-unicode-tables "┼" "|"))
-         (left (if pimacs-markdown-use-unicode-tables "├" "|"))
-         (right (if pimacs-markdown-use-unicode-tables "┤" "|"))
-         (border (concat left
-                         (mapconcat (lambda (width) (make-string (+ width 2) horizontal))
-                                    widths
-                                    junction)
-                         right)))
-    (cl-labels ((row (cells face)
-                  (let ((lines (mapcar #'pimacs--markdown-table-cell-lines cells)))
-                    (mapconcat
-                     (lambda (line)
-                       (concat
-                        (propertize vertical 'face 'pimacs-markdown-table-border-face)
-                        (mapconcat
-                         #'identity
-                         (cl-mapcar
-                          (lambda (cell width alignment)
-                            (concat " " (pimacs--markdown-table-cell cell width face alignment)
-                                    " "
-                                    (propertize vertical 'face 'pimacs-markdown-table-border-face)))
-                          (mapcar (lambda (cell-lines) (or (nth line cell-lines) "")) lines)
-                          widths alignments)
-                         "")
-                        "\n"))
-                     (number-sequence 0 (1- (apply #'max (mapcar #'length lines))))
-                     ""))))
-      (concat (row headers 'pimacs-markdown-table-header-face)
-              (propertize (concat border "\n") 'face 'pimacs-markdown-table-border-face)
-              (mapconcat (lambda (cells) (row cells nil)) rows "")))))
-
 (defun pimacs--markdown-resolve-language-mode (language)
-  (or (cdr (assoc-string (downcase (or language "")) pimacs-markdown-language-aliases t))
+  (or (cdr (assoc-string (downcase (or language ""))
+                         pimacs-markdown-language-aliases t))
       (let ((mode (intern-soft (concat (downcase (or language "")) "-mode"))))
         (and mode (fboundp mode) mode))
       #'fundamental-mode))
@@ -2094,49 +521,31 @@
     (let ((inhibit-message t)
           (mode (pimacs--markdown-resolve-language-mode language)))
       (condition-case nil
-          (progn
-            (funcall mode)
-            (font-lock-ensure))
+          (progn (funcall mode) (font-lock-ensure))
         (error (fundamental-mode)))
       (let ((text (buffer-string)))
         (put-text-property 0 (length text) 'face 'pimacs-markdown-code-block-face text)
         text))))
 
-(defun pimacs--markdown-operations-string (operations)
-  (let (chunks)
-    (dolist (operation operations)
-      (pcase operation
-        (`(:append ,text)
-         (push text chunks))
-        (`(:delete ,count)
-         (while (> count 0)
-           (let ((text (pop chunks)))
-             (if (<= (length text) count)
-                 (cl-decf count (length text))
-               (push (substring text 0 (- count)) chunks)
-               (setq count 0)))))))
-    (apply #'concat (nreverse chunks))))
-
 (defun pimacs--render-markdown-experimental (context text streaming)
   (if streaming
       (let ((parser (or (pimacs-markdown-context-parser context)
                         (pimacs--markdown-parser-new))))
-        (setf (pimacs-markdown-context-parser context) parser
-              (pimacs-markdown-parser-source parser)
-              (cons text (pimacs-markdown-parser-source parser)))
+        (setf (pimacs-markdown-context-parser context) parser)
         (pimacs--markdown-parser-write parser text)
-        (pimacs--markdown-parser-flush-append parser)
         (prog1 (pimacs-markdown-parser-operations parser)
-          (setf (pimacs-markdown-parser-operations parser) nil
-                (pimacs-markdown-parser-operations-tail parser) nil)))
-    (let ((parser (pimacs--markdown-parser-new)))
-      (pimacs--markdown-parser-collect-reference-definitions parser text)
-      (pimacs--markdown-parser-write parser text)
-      (pimacs--markdown-parser-finish parser t)
-      (list (list :delete (pimacs-markdown-context-rendered-length context))
-            (list :append
-                  (pimacs--markdown-operations-string
-                   (pimacs-markdown-parser-operations parser)))))))
+          (setf (pimacs-markdown-parser-operations parser) nil)))
+    (let ((streaming-parser (pimacs-markdown-context-parser context))
+          (parser (pimacs--markdown-parser-new)))
+      (unwind-protect
+          (progn
+            (pimacs--markdown-parser-write parser text)
+            (list (list :delete (pimacs-markdown-context-rendered-length context))
+                  (list :append (pimacs-markdown-parser-rendered parser))))
+        (kill-buffer (pimacs-markdown-parser-buffer parser))
+        (when streaming-parser
+          (kill-buffer (pimacs-markdown-parser-buffer streaming-parser))
+          (setf (pimacs-markdown-context-parser context) nil))))))
 
 (provide 'pimacs-markdown)
 
