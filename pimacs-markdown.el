@@ -72,10 +72,15 @@
       (walk root))
     (nreverse definitions)))
 
+(cl-defstruct pimacs--markdown-inline-parser-state
+  pool
+  depth)
+
 (cl-defstruct pimacs--markdown-render-context
   reference-definitions
   list-depth
-  list-index)
+  list-index
+  inline-parser-state)
 
 (defun pimacs--markdown-render-context-for-list-item (context list-index)
   (let ((context (copy-pimacs--markdown-render-context context)))
@@ -84,32 +89,69 @@
     (setf (pimacs--markdown-render-context-list-index context) list-index)
     context))
 
+(defun pimacs--markdown-create-parser (grammar)
+  (condition-case error
+      (treesit-parser-create grammar)
+    (error
+     (user-error
+      "Pimacs Markdown requires tree-sitter grammars `markdown' and `markdown_inline': %s"
+      (error-message-string error)))))
+
 (defun pimacs--markdown-with-parser (text grammar function)
   (let ((buffer (generate-new-buffer " *pimacs-markdown*")))
     (unwind-protect
         (with-current-buffer buffer
           (insert text)
-          (let ((parser
-                 (condition-case error
-                     (treesit-parser-create grammar)
-                   (error
-                    (user-error
-                     "Pimacs Markdown requires tree-sitter grammars `markdown' and `markdown_inline': %s"
-                     (error-message-string error))))))
-            (funcall function (treesit-parser-root-node parser))))
+          (funcall function
+                   (treesit-parser-root-node
+                    (pimacs--markdown-create-parser grammar))))
       (kill-buffer buffer))))
+
+(defun pimacs--markdown-with-inline-parser (text function state)
+  (let* ((depth (pimacs--markdown-inline-parser-state-depth state))
+         (pool (pimacs--markdown-inline-parser-state-pool state))
+         (entry (nth depth pool)))
+    (unless entry
+      (let ((buffer (generate-new-buffer " *pimacs-markdown-inline*"))
+            parser)
+        (unwind-protect
+            (with-current-buffer buffer
+              (setq parser (pimacs--markdown-create-parser 'markdown_inline)))
+          (unless parser
+            (kill-buffer buffer)))
+        (setq entry (cons buffer parser))
+        (setf (pimacs--markdown-inline-parser-state-pool state)
+              (if (= depth (length pool))
+                  (append pool (list entry))
+                (setf (nth depth pool) entry)))))
+    (setf (pimacs--markdown-inline-parser-state-depth state) (1+ depth))
+    (unwind-protect
+        (with-current-buffer (car entry)
+          (erase-buffer)
+          (insert text)
+          (funcall function (treesit-parser-root-node (cdr entry))))
+      (setf (pimacs--markdown-inline-parser-state-depth state) depth))))
+
+(defun pimacs--markdown-delete-inline-parser-pool (state)
+  (dolist (entry (pimacs--markdown-inline-parser-state-pool state))
+    (treesit-parser-delete (cdr entry))
+    (kill-buffer (car entry))))
 
 (defun pimacs--markdown-parse-source (text renderer)
   (pimacs--markdown-with-parser
    text 'markdown
    (lambda (root)
-     (funcall
-      renderer root
-      (make-pimacs--markdown-render-context
-       :reference-definitions
-       (pimacs--markdown-reference-definitions root)
-       :list-depth 0
-       :list-index nil)))))
+     (let* ((state (make-pimacs--markdown-inline-parser-state :depth 0))
+            (context
+             (make-pimacs--markdown-render-context
+              :reference-definitions
+              (pimacs--markdown-reference-definitions root)
+              :list-depth 0
+              :list-index nil
+              :inline-parser-state state)))
+       (unwind-protect
+           (funcall renderer root context)
+         (pimacs--markdown-delete-inline-parser-pool state))))))
 
 ;;; Markdown Renderer
 
@@ -519,11 +561,13 @@
     (apply #'concat (nreverse chunks))))
 
 (defun pimacs--markdown-render-inline-source (text context)
-  (pimacs--markdown-with-parser
-   text 'markdown_inline
-   (lambda (root)
-     (pimacs--markdown-render-inline-tree-range
-      root 1 (point-max) context))))
+  (let ((renderer (lambda (root)
+                    (pimacs--markdown-render-inline-tree-range
+                     root 1 (point-max) context)))
+        (state (pimacs--markdown-render-context-inline-parser-state context)))
+    (if state
+        (pimacs--markdown-with-inline-parser text renderer state)
+      (pimacs--markdown-with-parser text 'markdown_inline renderer))))
 
 (defun pimacs--markdown-render-inline-range (begin end context)
   (pimacs--markdown-render-inline-source
