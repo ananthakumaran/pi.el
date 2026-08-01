@@ -125,26 +125,26 @@
 │ Unordered Lists
 @ ^^^^^^^^^^^^^^^ heading
 │
-│ ● Item 1
+│ ▪ Item 1
 @ ^^ list-marker
-│ ● Item 2
+│ ▪ Item 2
 @ ^^ list-marker
-│   ◎ Nested item 2a
+│   ▫ Nested item 2a
 @   ^^ list-marker
-│   ◎ Nested item 2b
+│   ▫ Nested item 2b
 @   ^^ list-marker
-│     ○ Deep nested item
+│     ◇ Deep nested item
 @     ^^ list-marker
-│   ◎ Nested item 2c
+│   ▫ Nested item 2c
 @   ^^ list-marker
-│ ● Item 3
+│ ▪ Item 3
 @ ^^ list-marker
 │
-│ ● Alternative bullet (asterisk)
+│ ▪ Alternative bullet (asterisk)
 @ ^^ list-marker
-│ ● Alternative bullet (plus)
+│ ▪ Alternative bullet (plus)
 @ ^^ list-marker
-│ ● Alternative bullet (dash)
+│ ▪ Alternative bullet (dash)
 @ ^^ list-marker
 │
 │ Ordered Lists
@@ -168,9 +168,9 @@
 │
 │ 5. Ordered item
 @ ^^^ list-marker
-│   ◎ Unordered nested
+│   ▫ Unordered nested
 @   ^^ list-marker
-│   ◎ Another unordered
+│   ▫ Another unordered
 @   ^^ list-marker
 │ 6. Next ordered
 @ ^^^ list-marker
@@ -183,15 +183,15 @@
 │ List with Paragraphs
 @ ^^^^^^^^^^^^^^^^^^^^ heading
 │
-│ ● Item with multiple paragraphs
+│ ▪ Item with multiple paragraphs
 @ ^^ list-marker
 │ This is a second paragraph in the same list item.
 │
-│ ● Another item
+│ ▪ Another item
 @ ^^ list-marker
-│   ◎ With a nested list
+│   ▫ With a nested list
 @   ^^ list-marker
-│     ○ And deeper nesting
+│     ◇ And deeper nesting
 @     ^^ list-marker
 │
 │
@@ -540,10 +540,10 @@
 │ ▎ Blockquote with formatting
 @ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ blockquote
 @   ^^^^^^^^^^^^^^^^^^^^^^^^^^ bold
-│ ▎ ● List item 1
+│ ▎ ▪ List item 1
 @ ^^^^^^^^^^^^^^^ blockquote
 @   ^^ list-marker
-│ ▎ ● List item 2
+│ ▎ ▪ List item 2
 @ ^^^^^^^^^^^^^^^ blockquote
 @   ^^ list-marker
 │ ▎ ▎ Nested blockquote
@@ -614,26 +614,26 @@
 │ Task Lists
 @ ^^^^^^^^^^ heading
 │
-│ ● ☑ Completed task
+│ ▪ [x] Completed task
 @ ^^ list-marker
-@   ^ checkbox
-│ ● ☐ Incomplete task
+@   ^^^ checkbox
+│ ▪ [ ] Incomplete task
 @ ^^ list-marker
-@   ^ checkbox
-│ ● ☑ Another completed task
+@   ^^^ checkbox
+│ ▪ [x] Another completed task
 @ ^^ list-marker
-@   ^ checkbox
-│   ◎ ☐ Nested incomplete
+@   ^^^ checkbox
+│   ▫ [ ] Nested incomplete
 @   ^^ list-marker
-@     ^ checkbox
-│   ◎ ☑ Nested complete
+@     ^^^ checkbox
+│   ▫ [x] Nested complete
 @   ^^ list-marker
-@     ^ checkbox
-│ ● ☐ Task with bold and italic
+@     ^^^ checkbox
+│ ▪ [ ] Task with bold and italic
 @ ^^ list-marker
-@   ^ checkbox
-@               ^^^^ bold
-@                        ^^^^^^ italic
+@   ^^^ checkbox
+@                 ^^^^ bold
+@                          ^^^^^^ italic
 │
 │ ────────────────────────────────────────────────────────────────────────────────
 @ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule
@@ -776,10 +776,10 @@
 @                                        ^^^^^ link
 │ ▎
 @ ^ blockquote
-│ ▎ > ● List item 1
+│ ▎ > ▪ List item 1
 @ ^^^^^^^^^^^^^^^^^ blockquote
 @     ^^ list-marker
-│ ▎ ● List item 2
+│ ▎ ▪ List item 2
 @ ^^^^^^^^^^^^^^^ blockquote
 @   ^^ list-marker
 │ ▎

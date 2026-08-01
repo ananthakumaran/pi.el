@@ -1,13 +1,13 @@
-│ ● ☐ open
+│ ▪ [ ] open
 @ ^^ list-marker
-@   ^ checkbox
-│ ● ☑ done
+@   ^^^ checkbox
+│ ▪ [x] done
 @ ^^ list-marker
-@   ^ checkbox
-│   ◎ ☐ nested
+@   ^^^ checkbox
+│   ▫ [ ] nested
 @   ^^ list-marker
-@     ^ checkbox
-│ ● [X] literal
+@     ^^^ checkbox
+│ ▪ [X] literal
 @ ^^ list-marker
-│ ● [x]missing
+│ ▪ [x]missing
 @ ^^ list-marker

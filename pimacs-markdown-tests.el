@@ -250,13 +250,47 @@
                        "https://example.com"))))))
 
 
+(defun pimacs-markdown-profile-results ()
+  (let (results)
+    (mapatoms
+     (lambda (function)
+       (when (elp--instrumented-p function)
+         (let* ((info (get function elp-timer-info-property))
+                (call-count (aref info 0))
+                (elapsed-time (aref info 1)))
+           (when (or (not (numberp elp-report-limit))
+                     (>= call-count elp-report-limit))
+             (push (vector call-count elapsed-time
+                           (if (zerop call-count)
+                               0.0
+                             (/ (float elapsed-time) (float call-count)))
+                           (symbol-name function))
+                   results))))))
+    (when elp-sort-by-function
+      (setq results (sort results elp-sort-by-function)))
+    (let* ((name-width (max (length "Function Name")
+                            (cl-loop for result in results
+                                     maximize (length (aref result 3)))))
+           (row-format (format "%%-%ds  %%10s  %%14s  %%14s\n" name-width)))
+      (princ (format row-format "Function Name" "Call Count" "Elapsed Time" "Average Time"))
+      (princ (format row-format
+                     (make-string name-width ?=)
+                     (make-string 10 ?=)
+                     (make-string 14 ?=)
+                     (make-string 14 ?=)))
+      (dolist (result results)
+        (princ (format row-format
+                       (aref result 3)
+                       (number-to-string (aref result 0))
+                       (format "%.10f" (aref result 1))
+                       (format "%.10f" (aref result 2))))))))
+
 (defun pimacs-markdown-profile-run ()
   (elp-instrument-package "pimacs--markdown-")
-  (let ((elp-use-standard-output t)
-        stats)
+  (let (stats)
     (unwind-protect
         (setq stats (ert-run-tests-batch "pimacs-markdown"))
-      (elp-results)
+      (pimacs-markdown-profile-results)
       (elp-restore-all))
     (kill-emacs (if (zerop (ert-stats-completed-unexpected stats)) 0 1))))
 

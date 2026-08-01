@@ -1,14 +1,14 @@
-│ ● parent
+│ ▪ parent
 @ ^^ list-marker
-│   ◎ child
+│   ▫ child
 @   ^^ list-marker
-│     ○ grandchild
+│     ◇ grandchild
 @     ^^ list-marker
 │   child continuation
-│   ◎ second
+│   ▫ second
 @   ^^ list-marker
 │
 │ parent paragraph
-│ ● final
+│ ▪ final
 @ ^^ list-marker
 │ after
