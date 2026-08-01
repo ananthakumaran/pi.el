@@ -13,7 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         emacs_version:
-          - 28.1
           - 29.4
           - 30.2
     steps:
@@ -26,8 +25,36 @@ jobs:
         version: ${{ matrix.emacs_version }}
     - uses: conao3/setup-cask@master
 
+    - name: Install Markdown Tree-sitter grammars
+      run: |
+        emacs --batch -Q \
+          --eval "(progn
+            (require 'treesit)
+            (setq treesit-language-source-alist
+                  '((markdown
+                     \"https://github.com/tree-sitter-grammars/tree-sitter-markdown\"
+                     \"split_parser\"
+                     \"tree-sitter-markdown/src\")
+                    (markdown-inline
+                     \"https://github.com/tree-sitter-grammars/tree-sitter-markdown\"
+                     \"split_parser\"
+                     \"tree-sitter-markdown-inline/src\")))
+            (setq user-emacs-directory
+                  (file-name-as-directory (expand-file-name \".cask\")))
+            (add-to-list 'treesit-extra-load-path
+                         (expand-file-name \"tree-sitter\" user-emacs-directory))
+            (treesit-install-language-grammar 'markdown)
+            (treesit-install-language-grammar 'markdown-inline)
+            (unless (treesit-language-available-p 'markdown)
+              (error \"Markdown grammar unavailable\"))
+            (unless (treesit-language-available-p 'markdown-inline)
+              (error \"Markdown inline grammar unavailable\")))"
+
     - name: Run tests
       run: UNDERCOVER_FORCE=true UNDERCOVER_CONFIG='("*.el" (:report-format codecov) (:send-report nil) (:exclude "*-tests.el"))' make test
+
+    - name: Run Markdown tests
+      run: UNDERCOVER_FORCE=true UNDERCOVER_CONFIG='("*.el" (:report-format codecov) (:send-report nil) (:exclude "*-tests.el"))' make markdown-test
 
     - name: Run integration tests
       run: |

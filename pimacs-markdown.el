@@ -253,7 +253,7 @@
                                                 (< (treesit-node-start left)
                                                    (treesit-node-start right)))))
       (push (buffer-substring-no-properties position
-                                             (treesit-node-start continuation))
+                                            (treesit-node-start continuation))
             chunks)
       (setq position (treesit-node-end continuation)))
     (push (buffer-substring-no-properties position (treesit-node-end node)) chunks)
@@ -530,7 +530,7 @@
                                "☐" 'pimacs-markdown-checkbox-face)
                               " "))
            (literal-marker (concat (pimacs--markdown-node-text
-                                     (or checked-node unchecked-node))
+                                    (or checked-node unchecked-node))
                                    " "))
            (t ""))
           (let (chunks previous)
@@ -629,11 +629,11 @@
              (all-rows (append (list header-data delimiter-data) row-data))
              (widths (cl-loop for column below column-count
                               collect (cl-loop for row in all-rows
-                                              maximize (cl-loop for cell in row
-                                                               for index from 0
-                                                               when (= index column)
-                                                               maximize (cl-loop for line in cell
-                                                                                maximize (string-width line))))))
+                                               maximize (cl-loop for cell in row
+                                                                 for index from 0
+                                                                 when (= index column)
+                                                                 maximize (cl-loop for line in cell
+                                                                                   maximize (string-width line))))))
              (vertical (if pimacs-markdown-use-unicode-tables "│" "|"))
              (horizontal (if pimacs-markdown-use-unicode-tables ?─ ?-))
              (intersection (if pimacs-markdown-use-unicode-tables "┼" "+"))

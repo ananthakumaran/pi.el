@@ -6,7 +6,7 @@
 ;; URL: https://github.com/ananthakumaran/pimacs.el
 ;; Version: 0.2.1
 ;; Keywords: convenience processes
-;; Package-Requires: ((emacs "28.1") (compat "31.0") (markdown-mode "2.8") (timeout "2.1.7") (pcre2el "1.12") (spinner "1.7") (transient "0.3.7"))
+;; Package-Requires: ((emacs "29.1") (compat "31.0") (markdown-mode "2.8") (timeout "2.1.7") (pcre2el "1.12") (spinner "1.7") (transient "0.3.7"))
 
 ;; This program is free software: you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by

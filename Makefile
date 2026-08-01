@@ -188,6 +188,7 @@ endef
 verify:
 	$(call run-verify-task,format)
 	$(call run-verify-task,test)
+	$(call run-verify-task,markdown-test)
 	$(call run-verify-task,docs)
 	$(call run-verify-task,docs-lint)
 	$(call run-verify-task,package-lint)
@@ -196,6 +197,7 @@ verify:
 verify-full:
 	$(call run-verify-task,format)
 	$(call run-verify-task,test)
+	$(call run-verify-task,markdown-test)
 	$(call run-verify-task,docs)
 	$(call run-verify-task,integration)
 	$(call run-verify-task,docs-lint)
