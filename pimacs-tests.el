@@ -233,6 +233,38 @@
       (should (string-match-p "result" (buffer-string)))
       (should (= (hash-table-count pimacs--bash-executions) 0)))))
 
+(ert-deftest pimacs--insert-grep-result-preserves-backslashes-in-matches ()
+  (let ((content
+         (concat
+          "autolink.in.markdown:7: http://one.example\\*literal\n"
+          "document.in.markdown:116: [Reference-style link][ref-link]\n"
+          "document.in.markdown:124: [ref-link]: https://reference-example.com \"Reference Link Title\"\n"
+          "document.in.markdown:130: ![Reference-style link title tooltip\")\n"
+          "document.in.markdown:132: ![Reference-style image][ref-image]\n"
+          "document.in.markdown:134: [ref-image]: https://via.placeholder.com/200x100 \"Reference Image\"\n"
+          "escapes.in.markdown:1: \\*literal\\* \\_literal\\_ \\`literal\\` \\[literal\\](url) \\\\ \\~literal\\~ \\a\n"
+          "reference-link.out.txt:1: │ Full reference\n"
+          "reference-link.in.markdown:1: [site]: https://example.com \"Pimacs website\"\n"
+          "reference-link.in.markdown:3: [Full reference][site]\n"
+          "reference-link.in.markdown:4: [site]\n"
+          "document.out.txt:211: │ Reference-style link\n"
+          "document.out.txt:230: │ ![Reference-style link title tooltip\")\n"
+          "document.out.txt:232: │ Reference-style image")))
+    (with-temp-buffer
+      (pimacs--insert-grep-result
+       (list (list :type "text" :text content))
+       nil
+       '(:pattern "reference|autolink|link title|\\\\\\*literal|site\\]"
+                  :path "pimacs-markdown-tapes"
+                  :glob "*"
+                  :ignoreCase t
+                  :limit 100))
+      (should (equal (buffer-string) content))
+      (goto-char (point-min))
+      (search-forward "\\*literal")
+      (should (eq (get-text-property (- (point) (length "\\*literal")) 'face)
+                  'pimacs-grep-match-face)))))
+
 (ert-deftest pimacs--handle-agent-state-formats-parallel-tools ()
   (with-temp-buffer
     (setq pimacs--spinner (spinner-create 'progress-bar))

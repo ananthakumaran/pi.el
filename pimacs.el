@@ -947,7 +947,7 @@ with the message plist to insert the custom message content."
                regexp
                (lambda (match)
                  (propertize match 'face 'pimacs-grep-match-face))
-               text)))))
+               text nil t)))))
 
 (defconst pimacs--grep-line-regexp "^\\(.*\\):\\([0-9]+\\): \\(.*\\)$")
 (defconst pimacs--grep-line-alt-regexp "^\\(.*\\)\\([-:]\\)\\([0-9]+\\)\\([-:] ?\\)\\(.*\\)$")
