@@ -35,6 +35,11 @@
   (cl-loop for index below (treesit-node-child-count node t)
            collect (treesit-node-child node index t)))
 
+(defun pimacs--markdown-node-children-without-types (node types)
+  (cl-remove-if (lambda (child)
+                  (member (treesit-node-type child) types))
+                (pimacs--markdown-node-children node)))
+
 (defun pimacs--markdown-node-child (node type)
   (cl-find type (pimacs--markdown-node-children node)
            :key #'treesit-node-type :test #'string=))
@@ -67,25 +72,38 @@
       (walk root))
     (nreverse definitions)))
 
+(cl-defstruct pimacs--markdown-render-context
+  reference-definitions
+  list-depth
+  list-index)
 
-(defvar pimacs--markdown-reference-definitions nil)
+(defun pimacs--markdown-render-context-for-list-item (context list-index)
+  (let ((context (copy-pimacs--markdown-render-context context)))
+    (setf (pimacs--markdown-render-context-list-depth context)
+          (1+ (pimacs--markdown-render-context-list-depth context)))
+    (setf (pimacs--markdown-render-context-list-index context) list-index)
+    context))
 
-(defun pimacs--markdown-render-source (text)
+(defun pimacs--markdown-parse-source (text renderer)
   (let ((buffer (generate-new-buffer " *pimacs-markdown*")))
     (unwind-protect
-        (condition-case error
-            (with-current-buffer buffer
-              (let ((parser (treesit-parser-create 'markdown)))
-                (insert text)
-                (let ((root (treesit-parser-root-node parser))
-                      (pimacs--markdown-reference-definitions nil))
-                  (setq pimacs--markdown-reference-definitions
-                        (pimacs--markdown-reference-definitions root))
-                  (pimacs--markdown-render-block-node root))))
-          (error
-           (user-error
-            "Pimacs Markdown requires tree-sitter grammars `markdown' and `markdown_inline': %s"
-            (error-message-string error))))
+        (with-current-buffer buffer
+          (let ((parser
+                 (condition-case error
+                     (treesit-parser-create 'markdown)
+                   (error
+                    (user-error
+                     "Pimacs Markdown requires tree-sitter grammars `markdown' and `markdown_inline': %s"
+                     (error-message-string error))))))
+            (insert text)
+            (let ((root (treesit-parser-root-node parser)))
+              (funcall
+               renderer root
+               (make-pimacs--markdown-render-context
+                :reference-definitions
+                (pimacs--markdown-reference-definitions root)
+                :list-depth 0
+                :list-index nil)))))
       (kill-buffer buffer))))
 
 ;;; Markdown Renderer
@@ -168,53 +186,42 @@
 (defconst pimacs--markdown-list-bullets
   '("●" "◎" "○" "◆" "◇" "►" "•"))
 
-(defun pimacs--markdown-inline-special-nodes (root begin end)
-  (let (nodes)
-    (cl-labels
-        ((walk (node)
-           (let ((type (treesit-node-type node))
-                 (start (treesit-node-start node))
-                 (finish (treesit-node-end node)))
-             (cond
-              ((or (<= finish begin) (>= start end)))
-              ((member type '("emphasis" "strong_emphasis" "strikethrough"
-                              "code_span" "inline_link" "image"
-                              "full_reference_link" "shortcut_link" "collapsed_reference_link"
-                              "uri_autolink" "email_autolink" "latex_block"
-                              "backslash_escape" "hard_line_break" "html_tag"))
-               (push node nodes))
-              (t
-               (mapc #'walk (pimacs--markdown-node-children node)))))))
-      (walk root))
-    (sort nodes (lambda (left right)
-                  (< (treesit-node-start left) (treesit-node-start right))))))
-
 (defun pimacs--markdown-propertize-face (text face)
   (when (> (length text) 0)
     (put-text-property 0 (length text) 'face face text))
   text)
 
-(defun pimacs--markdown-propertize-outer-face (text face)
-  (dotimes (index (length text))
-    (let ((existing (ensure-list (get-text-property index 'face text))))
-      (put-text-property index (1+ index) 'face
-                         (if (memq face existing)
-                             existing
-                           (append existing (list face)))
-                         text)))
+(defun pimacs--markdown-propertize-face-runs (text face-function)
+  (let ((position 0)
+        (length (length text)))
+    (while (< position length)
+      (let* ((existing (get-text-property position 'face text))
+             (end (or (next-single-property-change position 'face text)
+                      length))
+             (face (funcall face-function existing)))
+        (when face
+          (put-text-property position end 'face face text))
+        (setq position end))))
   text)
 
+(defun pimacs--markdown-propertize-outer-face (text face)
+  (pimacs--markdown-propertize-face-runs
+   text
+   (lambda (existing)
+     (let ((faces (ensure-list existing)))
+       (if (memq face faces)
+           existing
+         (append faces (list face)))))))
+
 (defun pimacs--markdown-propertize-blockquote-face (text)
-  (dotimes (index (length text))
-    (let ((existing (get-text-property index 'face text)))
-      (unless (memq 'pimacs-markdown-code-block-face (ensure-list existing))
-        (put-text-property index (1+ index) 'face
-                           (if existing
-                               (append (ensure-list existing)
-                                       '(pimacs-markdown-blockquote-face))
-                             'pimacs-markdown-blockquote-face)
-                           text))))
-  text)
+  (pimacs--markdown-propertize-face-runs
+   text
+   (lambda (existing)
+     (unless (memq 'pimacs-markdown-code-block-face (ensure-list existing))
+       (if existing
+           (append (ensure-list existing)
+                   '(pimacs-markdown-blockquote-face))
+         'pimacs-markdown-blockquote-face)))))
 
 (defun pimacs--markdown-quote-lines (text)
   (let ((lines (split-string text "\n" nil))
@@ -245,7 +252,103 @@
     (push (buffer-substring-no-properties position (treesit-node-end node)) chunks)
     (apply #'concat (nreverse chunks))))
 
-(defun pimacs--markdown-render-inline-node (node)
+(defun pimacs--markdown-inline-special-nodes (root begin end)
+  (let (nodes)
+    (cl-labels
+        ((walk (node)
+           (let ((type (treesit-node-type node))
+                 (start (treesit-node-start node))
+                 (finish (treesit-node-end node)))
+             (cond
+              ((or (<= finish begin) (>= start end)))
+              ((member type '("emphasis" "strong_emphasis" "strikethrough"
+                              "code_span" "inline_link" "image"
+                              "full_reference_link" "shortcut_link" "collapsed_reference_link"
+                              "uri_autolink" "email_autolink" "latex_block"
+                              "backslash_escape" "hard_line_break" "html_tag"))
+               (push node nodes))
+              (t
+               (mapc #'walk (pimacs--markdown-node-children node)))))))
+      (walk root))
+    (sort nodes (lambda (left right)
+                  (< (treesit-node-start left) (treesit-node-start right))))))
+
+(defun pimacs--markdown-html-tag-face (node)
+  (pcase (pimacs--markdown-node-text node)
+    ("<sup>" 'pimacs-markdown-superscript-face)
+    ("<sub>" 'pimacs-markdown-subscript-face)))
+
+(defvar pimacs-markdown-language-aliases
+  '(("ocaml" . tuareg-mode)
+    ("elisp" . emacs-lisp-mode)
+    ("ditaa" . artist-mode)
+    ("asymptote" . asy-mode)
+    ("dot" . fundamental-mode)
+    ("sqlite" . sql-mode)
+    ("calc" . fundamental-mode)
+    ("C" . c-mode)
+    ("cpp" . c++-mode)
+    ("C++" . c++-mode)
+    ("screen" . shell-script-mode)
+    ("shell" . sh-mode)
+    ("bash" . sh-mode))
+  "Alist mapping Markdown fence language names to major modes.")
+
+(defun pimacs--markdown-resolve-language-mode (language)
+  (or (cdr (assoc-string (downcase (or language ""))
+                         pimacs-markdown-language-aliases t))
+      (let ((mode (intern-soft (concat (downcase (or language "")) "-mode"))))
+        (and mode (fboundp mode) mode))
+      #'fundamental-mode))
+
+(defun pimacs--markdown-fontify-code (code language)
+  (with-temp-buffer
+    (insert code)
+    (let ((inhibit-message t)
+          (mode (pimacs--markdown-resolve-language-mode language)))
+      (condition-case nil
+          (progn (funcall mode) (font-lock-ensure))
+        (error (fundamental-mode)))
+      (let ((text (buffer-string)))
+        (put-text-property 0 (length text) 'face 'pimacs-markdown-code-block-face text)
+        text))))
+
+(defun pimacs--markdown-autolink-label (url faces)
+  (let ((label (copy-sequence url))
+        (link-faces (delq nil (append faces '(pimacs-markdown-link-face)))))
+    (put-text-property 0 (length label) 'face
+                       (if (= (length link-faces) 1) (car link-faces) link-faces)
+                       label)
+    (put-text-property 0 (length label) 'pimacs-markdown-link-url url label)
+    (put-text-property 0 (length label) 'mouse-face 'highlight label)
+    (put-text-property 0 (length label) 'help-echo url label)
+    label))
+
+(defun pimacs--markdown-link-label (source faces url context &optional title)
+  (let ((label (pimacs--markdown-render-inline source context)))
+    (dotimes (index (length label))
+      (let* ((existing (get-text-property index 'face label))
+             (label-faces (delete-dups
+                           (delq nil (append faces
+                                             (if (listp existing) existing (list existing))
+                                             '(pimacs-markdown-link-face))))))
+        (put-text-property index (1+ index) 'face
+                           (if (= (length label-faces) 1)
+                               (car label-faces) label-faces)
+                           label)))
+    (put-text-property 0 (length label) 'pimacs-markdown-link-url url label)
+    (put-text-property 0 (length label) 'mouse-face 'highlight label)
+    (put-text-property 0 (length label) 'help-echo url label)
+    (when title
+      (put-text-property 0 (length label) 'pimacs-markdown-link-title title label))
+    label))
+
+(defun pimacs--markdown-image-label (source faces url context &optional title)
+  (let ((label (pimacs--markdown-link-label source faces url context title)))
+    (put-text-property 0 (length label) 'pimacs-markdown-image-url url label)
+    label))
+
+(defun pimacs--markdown-render-inline-node (node context)
   (let* ((type (treesit-node-type node))
          (start (treesit-node-start node))
          (end (treesit-node-end node))
@@ -267,7 +370,7 @@
                       ("strong_emphasis" 'pimacs-markdown-bold-face)
                       (_ 'pimacs-markdown-strike-through-face))))
          (pimacs--markdown-propertize-outer-face
-          (pimacs--markdown-render-inline-range (+ start width) (- end width))
+          (pimacs--markdown-render-inline-range (+ start width) (- end width) context)
           face)))
       ("code_span"
        (let* ((delimiter (pimacs--markdown-node-child node "code_span_delimiter"))
@@ -284,6 +387,7 @@
              (pimacs--markdown-link-label
               (pimacs--markdown-node-text label) nil
               (string-trim (pimacs--markdown-node-text destination) "<" ">")
+              context
               (and title (string-trim (pimacs--markdown-node-text title) "\"'(" "\"')")))
            source)))
       ((or "full_reference_link" "shortcut_link" "collapsed_reference_link")
@@ -295,11 +399,13 @@
                                (assoc-string
                                 (pimacs--markdown-reference-label
                                  (pimacs--markdown-node-text reference))
-                                pimacs--markdown-reference-definitions t))))
+                                (pimacs--markdown-render-context-reference-definitions
+                                 context)
+                                t))))
          (if (and label definition)
              (pimacs--markdown-link-label
               (pimacs--markdown-node-text label) nil
-              (car definition) (cadr definition))
+              (car definition) context (cadr definition))
            source)))
       ("image"
        (let ((label (or (pimacs--markdown-node-child node "image_description")
@@ -310,6 +416,7 @@
              (pimacs--markdown-image-label
               (pimacs--markdown-node-text label) nil
               (string-trim (pimacs--markdown-node-text destination) "<" ">")
+              context
               (and title (string-trim (pimacs--markdown-node-text title) "\"'(" "\"')")))
            source)))
       ((or "uri_autolink" "email_autolink")
@@ -324,12 +431,7 @@
         'pimacs-markdown-equation-face))
       (_ source))))
 
-(defun pimacs--markdown-html-tag-face (node)
-  (pcase (pimacs--markdown-node-text node)
-    ("<sup>" 'pimacs-markdown-superscript-face)
-    ("<sub>" 'pimacs-markdown-subscript-face)))
-
-(defun pimacs--markdown-render-inline-tree-range (root begin end)
+(defun pimacs--markdown-render-inline-tree-range (root begin end context)
   (let ((position begin)
         (nodes (pimacs--markdown-inline-special-nodes root begin end))
         chunks)
@@ -355,213 +457,36 @@
                       (progn
                         (push (pimacs--markdown-propertize-face
                                (pimacs--markdown-render-inline-range
-                                finish (treesit-node-start closing-node))
+                                finish (treesit-node-start closing-node) context)
                                face)
                               chunks)
                         (setq position (treesit-node-end closing-node))
                         (setq nodes remaining))
-                    (push (pimacs--markdown-render-inline-node node) chunks)
+                    (push (pimacs--markdown-render-inline-node node context) chunks)
                     (setq position finish)))
-              (push (pimacs--markdown-render-inline-node node) chunks)
+              (push (pimacs--markdown-render-inline-node node context) chunks)
               (setq position finish))))))
     (push (buffer-substring-no-properties position end) chunks)
     (apply #'concat (nreverse chunks))))
 
-(defun pimacs--markdown-render-inline-source (text)
+(defun pimacs--markdown-render-inline-source (text context)
   (let ((buffer (generate-new-buffer " *pimacs-markdown-inline*")))
     (unwind-protect
         (with-current-buffer buffer
           (insert text)
           (let ((inline-parser (treesit-parser-create 'markdown_inline)))
             (pimacs--markdown-render-inline-tree-range
-             (treesit-parser-root-node inline-parser) 1 (point-max))))
+             (treesit-parser-root-node inline-parser) 1 (point-max) context)))
       (kill-buffer buffer))))
 
-(defun pimacs--markdown-render-inline-range (begin end)
+(defun pimacs--markdown-render-inline-range (begin end context)
   (pimacs--markdown-render-inline-source
-   (buffer-substring-no-properties begin end)))
+   (buffer-substring-no-properties begin end) context))
 
-(defun pimacs--markdown-render-inline (text)
-  (pimacs--markdown-render-inline-source text))
+(defun pimacs--markdown-render-inline (text context)
+  (pimacs--markdown-render-inline-source text context))
 
-(defun pimacs--markdown-render-block-children (node &optional list-depth)
-  (let ((position (treesit-node-start node))
-        chunks)
-    (dolist (child (pimacs--markdown-node-children node))
-      (push (buffer-substring-no-properties position (treesit-node-start child)) chunks)
-      (push (pimacs--markdown-render-block-node child list-depth) chunks)
-      (setq position (treesit-node-end child)))
-    (push (buffer-substring-no-properties position (treesit-node-end node)) chunks)
-    (apply #'concat (nreverse chunks))))
-
-(defun pimacs--markdown-render-code-block (node)
-  (let ((source (pimacs--markdown-node-text node)))
-    (if (string= (treesit-node-type node) "indented_code_block")
-        (pimacs--markdown-propertize-face
-         (replace-regexp-in-string "^    " "" source)
-         'pimacs-markdown-code-block-face)
-      (let* ((delimiter (pimacs--markdown-node-child node "fenced_code_block_delimiter"))
-             (language-node (pimacs--markdown-node-child node "language"))
-             (content (pimacs--markdown-node-child node "code_fence_content"))
-             (language (and language-node (pimacs--markdown-node-text language-node))))
-        (if (and delimiter content)
-            (pimacs--markdown-fontify-code
-             (pimacs--markdown-node-text-without-block-continuations content) language)
-          source)))))
-
-(defun pimacs--markdown-render-block-node (node &optional list-depth list-index)
-  (let ((type (treesit-node-type node))
-        (source (pimacs--markdown-node-text node)))
-    (pcase type
-      ((or "document" "section")
-       (pimacs--markdown-render-block-children node list-depth))
-      ("atx_heading"
-       (let ((inline (pimacs--markdown-node-child node "inline"))
-             (source (pimacs--markdown-node-text-without-block-continuations node)))
-         (concat
-          (if inline
-              (pimacs--markdown-propertize-face
-               (pimacs--markdown-render-inline
-                (pimacs--markdown-node-text-without-block-continuations inline))
-               'pimacs-markdown-heading-face)
-            "")
-          (if (string-suffix-p "\n" source) "\n" ""))))
-      ("paragraph"
-       (let ((inline (pimacs--markdown-node-child node "inline")))
-         (if inline
-             (pimacs--markdown-render-inline
-              (pimacs--markdown-node-text-without-block-continuations node))
-           source)))
-      ("list"
-       (let* ((children (pimacs--markdown-node-children node))
-              (first-marker (and children
-                                 (pimacs--markdown-node-child
-                                  (car children) "list_marker_dot")))
-              (start (and first-marker
-                          (string-match "[0-9]+"
-                                        (pimacs--markdown-node-text first-marker))
-                          (string-to-number (match-string 0
-                                                          (pimacs--markdown-node-text first-marker)))))
-              (position (treesit-node-start node))
-              (number start)
-              chunks)
-         (dolist (child children)
-           (let* ((gap (buffer-substring-no-properties
-                        position (treesit-node-start child)))
-                  (marker (pimacs--markdown-node-child child "list_marker_dot"))
-                  (item-source (pimacs--markdown-node-text child))
-                  (gap-separated (string-match-p "\n[ \t]*\n" gap))
-                  (source-separated (string-match-p "\n[ \t]*\n\\'" item-source)))
-             (when gap-separated
-               (when chunks
-                 (push "\n" chunks))
-               (setq number nil))
-             (let ((item-number (or number
-                                    (and marker
-                                         (string-match "[0-9]+"
-                                                       (pimacs--markdown-node-text marker))
-                                         (string-to-number
-                                          (match-string 0
-                                                        (pimacs--markdown-node-text marker)))))))
-               (push (pimacs--markdown-render-block-node
-                      child (1+ (or list-depth 0)) item-number)
-                     chunks)
-               (setq number (and item-number (1+ item-number))))
-             (when source-separated
-               (push "\n" chunks)
-               (setq number nil))
-             (setq position (treesit-node-end child))))
-         (apply #'concat (nreverse chunks))))
-      ("list_item"
-       (let* ((marker (cl-find-if (lambda (child)
-                                    (string-prefix-p "list_marker_"
-                                                     (treesit-node-type child)))
-                                  (pimacs--markdown-node-children node)))
-              (checked-node (pimacs--markdown-node-child node "task_list_marker_checked"))
-              (unchecked-node (pimacs--markdown-node-child node "task_list_marker_unchecked"))
-              (checked (and checked-node
-                            (string= (pimacs--markdown-node-text checked-node) "[x]")))
-              (unchecked (and unchecked-node
-                              (string= (pimacs--markdown-node-text unchecked-node) "[ ]")))
-              (literal-marker (and (or checked-node unchecked-node)
-                                   (not (or checked unchecked))))
-              (children (cl-remove-if
-                         (lambda (child)
-                           (member (treesit-node-type child)
-                                   '("list_marker_dot" "list_marker_minus"
-                                     "list_marker_parenthesis" "list_marker_plus"
-                                     "list_marker_star" "task_list_marker_checked"
-                                     "task_list_marker_unchecked"
-                                     "block_continuation")))
-                         (pimacs--markdown-node-children node))))
-         (concat
-          (make-string (* 2 (1- (or list-depth 1))) ?\s)
-          (pimacs--markdown-propertize-face
-           (cond
-            ((and marker (string-match-p "[.)]" (pimacs--markdown-node-text marker)))
-             (if list-index
-                 (concat (number-to-string list-index)
-                         (if (string-match-p ")" (pimacs--markdown-node-text marker)) ") " ". "))
-               (concat (string-trim (pimacs--markdown-node-text marker)) " ")))
-            (t (concat (nth (mod (1- (or list-depth 1))
-                                 (length pimacs--markdown-list-bullets))
-                            pimacs--markdown-list-bullets)
-                       " ")))
-           'pimacs-markdown-list-marker-face)
-          (cond
-           (checked (concat (pimacs--markdown-propertize-face
-                             "☑" 'pimacs-markdown-checkbox-face)
-                            " "))
-           (unchecked (concat (pimacs--markdown-propertize-face
-                               "☐" 'pimacs-markdown-checkbox-face)
-                              " "))
-           (literal-marker (concat (pimacs--markdown-node-text
-                                    (or checked-node unchecked-node))
-                                   " "))
-           (t ""))
-          (let (chunks previous)
-            (dolist (child children)
-              (let* ((child-type (treesit-node-type child))
-                     (rendered (pimacs--markdown-render-block-node child list-depth)))
-                (when (string= child-type "list")
-                  (setq rendered (replace-regexp-in-string "[ \t]+\\'" "" rendered)))
-                (when (string= child-type "paragraph")
-                  (setq rendered (string-trim-left rendered))
-                  (setq rendered
-                        (replace-regexp-in-string
-                         "\n\\([^ \n]\\)"
-                         (concat "\n"
-                                 (make-string (* 2 (max 0 (- (or list-depth 1) 2))) ?\s)
-                                 "\\1")
-                         rendered))
-                  (when (string= previous "list")
-                    (push "\n" chunks)))
-                (push rendered chunks)
-                (setq previous child-type)))
-            (apply #'concat (nreverse chunks))))))
-      ("block_quote"
-       (pimacs--markdown-propertize-blockquote-face
-        (pimacs--markdown-quote-lines
-         (apply #'concat
-                (mapcar (lambda (child)
-                          (pimacs--markdown-render-block-node child list-depth))
-                        (cl-remove-if (lambda (child)
-                                        (member (treesit-node-type child)
-                                                '("block_quote_marker"
-                                                  "block_continuation")))
-                                      (pimacs--markdown-node-children node)))))))
-      ((or "fenced_code_block" "indented_code_block")
-       (pimacs--markdown-render-code-block node))
-      ("thematic_break"
-       (concat (pimacs--markdown-propertize-face
-                (make-string (min 80 (window-width)) ?─)
-                'pimacs-markdown-horizontal-rule-face)
-               (if (string-suffix-p "\n" source) "\n" "")))
-      ("link_reference_definition" "")
-      ("pipe_table" (pimacs--markdown-render-table-node node))
-      (_ source))))
-
-(defun pimacs--markdown-render-table-node (node)
+(defun pimacs--markdown-render-table-node (node context)
   (let* ((header (pimacs--markdown-node-child node "pipe_table_header"))
          (delimiter (pimacs--markdown-node-child node "pipe_table_delimiter_row"))
          (header-cells (and header (pimacs--markdown-node-children header)))
@@ -575,7 +500,7 @@
        (mapcar (lambda (cell)
                  (or (split-string
                       (pimacs--markdown-render-inline
-                       (string-trim (pimacs--markdown-node-text cell)))
+                       (string-trim (pimacs--markdown-node-text cell)) context)
                       "\n" nil)
                      '("")))
                header-cells)
@@ -592,82 +517,218 @@
                  (mapcar (lambda (cell)
                            (or (split-string
                                 (pimacs--markdown-render-inline
-                                 (string-trim (pimacs--markdown-node-text cell)))
+                                 (string-trim (pimacs--markdown-node-text cell)) context)
                                 "\n" nil)
                                '("")))
                          (pimacs--markdown-node-children row)))
                rows)
        (string-suffix-p "\n" (pimacs--markdown-node-text node))))))
 
-(defvar pimacs-markdown-language-aliases
-  '(("ocaml" . tuareg-mode)
-    ("elisp" . emacs-lisp-mode)
-    ("ditaa" . artist-mode)
-    ("asymptote" . asy-mode)
-    ("dot" . fundamental-mode)
-    ("sqlite" . sql-mode)
-    ("calc" . fundamental-mode)
-    ("C" . c-mode)
-    ("cpp" . c++-mode)
-    ("C++" . c++-mode)
-    ("screen" . shell-script-mode)
-    ("shell" . sh-mode)
-    ("bash" . sh-mode))
-  "Alist mapping Markdown fence language names to major modes.")
+(defun pimacs--markdown-render-indented-code-block (node)
+  (pimacs--markdown-propertize-face
+   (replace-regexp-in-string "^    " "" (pimacs--markdown-node-text node))
+   'pimacs-markdown-code-block-face))
 
-(defun pimacs--markdown-link-label (source faces url &optional title)
-  (let ((label (pimacs--markdown-render-inline source)))
-    (dotimes (index (length label))
-      (let* ((existing (get-text-property index 'face label))
-             (label-faces (delete-dups
-                           (delq nil (append faces
-                                             (if (listp existing) existing (list existing))
-                                             '(pimacs-markdown-link-face))))))
-        (put-text-property index (1+ index) 'face
-                           (if (= (length label-faces) 1)
-                               (car label-faces) label-faces)
-                           label)))
-    (put-text-property 0 (length label) 'pimacs-markdown-link-url url label)
-    (put-text-property 0 (length label) 'mouse-face 'highlight label)
-    (put-text-property 0 (length label) 'help-echo url label)
-    (when title
-      (put-text-property 0 (length label) 'pimacs-markdown-link-title title label))
-    label))
+(defun pimacs--markdown-render-fenced-code-block (node)
+  (let* ((source (pimacs--markdown-node-text node))
+         (delimiter (pimacs--markdown-node-child node "fenced_code_block_delimiter"))
+         (language-node (pimacs--markdown-node-child node "language"))
+         (content (pimacs--markdown-node-child node "code_fence_content"))
+         (language (and language-node (pimacs--markdown-node-text language-node))))
+    (if (and delimiter content)
+        (pimacs--markdown-fontify-code
+         (pimacs--markdown-node-text-without-block-continuations content)
+         language)
+      source)))
 
-(defun pimacs--markdown-image-label (source faces url &optional title)
-  (let ((label (pimacs--markdown-link-label source faces url title)))
-    (put-text-property 0 (length label) 'pimacs-markdown-image-url url label)
-    label))
+(defun pimacs--markdown-render-block-children (node context)
+  (let ((position (treesit-node-start node))
+        chunks)
+    (dolist (child (pimacs--markdown-node-children node))
+      (push (buffer-substring-no-properties position (treesit-node-start child)) chunks)
+      (push (pimacs--markdown-render-block-node child context) chunks)
+      (setq position (treesit-node-end child)))
+    (push (buffer-substring-no-properties position (treesit-node-end node)) chunks)
+    (apply #'concat (nreverse chunks))))
 
-(defun pimacs--markdown-autolink-label (url faces)
-  (let ((label (copy-sequence url))
-        (link-faces (delq nil (append faces '(pimacs-markdown-link-face)))))
-    (put-text-property 0 (length label) 'face
-                       (if (= (length link-faces) 1) (car link-faces) link-faces)
-                       label)
-    (put-text-property 0 (length label) 'pimacs-markdown-link-url url label)
-    (put-text-property 0 (length label) 'mouse-face 'highlight label)
-    (put-text-property 0 (length label) 'help-echo url label)
-    label))
+(defun pimacs--markdown-render-heading-node (node context)
+  (let ((inline (pimacs--markdown-node-child node "inline"))
+        (source (pimacs--markdown-node-text-without-block-continuations node)))
+    (concat
+     (if inline
+         (pimacs--markdown-propertize-face
+          (pimacs--markdown-render-inline
+           (pimacs--markdown-node-text-without-block-continuations inline)
+           context)
+          'pimacs-markdown-heading-face)
+       "")
+     (if (string-suffix-p "\n" source) "\n" ""))))
 
-(defun pimacs--markdown-resolve-language-mode (language)
-  (or (cdr (assoc-string (downcase (or language ""))
-                         pimacs-markdown-language-aliases t))
-      (let ((mode (intern-soft (concat (downcase (or language "")) "-mode"))))
-        (and mode (fboundp mode) mode))
-      #'fundamental-mode))
+(defun pimacs--markdown-render-paragraph-node (node context)
+  (let ((inline (pimacs--markdown-node-child node "inline"))
+        (source (pimacs--markdown-node-text node)))
+    (if inline
+        (pimacs--markdown-render-inline
+         (pimacs--markdown-node-text-without-block-continuations node)
+         context)
+      source)))
 
-(defun pimacs--markdown-fontify-code (code language)
-  (with-temp-buffer
-    (insert code)
-    (let ((inhibit-message t)
-          (mode (pimacs--markdown-resolve-language-mode language)))
-      (condition-case nil
-          (progn (funcall mode) (font-lock-ensure))
-        (error (fundamental-mode)))
-      (let ((text (buffer-string)))
-        (put-text-property 0 (length text) 'face 'pimacs-markdown-code-block-face text)
-        text))))
+(defun pimacs--markdown-render-list-node (node context)
+  (let* ((children (pimacs--markdown-node-children node))
+         (first-marker (and children
+                            (pimacs--markdown-node-child
+                             (car children) "list_marker_dot")))
+         (start (and first-marker
+                     (string-match "[0-9]+"
+                                   (pimacs--markdown-node-text first-marker))
+                     (string-to-number (match-string 0
+                                                     (pimacs--markdown-node-text first-marker)))))
+         (position (treesit-node-start node))
+         (number start)
+         chunks)
+    (dolist (child children)
+      (let* ((gap (buffer-substring-no-properties
+                   position (treesit-node-start child)))
+             (marker (pimacs--markdown-node-child child "list_marker_dot"))
+             (item-source (pimacs--markdown-node-text child))
+             (gap-separated (string-match-p "\n[ \t]*\n" gap))
+             (source-separated (string-match-p "\n[ \t]*\n\\'" item-source)))
+        (when gap-separated
+          (when chunks
+            (push "\n" chunks))
+          (setq number nil))
+        (let ((item-number (or number
+                               (and marker
+                                    (string-match "[0-9]+"
+                                                  (pimacs--markdown-node-text marker))
+                                    (string-to-number
+                                     (match-string 0
+                                                   (pimacs--markdown-node-text marker)))))))
+          (push (pimacs--markdown-render-block-node
+                 child
+                 (pimacs--markdown-render-context-for-list-item
+                  context item-number))
+                chunks)
+          (setq number (and item-number (1+ item-number))))
+        (when source-separated
+          (push "\n" chunks)
+          (setq number nil))
+        (setq position (treesit-node-end child))))
+    (apply #'concat (nreverse chunks))))
+
+(defun pimacs--markdown-render-list-item-node (node context)
+  (let* ((list-depth (pimacs--markdown-render-context-list-depth context))
+         (list-index (pimacs--markdown-render-context-list-index context))
+         (marker (cl-find-if (lambda (child)
+                               (string-prefix-p "list_marker_"
+                                                (treesit-node-type child)))
+                             (pimacs--markdown-node-children node)))
+         (checked-node (pimacs--markdown-node-child node "task_list_marker_checked"))
+         (unchecked-node (pimacs--markdown-node-child node "task_list_marker_unchecked"))
+         (checked (and checked-node
+                       (string= (pimacs--markdown-node-text checked-node) "[x]")))
+         (unchecked (and unchecked-node
+                         (string= (pimacs--markdown-node-text unchecked-node) "[ ]")))
+         (literal-marker (and (or checked-node unchecked-node)
+                              (not (or checked unchecked))))
+         (children (pimacs--markdown-node-children-without-types
+                    node
+                    '("list_marker_dot" "list_marker_minus"
+                      "list_marker_parenthesis" "list_marker_plus"
+                      "list_marker_star" "task_list_marker_checked"
+                      "task_list_marker_unchecked"
+                      "block_continuation"))))
+    (concat
+     (make-string (* 2 (1- (or list-depth 1))) ?\s)
+     (pimacs--markdown-propertize-face
+      (cond
+       ((and marker (string-match-p "[.)]" (pimacs--markdown-node-text marker)))
+        (if list-index
+            (concat (number-to-string list-index)
+                    (if (string-match-p ")" (pimacs--markdown-node-text marker)) ") " ". "))
+          (concat (string-trim (pimacs--markdown-node-text marker)) " ")))
+       (t (concat (nth (mod (1- (or list-depth 1))
+                            (length pimacs--markdown-list-bullets))
+                       pimacs--markdown-list-bullets)
+                  " ")))
+      'pimacs-markdown-list-marker-face)
+     (cond
+      (checked (concat (pimacs--markdown-propertize-face
+                        "☑" 'pimacs-markdown-checkbox-face)
+                       " "))
+      (unchecked (concat (pimacs--markdown-propertize-face
+                          "☐" 'pimacs-markdown-checkbox-face)
+                         " "))
+      (literal-marker (concat (pimacs--markdown-node-text
+                               (or checked-node unchecked-node))
+                              " "))
+      (t ""))
+     (let (chunks previous)
+       (dolist (child children)
+         (let* ((child-type (treesit-node-type child))
+                (rendered (pimacs--markdown-render-block-node child context)))
+           (when (string= child-type "list")
+             (setq rendered (replace-regexp-in-string "[ \t]+\\'" "" rendered)))
+           (when (string= child-type "paragraph")
+             (setq rendered (string-trim-left rendered))
+             (setq rendered
+                   (replace-regexp-in-string
+                    "\n\\([^ \n]\\)"
+                    (concat "\n"
+                            (make-string (* 2 (max 0 (- (or list-depth 1) 2))) ?\s)
+                            "\\1")
+                    rendered))
+             (when (string= previous "list")
+               (push "\n" chunks)))
+           (push rendered chunks)
+           (setq previous child-type)))
+       (apply #'concat (nreverse chunks))))))
+
+(defun pimacs--markdown-render-block-quote-node (node context)
+  (pimacs--markdown-propertize-blockquote-face
+   (pimacs--markdown-quote-lines
+    (apply #'concat
+           (mapcar (lambda (child)
+                     (pimacs--markdown-render-block-node child context))
+                   (pimacs--markdown-node-children-without-types
+                    node '("block_quote_marker" "block_continuation")))))))
+
+(defun pimacs--markdown-render-thematic-break-node (node)
+  (let ((source (pimacs--markdown-node-text node)))
+    (concat (pimacs--markdown-propertize-face
+             (make-string (min 80 (window-width)) ?─)
+             'pimacs-markdown-horizontal-rule-face)
+            (if (string-suffix-p "\n" source) "\n" ""))))
+
+(defun pimacs--markdown-render-block-node (node context)
+  (pcase (treesit-node-type node)
+    ((or "document" "section")
+     (pimacs--markdown-render-block-children node context))
+    ("atx_heading"
+     (pimacs--markdown-render-heading-node node context))
+    ("paragraph"
+     (pimacs--markdown-render-paragraph-node node context))
+    ("list"
+     (pimacs--markdown-render-list-node node context))
+    ("list_item"
+     (pimacs--markdown-render-list-item-node node context))
+    ("block_quote"
+     (pimacs--markdown-render-block-quote-node node context))
+    ("fenced_code_block"
+     (pimacs--markdown-render-fenced-code-block node))
+    ("indented_code_block"
+     (pimacs--markdown-render-indented-code-block node))
+    ("thematic_break"
+     (pimacs--markdown-render-thematic-break-node node))
+    ("link_reference_definition"
+     "")
+    ("pipe_table"
+     (pimacs--markdown-render-table-node node context))
+    (_
+     (pimacs--markdown-node-text node))))
+
+(defun pimacs--markdown-render-source (text)
+  (pimacs--markdown-parse-source text #'pimacs--markdown-render-block-node))
 
 (defun pimacs--render-markdown-experimental (_context text streaming)
   (list (list :append
