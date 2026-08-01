@@ -1,9 +1,0 @@
-│ foo bar *baz*
-@ ^^^^ heading
-@     ^ heading
-@     ^ italic
-@      ^ heading
-@      ^ italic
-@       ^ heading
-@       ^ italic
-@        ^^^^^^ heading

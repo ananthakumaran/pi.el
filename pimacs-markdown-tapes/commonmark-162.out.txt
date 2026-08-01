@@ -1,4 +1,0 @@
-│ <a href="foo">
-│ bar
-@ ^^^ italic
-│ </a>

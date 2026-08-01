@@ -1,2 +1,0 @@
-│ foo __bar baz bim __bam*
-@ ^^^^^^^^^^ italic

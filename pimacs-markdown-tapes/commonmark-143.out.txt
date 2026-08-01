@@ -1,6 +1,0 @@
-│ def foo(x)
-@ ^^^^^^^^^^ code-block
-│   return 3
-@ ^^^^^^^^^^ code-block
-│ end
-@ ^^^ code-block

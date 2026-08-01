@@ -1,8 +1,0 @@
-│ A paragraph
-│ with two lines.
-│
-│ indented code
-@ ^^^^^^^^^^^^^ code-block
-│
-│ A block quote.
-@ ^^^^^^^^^^^^^^ blockquote

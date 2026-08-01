@@ -1,9 +1,0 @@
-│ ● a
-@ ^^ list-marker
-│ ● b
-@ ^^ list-marker
-│
-│ ref: /url
-@ ^^^ link
-│ ● d
-@ ^^ list-marker

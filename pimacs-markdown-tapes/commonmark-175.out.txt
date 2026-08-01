@@ -1,4 +1,0 @@
-│ ● <div>
-@ ^^ list-marker
-│ ● foo
-@ ^^ list-marker

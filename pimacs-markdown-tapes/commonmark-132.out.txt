@@ -1,9 +1,0 @@
-│
-│ aaa
-@ ^^^ inline-code
-│   aaa
-@ ^^^^^ inline-code
-│ aaa
-@ ^^^ inline-code
-│  
-@ ^ inline-code

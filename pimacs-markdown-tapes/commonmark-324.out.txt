@@ -1,7 +1,0 @@
-│ 1. 
-@ ^^^ list-marker
-│ foo
-@ ^^^ inline-code
-│
-│
-│ bar

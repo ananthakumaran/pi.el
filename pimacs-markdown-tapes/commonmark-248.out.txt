@@ -1,4 +1,0 @@
-│ bar
-@ ^^^ blockquote
-│
-│ baz

@@ -1,6 +1,0 @@
-│ chunk1
-@ ^^^^^^ code-block
-│   
-@ ^^ code-block
-│   chunk2
-@ ^^^^^^^^ code-block

@@ -1,5 +1,0 @@
-│ [foo]: /url
-@ ^^^^^^^^^^^ code-block
-│
-│ foo
-@ ^^^ link

@@ -1,7 +1,0 @@
-│ ● one
-@ ^^ list-marker
-@   ^^^ inline-code
-│ ● two
-@ ^^ inline-code
-@ ^^ list-marker
-@   ^^^ inline-code

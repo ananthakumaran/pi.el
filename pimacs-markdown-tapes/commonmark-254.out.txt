@@ -1,7 +1,0 @@
-│ 1. A paragraph
-@ ^^^ list-marker
-│ with two lines.
-│
-│ indented code
-│
-│ > A block quote.

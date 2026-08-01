@@ -1,2 +1,0 @@
-│ f&ouml;f&ouml;
-@ ^^^^^^^^^^^^^^ code-block

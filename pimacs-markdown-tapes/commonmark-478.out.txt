@@ -1,4 +1,0 @@
-│ a *
-@ ^^ italic
-@   ^ italic
-@   ^ inline-code

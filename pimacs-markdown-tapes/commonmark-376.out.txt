@@ -1,3 +1,0 @@
-│ foobarbaz
-@ ^^^ italic
-@       ^^^ italic

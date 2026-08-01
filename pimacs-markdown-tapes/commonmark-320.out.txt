@@ -1,9 +1,0 @@
-│ ● a
-@ ^^ list-marker
-│ b
-@ ^ blockquote
-│
-│ ● c
-@ ^^ blockquote
-@ ^^ list-marker
-@   ^ blockquote

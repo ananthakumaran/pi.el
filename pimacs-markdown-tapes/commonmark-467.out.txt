@@ -1,7 +1,0 @@
-│ foo
-@ ^ bold
-@ ^ italic
-@  ^ bold
-@  ^ italic
-@   ^ bold
-@   ^ italic

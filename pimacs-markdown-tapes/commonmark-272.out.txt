@@ -1,7 +1,0 @@
-│ indented code
-@ ^^^^^^^^^^^^^ code-block
-│
-│ paragraph
-│
-│ more code
-@ ^^^^^^^^^ code-block
