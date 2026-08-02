@@ -374,9 +374,11 @@ File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
 
      Function used to render Markdown content.
 
-     It receives CONTEXT, Markdown TEXT, and a non-nil STREAMING flag
-     for text deltas.  It must return a list of ‘:append’ and ‘:delete’
-     operations.
+     Pi calls it as ‘(RENDERER :create)’, ‘(RENDERER :stream STATE
+     TEXT)’, ‘(RENDERER :final STATE TEXT)’, and ‘(RENDERER :destroy
+     STATE)’.  ‘:create’ returns opaque renderer state.  ‘:stream’ and
+     ‘:final’ return ‘:append’ and ‘:delete’ operations.  ‘:destroy’
+     releases resources.
 
      The default preserves the existing ‘markdown-mode’ renderer.  Set
      this to ‘pimacs--render-markdown-experimental’ to opt into the
@@ -387,9 +389,8 @@ File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
 
      Function used to render assistant thinking content.
 
-     It receives CONTEXT, thinking TEXT, and a non-nil STREAMING flag
-     for text deltas.  It must return a list of ‘:append’ and ‘:delete’
-     operations.
+     It implements the same ‘:create’, ‘:stream’, ‘:final’, and
+     ‘:destroy’ renderer protocol as ‘pimacs-markdown-renderer’.
 
      The default preserves the legacy, dimmed plain-text rendering.  Set
      this to ‘pimacs--render-thinking-markdown’ to render thinking as
@@ -637,6 +638,13 @@ File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
      Format of the Pimacs mode-line entry.
 
      See ‘pimacs-header-line-format’ for available components.
+
+ -- User Option: pimacs-markdown-incremental-render-debug nil
+
+     Whether to capture incremental Markdown rendering diagnostics.
+
+     When non-nil, diagnostics are appended to the temporary buffer
+     ‘*pimacs-markdown-incremental-debug*’.
 
  -- User Option: pimacs-markdown-use-unicode-tables t
 

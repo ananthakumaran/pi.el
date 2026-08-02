@@ -447,8 +447,10 @@ when agent stops.
 
 Function used to render Markdown content.
 
-It receives CONTEXT, Markdown TEXT, and a non-nil STREAMING flag for text
-deltas.  It must return a list of @code{:append} and @code{:delete} operations.
+Pi calls it as @code{(RENDERER :create)}, @code{(RENDERER :stream STATE TEXT)},
+@code{(RENDERER :final STATE TEXT)}, and @code{(RENDERER :destroy STATE)}.  @code{:create}
+returns opaque renderer state.  @code{:stream} and @code{:final} return @code{:append} and
+@code{:delete} operations.  @code{:destroy} releases resources.
 
 The default preserves the existing @code{markdown-mode} renderer.  Set this to
 @code{pimacs--render-markdown-experimental} to opt into the experimental renderer.
@@ -458,8 +460,8 @@ The default preserves the existing @code{markdown-mode} renderer.  Set this to
 
 Function used to render assistant thinking content.
 
-It receives CONTEXT, thinking TEXT, and a non-nil STREAMING flag for text
-deltas.  It must return a list of @code{:append} and @code{:delete} operations.
+It implements the same @code{:create}, @code{:stream}, @code{:final}, and @code{:destroy}
+renderer protocol as @code{pimacs-markdown-renderer}.
 
 The default preserves the legacy, dimmed plain-text rendering.  Set this to
 @code{pimacs--render-thinking-markdown} to render thinking as Markdown.
@@ -735,6 +737,14 @@ Use at most one @code{:spacer}.
 Format of the Pimacs mode-line entry.
 
 See @code{pimacs-header-line-format} for available components.
+@end defopt
+
+@defopt pimacs-markdown-incremental-render-debug @code{nil}
+
+Whether to capture incremental Markdown rendering diagnostics.
+
+When non-nil, diagnostics are appended to the temporary buffer
+@code{*pimacs-markdown-incremental-debug*}.
 @end defopt
 
 @defopt pimacs-markdown-use-unicode-tables @code{t}

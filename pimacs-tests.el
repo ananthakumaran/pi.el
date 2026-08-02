@@ -321,7 +321,7 @@
                                (pimacs-section-end section)))))
     (should (= (hash-table-count pimacs--content-sections) 0))))
 
-(ert-deftest pimacs--markdown-renderer-receives-streaming-flag ()
+(ert-deftest pimacs--markdown-renderer-lifecycle ()
   (with-temp-buffer
     (pimacs-section--create-root-section)
     (setq pimacs--content-sections (make-hash-table :test 'eql))
@@ -329,12 +329,15 @@
           (widget-create 'editable-field :format "%v" :value ""))
     (widget-setup)
 
-    (let* ((contexts nil)
+    (let* ((operations nil)
            (pimacs-markdown-renderer
-            (lambda (context text streaming)
-              (push context contexts)
-              (list (list :append
-                          (concat (if streaming "stream: " "full: ") text))))))
+            (lambda (operation &optional _state text)
+              (push operation operations)
+              (pcase operation
+                (:create (list :renderer-state))
+                (:stream (list (list :append (concat "stream: " text))))
+                (:final (list (list :append (concat "full: " text))))
+                (:destroy nil)))))
       (pimacs--handle-message-update
        '(:assistantMessageEvent (:type "text_delta" :delta "Hello" :contentIndex 0)
                                 :message (:role "assistant")))
@@ -355,7 +358,8 @@
                          :content ((:type "text" :text "Hello world")))))
       (should (string-match-p "assistant> full: Hello world" (buffer-string)))
       (should-not (string-match-p "stream: Hello" (buffer-string)))
-      (should (cl-every #'pimacs-markdown-context-p contexts)))))
+      (should (equal (nreverse operations)
+                     '(:create :stream :stream :final :destroy))))))
 
 (ert-deftest pimacs--thinking-renderer-default-preserves-legacy-rendering ()
   (with-temp-buffer
@@ -366,13 +370,17 @@
       (should (eq (get-text-property (point-min) 'face)
                   'pimacs-thinking-face)))
     (erase-buffer)
-    (let ((context (pimacs--markdown-create-context)))
-      (pimacs--markdown-apply-operations
-       context (pimacs--render-thinking context "**bold**" t))
-      (should (equal (buffer-substring-no-properties (point-min) (point-max))
-                     "**bold**"))
-      (should (eq (get-text-property (point-min) 'face)
-                  'pimacs-thinking-face)))))
+    (let* ((content (pimacs--render-create-content pimacs-thinking-renderer))
+           (context (pimacs--rendered-content-context content)))
+      (unwind-protect
+          (progn
+            (pimacs--render-apply-operations
+             context (pimacs--render-content-update content "**bold**" t))
+            (should (equal (buffer-substring-no-properties (point-min) (point-max))
+                           "**bold**"))
+            (should (eq (get-text-property (point-min) 'face)
+                        'pimacs-thinking-face)))
+        (pimacs--render-clear-content content)))))
 
 (ert-deftest pimacs--thinking-markdown-renderer-uses-only-dimmed-non-color-faces ()
   (with-temp-buffer

@@ -24,6 +24,9 @@
 (require 'cl-lib)
 (require 'subr-x)
 (require 'treesit)
+(require 'widget)
+(require 'wid-edit)
+(require 'pimacs-core)
 (require 'pimacs-markdown-table)
 
 (add-to-list 'treesit-load-name-override-list
@@ -155,10 +158,479 @@
 
 ;;; Markdown Renderer
 
-(cl-defstruct pimacs-markdown-context
-  content-begin
-  content-end
-  rendered-length)
+(defcustom pimacs-markdown-incremental-render-debug nil
+  "Whether to capture incremental Markdown rendering diagnostics.
+
+When non-nil, diagnostics are appended to the temporary buffer
+`*pimacs-markdown-incremental-debug*'."
+  :type 'boolean
+  :group 'pimacs)
+
+(defconst pimacs--markdown-incremental-debug-buffer-name
+  "*pimacs-markdown-incremental-debug*")
+
+(cl-defstruct pimacs--markdown-render-checkpoint
+  marker
+  output-offset
+  type)
+
+(cl-defstruct pimacs--markdown-render-session
+  buffer
+  parser
+  checkpoints
+  changed-ranges
+  reference-definitions
+  rendered-length
+  update-number
+  debug-output)
+
+(defvar-local pimacs--markdown-render-session nil)
+
+(defun pimacs--markdown-debug-checkpoints (session)
+  (when pimacs-markdown-incremental-render-debug
+    (mapcar
+     (lambda (checkpoint)
+       (list :source-position
+             (marker-position (pimacs--markdown-render-checkpoint-marker checkpoint))
+             :output-offset
+             (pimacs--markdown-render-checkpoint-output-offset checkpoint)
+             :type (pimacs--markdown-render-checkpoint-type checkpoint)))
+     (pimacs--markdown-render-session-checkpoints session))))
+
+(defun pimacs--markdown-debug-log (session &rest details)
+  (when pimacs-markdown-incremental-render-debug
+    (with-current-buffer
+        (get-buffer-create pimacs--markdown-incremental-debug-buffer-name)
+      (goto-char (point-max))
+      (insert (format "Incremental Markdown update %d\n"
+                      (pimacs--markdown-render-session-update-number session)))
+      (while details
+        (insert (format "  %-22s %S\n"
+                        (substring (symbol-name (car details)) 1)
+                        (cadr details)))
+        (setq details (cddr details)))
+      (insert "\n"))))
+
+(defun pimacs--markdown-parser-notifier (ranges parser)
+  (let ((buffer (treesit-parser-buffer parser)))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (when pimacs--markdown-render-session
+          (setf (pimacs--markdown-render-session-changed-ranges
+                 pimacs--markdown-render-session)
+                ranges))))))
+
+(defun pimacs--markdown-clear-checkpoints (checkpoints)
+  (dolist (checkpoint checkpoints)
+    (set-marker (pimacs--markdown-render-checkpoint-marker checkpoint) nil)))
+
+(defun pimacs--markdown-cleanup-session (session)
+  (when pimacs-markdown-incremental-render-debug
+    (pimacs--markdown-debug-log
+     session :event :destroy
+     :checkpoints (pimacs--markdown-debug-checkpoints session)))
+  (pimacs--markdown-clear-checkpoints
+   (pimacs--markdown-render-session-checkpoints session))
+  (setf (pimacs--markdown-render-session-checkpoints session) nil
+        (pimacs--markdown-render-session-changed-ranges session) nil
+        (pimacs--markdown-render-session-reference-definitions session) nil
+        (pimacs--markdown-render-session-rendered-length session) 0
+        (pimacs--markdown-render-session-update-number session) 0
+        (pimacs--markdown-render-session-debug-output session) nil)
+  (when-let ((parser (pimacs--markdown-render-session-parser session)))
+    (ignore-errors
+      (treesit-parser-remove-notifier parser #'pimacs--markdown-parser-notifier))
+    (ignore-errors (treesit-parser-delete parser))
+    (setf (pimacs--markdown-render-session-parser session) nil))
+  (when-let ((buffer (pimacs--markdown-render-session-buffer session)))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (setq pimacs--markdown-render-session nil))
+      (kill-buffer buffer))
+    (setf (pimacs--markdown-render-session-buffer session) nil)))
+
+(defun pimacs--markdown-initialize-render-session (session)
+  (unless (pimacs--markdown-render-session-buffer session)
+    (let ((buffer (generate-new-buffer " *pimacs-markdown-source*")))
+      (setf (pimacs--markdown-render-session-buffer session) buffer)
+      (condition-case error
+          (with-current-buffer buffer
+            (setq-local pimacs--markdown-render-session session)
+            (let ((parser (pimacs--markdown-create-parser 'markdown)))
+              (setf (pimacs--markdown-render-session-parser session) parser)
+              (treesit-parser-add-notifier parser #'pimacs--markdown-parser-notifier)))
+        (error
+         (pimacs--markdown-cleanup-session session)
+         (signal (car error) (cdr error))))))
+  session)
+
+(defun pimacs--markdown-coalesce-ranges (ranges)
+  (let ((ranges (sort (cl-remove-if-not
+                       (lambda (range)
+                         (and (consp range) (integerp (car range))
+                              (integerp (cdr range)) (<= (car range) (cdr range))))
+                       (copy-sequence ranges))
+                      (lambda (left right) (< (car left) (car right)))))
+        result)
+    (dolist (range ranges)
+      (if (and result (<= (car range) (cdr (car result))))
+          (setcdr (car result) (max (cdr (car result)) (cdr range)))
+        (push (cons (car range) (cdr range)) result)))
+    (nreverse result)))
+
+(defun pimacs--markdown-safe-boundary (node document-start)
+  (let (candidate)
+    (while node
+      (let ((type (treesit-node-type node))
+            (parent (treesit-node-parent node)))
+        (cond
+         ((string= type "link_reference_definition")
+          (setq candidate document-start node nil))
+         ((member type '("pipe_table" "list" "block_quote" "fenced_code_block"))
+          (setq candidate (treesit-node-start node) node nil))
+         ((and (null candidate)
+               (member type '("paragraph" "atx_heading" "section" "html_block"
+                              "indented_code_block" "thematic_break")))
+          (setq candidate (treesit-node-start node)))
+         ((and (null candidate) parent
+               (string= (treesit-node-type parent) "document"))
+          (setq candidate (treesit-node-start node))))
+        (setq node (and node (treesit-node-parent node)))))
+    candidate))
+
+(defun pimacs--markdown-range-boundary (range parser document-start)
+  (let* ((start (max document-start (car range)))
+         (end (max document-start (1- (cdr range))))
+         (end (min (point-max) end))
+         (start (min (point-max) start))
+         (start-node (treesit-node-at start parser t))
+         (end-node (treesit-node-at end parser t))
+         (start-boundary (and start-node
+                              (pimacs--markdown-safe-boundary start-node document-start)))
+         (end-boundary (and end-node
+                            (pimacs--markdown-safe-boundary end-node document-start))))
+    (cond
+     ((and start-boundary end-boundary) (min start-boundary end-boundary))
+     (start-boundary start-boundary)
+     (end-boundary end-boundary)
+     (t document-start))))
+
+(defun pimacs--markdown-checkpoint-before (session position)
+  (let (result)
+    (dolist (checkpoint (pimacs--markdown-render-session-checkpoints session))
+      (let ((marker (pimacs--markdown-render-checkpoint-marker checkpoint)))
+        (when (and (eq (marker-buffer marker)
+                       (pimacs--markdown-render-session-buffer session))
+                   (integerp (marker-position marker))
+                   (<= (marker-position marker) position))
+          (setq result checkpoint))))
+    result))
+
+(defun pimacs--markdown-checkpoint-markers-valid-p (session)
+  (let ((length (pimacs--markdown-render-session-rendered-length session))
+        (buffer (pimacs--markdown-render-session-buffer session))
+        previous-position
+        previous-offset)
+    (cl-every (lambda (checkpoint)
+                (let ((marker (pimacs--markdown-render-checkpoint-marker checkpoint))
+                      (offset (pimacs--markdown-render-checkpoint-output-offset checkpoint)))
+                  (and (eq (marker-buffer marker) buffer)
+                       (integerp (marker-position marker))
+                       (<= (point-min) (marker-position marker) (point-max))
+                       (integerp offset)
+                       (<= 0 offset length)
+                       (or (null previous-position)
+                           (<= previous-position (marker-position marker)))
+                       (or (null previous-offset) (<= previous-offset offset))
+                       (setq previous-position (marker-position marker)
+                             previous-offset offset))))
+              (pimacs--markdown-render-session-checkpoints session))))
+
+(defun pimacs--markdown-checkpoint-valid-p (session root checkpoint)
+  (let ((marker (pimacs--markdown-render-checkpoint-marker checkpoint))
+        (offset (pimacs--markdown-render-checkpoint-output-offset checkpoint))
+        (type (pimacs--markdown-render-checkpoint-type checkpoint)))
+    (and (eq (marker-buffer marker) (pimacs--markdown-render-session-buffer session))
+         (integerp (marker-position marker))
+         (integerp offset)
+         (<= 0 offset (pimacs--markdown-render-session-rendered-length session))
+         (or (and (string= type "document")
+                  (= (marker-position marker) (point-min)))
+             (cl-find-if
+              (lambda (node)
+                (and (= (treesit-node-start node) (marker-position marker))
+                     (string= (treesit-node-type node) type)))
+              (pimacs--markdown-node-children root))
+             (cl-loop for section in (pimacs--markdown-node-children root)
+                      thereis
+                      (and (string= (treesit-node-type section) "section")
+                           (cl-find-if
+                            (lambda (node)
+                              (and (= (treesit-node-start node)
+                                      (marker-position marker))
+                                   (string= (treesit-node-type node) type)))
+                            (pimacs--markdown-node-children section))))))))
+
+(defun pimacs--markdown-make-render-checkpoint (node output-offset)
+  (make-pimacs--markdown-render-checkpoint
+   :marker (copy-marker (treesit-node-start node))
+   :output-offset output-offset
+   :type (treesit-node-type node)))
+
+(defun pimacs--markdown-render-section-suffix (section start context output-offset)
+  (let ((position (max start (treesit-node-start section)))
+        (length 0)
+        checkpoints
+        chunks)
+    (cl-labels ((append-text (text)
+                  (push text chunks)
+                  (cl-incf length (length text))))
+      (dolist (child (pimacs--markdown-node-children section))
+        (when (> (treesit-node-end child) start)
+          (when (< (treesit-node-start child) start)
+            (error "Markdown checkpoint is not at a section block boundary"))
+          (append-text
+           (buffer-substring-no-properties position (treesit-node-start child)))
+          (unless (= (treesit-node-start child) (treesit-node-start section))
+            (push (pimacs--markdown-make-render-checkpoint
+                   child (+ output-offset length))
+                  checkpoints))
+          (append-text (pimacs--markdown-render-block-node child context))
+          (setq position (treesit-node-end child))))
+      (append-text
+       (buffer-substring-no-properties position (treesit-node-end section)))
+      (list (apply #'concat (nreverse chunks)) (nreverse checkpoints)))))
+
+(defun pimacs--markdown-render-top-level (session root start output-offset)
+  (let* ((inline-state (make-pimacs--markdown-inline-parser-state :depth 0))
+         (context (make-pimacs--markdown-render-context
+                   :reference-definitions
+                   (pimacs--markdown-render-session-reference-definitions session)
+                   :list-depth 0 :list-index nil :inline-parser-state inline-state))
+         (position start)
+         (length 0)
+         checkpoints
+         chunks)
+    (cl-labels ((append-text (text)
+                  (push text chunks)
+                  (cl-incf length (length text)))
+                (render-node (node)
+                  (if (string= (treesit-node-type node) "section")
+                      (pcase-let ((`(,rendered ,section-checkpoints)
+                                   (pimacs--markdown-render-section-suffix
+                                    node start context (+ output-offset length))))
+                        (append-text rendered)
+                        (dolist (checkpoint section-checkpoints)
+                          (push checkpoint checkpoints)))
+                    (append-text
+                     (pimacs--markdown-render-block-node node context)))
+                  (setq position (treesit-node-end node))))
+      (unwind-protect
+          (progn
+            (dolist (node (pimacs--markdown-node-children root))
+              (when (> (treesit-node-end node) start)
+                (cond
+                 ((>= (treesit-node-start node) start)
+                  (append-text
+                   (buffer-substring-no-properties position
+                                                   (treesit-node-start node)))
+                  (push (pimacs--markdown-make-render-checkpoint
+                         node (+ output-offset length))
+                        checkpoints)
+                  (render-node node))
+                 ((string= (treesit-node-type node) "section")
+                  (render-node node))
+                 (t
+                  (error "Markdown checkpoint is not at a top-level block boundary")))))
+            (append-text (buffer-substring-no-properties position (point-max)))
+            (list (apply #'concat (nreverse chunks)) (nreverse checkpoints)))
+        (pimacs--markdown-delete-inline-parser-pool inline-state)))))
+
+(defun pimacs--markdown-replace-rendered-suffix (session root checkpoint)
+  (let* ((start (marker-position
+                 (pimacs--markdown-render-checkpoint-marker checkpoint)))
+         (offset (pimacs--markdown-render-checkpoint-output-offset checkpoint))
+         (old-length (pimacs--markdown-render-session-rendered-length session)))
+    (unless (and start (<= 0 offset old-length))
+      (error "Invalid Markdown render checkpoint"))
+    (pcase-let ((`(,rendered ,checkpoints)
+                 (pimacs--markdown-render-top-level session root start offset)))
+      (let ((before (cl-remove-if
+                     (lambda (item)
+                       (>= (marker-position
+                            (pimacs--markdown-render-checkpoint-marker item))
+                           start))
+                     (pimacs--markdown-render-session-checkpoints session))))
+        (pimacs--markdown-clear-checkpoints
+         (cl-set-difference (pimacs--markdown-render-session-checkpoints session)
+                            before))
+        (setf (pimacs--markdown-render-session-checkpoints session)
+              (append before checkpoints)
+              (pimacs--markdown-render-session-rendered-length session)
+              (+ offset (length rendered)))
+        (list (- old-length offset) rendered)))))
+
+(defun pimacs--markdown-render-entire-session (session root)
+  (let* ((old-length (pimacs--markdown-render-session-rendered-length session))
+         (document-start (point-min))
+         (document-checkpoint
+          (make-pimacs--markdown-render-checkpoint
+           :marker (copy-marker document-start) :output-offset 0 :type "document")))
+    (pcase-let ((`(,rendered ,checkpoints)
+                 (pimacs--markdown-render-top-level
+                  session root document-start 0)))
+      (pimacs--markdown-clear-checkpoints
+       (pimacs--markdown-render-session-checkpoints session))
+      (setf (pimacs--markdown-render-session-checkpoints session)
+            (cons document-checkpoint checkpoints)
+            (pimacs--markdown-render-session-rendered-length session)
+            (length rendered))
+      (list old-length rendered))))
+
+(defun pimacs--markdown-operations (delete-length rendered)
+  (append (unless (zerop delete-length) (list (list :delete delete-length)))
+          (unless (string-empty-p rendered)
+            (list (list :append rendered
+                        :after-insert #'pimacs--markdown-apply-url-widgets)))))
+
+(defun pimacs--markdown-checkpoint-debug-details (checkpoint)
+  (and checkpoint
+       (list :source-position
+             (marker-position
+              (pimacs--markdown-render-checkpoint-marker checkpoint))
+             :output-offset
+             (pimacs--markdown-render-checkpoint-output-offset checkpoint)
+             :type (pimacs--markdown-render-checkpoint-type checkpoint))))
+
+(defun pimacs--markdown-incremental-render-plan
+    (session root raw-ranges references-changed edit-position)
+  (let* ((ranges (pimacs--markdown-coalesce-ranges raw-ranges))
+         (boundary-positions
+          (mapcar (lambda (range)
+                    (pimacs--markdown-range-boundary range (pimacs--markdown-render-session-parser session)
+                                                     (point-min)))
+                  ranges))
+         (restart (if references-changed
+                      (point-min)
+                    (if boundary-positions
+                        (apply #'min boundary-positions)
+                      edit-position)))
+         (checkpoint (pimacs--markdown-checkpoint-before session restart))
+         checkpoint-valid
+         (fallback-reason
+          (cond
+           (references-changed :reference-definitions-changed)
+           ((null checkpoint) :no-checkpoint)
+           ((= restart (point-min)) :document-start)
+           ((not (pimacs--markdown-checkpoint-markers-valid-p session))
+            :invalid-checkpoint-set)
+           ((not (setq checkpoint-valid
+                       (and checkpoint
+                            (not (null
+                                  (pimacs--markdown-checkpoint-valid-p
+                                   session root checkpoint))))))
+            :invalid-checkpoint)
+           (t nil))))
+    (list :ranges ranges
+          :boundaries (cl-mapcar #'cons ranges boundary-positions)
+          :restart restart
+          :checkpoint checkpoint
+          :checkpoint-valid checkpoint-valid
+          :checkpoint-details
+          (pimacs--markdown-checkpoint-debug-details checkpoint)
+          :fallback-reason fallback-reason
+          :checkpoints-before (pimacs--markdown-debug-checkpoints session))))
+
+(defun pimacs--markdown-update-debug-output (session replacement)
+  (let* ((delete-length (nth 0 replacement))
+         (previous-output (pimacs--markdown-render-session-debug-output session))
+         (output-valid-p (and previous-output
+                              (<= delete-length (length previous-output))))
+         (prefix (if output-valid-p
+                     (substring previous-output 0
+                                (- (length previous-output) delete-length))
+                   "")))
+    (setf (pimacs--markdown-render-session-debug-output session)
+          (concat prefix (nth 1 replacement)))
+    (if output-valid-p
+        (substring-no-properties
+         (substring previous-output (- (length previous-output) delete-length)))
+      "<unavailable>")))
+
+(defun pimacs--markdown-log-stream-update
+    (session text edit-position raw-ranges plan replacement)
+  (when pimacs-markdown-incremental-render-debug
+    (let ((checkpoint (plist-get plan :checkpoint))
+          (fallback-reason (plist-get plan :fallback-reason)))
+      (pimacs--markdown-debug-log
+       session
+       :event :stream
+       :source-length (point-max)
+       :delta-length (length text)
+       :delta-text (substring-no-properties text)
+       :edit-position edit-position
+       :changed-ranges raw-ranges
+       :coalesced-ranges (plist-get plan :ranges)
+       :boundaries (plist-get plan :boundaries)
+       :restart-position (plist-get plan :restart)
+       :checkpoint (plist-get plan :checkpoint-details)
+       :checkpoint-valid (plist-get plan :checkpoint-valid)
+       :fallback-reason fallback-reason
+       :overwritten-level
+       (if fallback-reason
+           :document
+         (and checkpoint
+              (pimacs--markdown-render-checkpoint-type checkpoint)))
+       :delete-length (nth 0 replacement)
+       :deleted-text (pimacs--markdown-update-debug-output session replacement)
+       :append-length (length (nth 1 replacement))
+       :append-text (substring-no-properties (nth 1 replacement))
+       :rendered-length
+       (pimacs--markdown-render-session-rendered-length session)
+       :checkpoints-before (plist-get plan :checkpoints-before)
+       :checkpoints-after (pimacs--markdown-debug-checkpoints session)))))
+
+(defun pimacs--markdown-render-streaming (session text)
+  (let* ((session (pimacs--markdown-initialize-render-session session))
+         (buffer (pimacs--markdown-render-session-buffer session))
+         (parser (pimacs--markdown-render-session-parser session)))
+    (condition-case error
+        (with-current-buffer buffer
+          (unless (and (buffer-live-p buffer) parser)
+            (error "Markdown render session is no longer usable"))
+          (when pimacs-markdown-incremental-render-debug
+            (cl-incf (pimacs--markdown-render-session-update-number session)))
+          (setf (pimacs--markdown-render-session-changed-ranges session) nil)
+          (goto-char (point-max))
+          (let ((edit-position (point)))
+            (insert text)
+            (let* ((root (treesit-parser-root-node parser))
+                   (raw-ranges
+                    (pimacs--markdown-render-session-changed-ranges session))
+                   (definitions (pimacs--markdown-reference-definitions root))
+                   (references-changed
+                    (not (equal definitions
+                                (pimacs--markdown-render-session-reference-definitions
+                                 session))))
+                   (plan (pimacs--markdown-incremental-render-plan
+                          session root raw-ranges references-changed edit-position)))
+              (setf (pimacs--markdown-render-session-changed-ranges session) nil
+                    (pimacs--markdown-render-session-reference-definitions session)
+                    definitions)
+              (let* ((fallback-reason (plist-get plan :fallback-reason))
+                     (checkpoint (plist-get plan :checkpoint))
+                     (replacement
+                      (if fallback-reason
+                          (pimacs--markdown-render-entire-session session root)
+                        (pimacs--markdown-replace-rendered-suffix
+                         session root checkpoint))))
+                (pimacs--markdown-log-stream-update
+                 session text edit-position raw-ranges plan replacement)
+                (pimacs--markdown-operations
+                 (nth 0 replacement) (nth 1 replacement))))))
+      (error
+       (pimacs--markdown-cleanup-session session)
+       (signal (car error) (cdr error))))))
 
 (defface pimacs-markdown-heading-face
   '((t :inherit font-lock-function-name-face :weight bold))
@@ -834,9 +1306,88 @@
 (defun pimacs--markdown-render-source (text)
   (pimacs--markdown-parse-source text #'pimacs--markdown-render-block-node))
 
-(defun pimacs--render-markdown-experimental (_context text streaming)
-  (list (list :append
-              (if streaming text (pimacs--markdown-render-source text)))))
+(defun pimacs--markdown-relative-link-p (url)
+  (and (not (string-match-p "\\`[[:alpha:]][[:alnum:]+.-]*:" url))
+       (not (string-prefix-p "//" url))
+       (not (string-prefix-p "#" url))))
+
+(defun pimacs--markdown-apply-url-widgets (start end _data)
+  (let ((position start))
+    (while (< position end)
+      (let ((next (next-single-property-change
+                   position 'pimacs-markdown-link-url nil end)))
+        (when-let ((url (get-text-property position 'pimacs-markdown-link-url)))
+          (let ((relative (pimacs--markdown-relative-link-p url)))
+            (widget-convert-button (if relative 'file-link 'url-link) position next
+                                   :value (if relative
+                                              (expand-file-name url (pimacs--project-root))
+                                            url)
+                                   :suppress-face t
+                                   :help-echo url)))
+        (setq position next)))))
+
+(defun pimacs--thinking-markdown-face (face)
+  (let ((faces (if (listp face) face (list face)))
+        attributes)
+    (when (cl-intersection faces '(pimacs-markdown-heading-face
+                                   pimacs-markdown-bold-face))
+      (setq attributes (plist-put attributes :weight 'bold)))
+    (when (memq 'pimacs-markdown-italic-face faces)
+      (setq attributes (plist-put attributes :slant 'italic)))
+    (when (memq 'pimacs-markdown-strike-through-face faces)
+      (setq attributes (plist-put attributes :strike-through t)))
+    (when (cl-intersection faces '(pimacs-markdown-inline-code-face
+                                   pimacs-markdown-equation-face
+                                   pimacs-markdown-code-block-face
+                                   pimacs-markdown-table-header-face
+                                   pimacs-markdown-table-border-face))
+      (setq attributes (plist-put attributes :inherit 'fixed-pitch)))
+    (when (memq 'pimacs-markdown-link-face faces)
+      (setq attributes (plist-put attributes :underline t)))
+    (if attributes
+        (list attributes 'pimacs-thinking-face)
+      'pimacs-thinking-face)))
+
+(defun pimacs--thinking-markdown-string (text)
+  (let ((result (copy-sequence text))
+        (start 0)
+        (end (length text)))
+    (while (< start end)
+      (let ((next (next-single-property-change start 'face text end)))
+        (put-text-property start next 'face
+                           (pimacs--thinking-markdown-face
+                            (get-text-property start 'face text))
+                           result)
+        (setq start next)))
+    result))
+
+(defun pimacs--render-thinking-markdown (operation &optional state text)
+  (if (memq operation '(:stream :final))
+      (mapcar
+       (lambda (render-operation)
+         (if (eq (car-safe render-operation) :append)
+             (cons :append
+                   (cons (pimacs--thinking-markdown-string (cadr render-operation))
+                         (cddr render-operation)))
+           render-operation))
+       (pimacs--render-markdown-experimental operation state text))
+    (pimacs--render-markdown-experimental operation state text)))
+
+(defun pimacs--render-markdown-experimental (operation &optional state text)
+  (pcase operation
+    (:create
+     (make-pimacs--markdown-render-session
+      :checkpoints nil :changed-ranges nil :reference-definitions nil
+      :rendered-length 0 :update-number 0))
+    (:stream
+     (pimacs--markdown-render-streaming state text))
+    (:final
+     (unwind-protect
+         (list (list :append (pimacs--markdown-render-source text)
+                     :after-insert #'pimacs--markdown-apply-url-widgets))
+       (pimacs--markdown-cleanup-session state)))
+    (:destroy
+     (pimacs--markdown-cleanup-session state))))
 
 (provide 'pimacs-markdown)
 

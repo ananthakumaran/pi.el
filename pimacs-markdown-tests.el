@@ -32,15 +32,22 @@
       (setq index (1+ index)))
     result))
 
+(defun pimacs-markdown-tests--render-final (input)
+  (let ((state (pimacs--render-markdown-experimental :create)))
+    (unwind-protect
+        (pimacs--render-markdown-experimental :final state input)
+      (pimacs--render-markdown-experimental :destroy state))))
+
 (defun pimacs-markdown-tests--render-complete (input)
   (with-temp-buffer
-    (let ((context (pimacs--markdown-create-context)))
-      (pimacs--markdown-apply-operations
+    (let ((context (pimacs--render-create-context))
+          (state (pimacs--render-markdown-experimental :create)))
+      (pimacs--render-apply-operations
        context
-       (pimacs--render-markdown-experimental context input nil))
+       (pimacs--render-markdown-experimental :final state input))
       (pimacs-markdown-tests--face-only
-       (buffer-substring (pimacs-markdown-context-content-begin context)
-                         (pimacs-markdown-context-content-end context))))))
+       (buffer-substring (pimacs-render-context-content-begin context)
+                         (pimacs-render-context-content-end context))))))
 
 (defun pimacs-markdown-tests--read-file (file)
   (with-temp-buffer
@@ -188,32 +195,114 @@
                        (pimacs-markdown-tests--format-tape
                         (pimacs-markdown-tests--render-complete input))))))))
 
-(ert-deftest pimacs-markdown-streaming-appends-source-text ()
-  (should (equal (pimacs--render-markdown-experimental nil "**Pimacs**" t)
-                 '((:append "**Pimacs**")))))
+(ert-deftest pimacs-markdown-streaming-fuzz-matches-full-render ()
+  (let ((random-state (cl-make-random-state t)))
+    (cl-labels ((next-chunk-size ()
+                  (1+ (cl-random 64 random-state))))
+      (dolist (tape (pimacs-markdown-tests--tapes))
+        (pcase-let ((`(,input-file ,source . ,_) tape))
+          (ert-info ((format "Markdown streaming fuzz: %s" input-file))
+            (let ((state (pimacs--render-markdown-experimental :create))
+                  (position 0)
+                  (output ""))
+              (unwind-protect
+                  (progn
+                    (while (< position (length source))
+                      (let ((end (min (length source)
+                                      (+ position (next-chunk-size)))))
+                        (dolist (operation
+                                 (pimacs--render-markdown-experimental
+                                  :stream state (substring source position end)))
+                          (pcase operation
+                            (`(:delete ,count)
+                             (setq output (substring output 0 (- count))))
+                            (`(:append ,text . ,_)
+                             (setq output (concat output text)))))
+                        (setq position end)))
+                    (should (equal output (pimacs--markdown-render-source source))))
+                (pimacs--render-markdown-experimental :destroy state)))))))))
+
+(ert-deftest pimacs-markdown-streaming-renders-source ()
+  (with-temp-buffer
+    (let ((state (pimacs--render-markdown-experimental :create)))
+      (unwind-protect
+          (let ((operations
+                 (pimacs--render-markdown-experimental :stream state "**Pimacs**")))
+            (should (equal (substring-no-properties
+                            (plist-get (car operations) :append))
+                           "Pimacs"))
+            (should (pimacs--markdown-render-session-parser state)))
+        (pimacs--render-markdown-experimental :destroy state)))))
+
+(ert-deftest pimacs-markdown-streaming-replaces-affected-suffix ()
+  (with-temp-buffer
+    (let ((context (pimacs--render-create-context))
+          (state (pimacs--render-markdown-experimental :create)))
+      (unwind-protect
+          (progn
+            (dolist (delta '("# Heading\n\nParagraph " "with **bold** text"))
+              (pimacs--render-apply-operations
+               context (pimacs--render-markdown-experimental :stream state delta)))
+            (should (equal (buffer-substring-no-properties
+                            (pimacs-render-context-content-begin context)
+                            (pimacs-render-context-content-end context))
+                           "Heading\n\nParagraph with bold text")))
+        (pimacs--render-markdown-experimental :destroy state)))))
+
+(ert-deftest pimacs-markdown-streaming-checkpoints-section-blocks ()
+  (let ((state (pimacs--render-markdown-experimental :create)))
+    (unwind-protect
+        (progn
+          (pimacs--render-markdown-experimental
+           :stream state "# Section\n\nPrefix paragraph.\n\n> Final")
+          (should (cl-find "block_quote"
+                           (pimacs--markdown-render-session-checkpoints state)
+                           :key #'pimacs--markdown-render-checkpoint-type
+                           :test #'string=))
+          (let* ((operations
+                  (pimacs--render-markdown-experimental :stream state " blockquote"))
+                 (delete-operation (cl-find :delete operations :key #'car))
+                 (append-operation (cl-find :append operations :key #'car)))
+            (should (= (cadr delete-operation)
+                       (length (pimacs--markdown-render-source "> Final"))))
+            (should (equal (cadr append-operation)
+                           (pimacs--markdown-render-source "> Final blockquote")))))
+      (pimacs--render-markdown-experimental :destroy state))))
+
+(ert-deftest pimacs-markdown-final-render-cleans-streaming-session ()
+  (with-temp-buffer
+    (let ((state (pimacs--render-markdown-experimental :create)))
+      (pimacs--render-markdown-experimental :stream state "partial")
+      (let ((operations
+             (pimacs--render-markdown-experimental :final state "**final**")))
+        (should (equal (substring-no-properties
+                        (plist-get (car operations) :append))
+                       "final"))
+        (should-not (cdr operations))
+        (should-not (pimacs--markdown-render-session-buffer state))))))
 
 (ert-deftest pimacs-markdown-image-label-has-image-url ()
   (with-temp-buffer
-    (let ((context (pimacs--markdown-create-context)))
-      (pimacs--markdown-apply-operations
+    (let ((context (pimacs--render-create-context)))
+      (pimacs--render-apply-operations
        context
-       (pimacs--render-markdown-experimental
-        context "![Pimacs](https://example.com/pimacs.png)" nil))
-      (let ((output (buffer-substring (pimacs-markdown-context-content-begin context)
-                                      (pimacs-markdown-context-content-end context))))
+       (pimacs-markdown-tests--render-final
+        "![Pimacs](https://example.com/pimacs.png)"))
+      (let ((output (buffer-substring (pimacs-render-context-content-begin context)
+                                      (pimacs-render-context-content-end context))))
         (should (equal (substring-no-properties output) "Pimacs"))
         (should (equal (get-text-property 0 'pimacs-markdown-image-url output)
                        "https://example.com/pimacs.png"))))))
 
 (ert-deftest pimacs-markdown-links-use-url-link-widgets ()
   (with-temp-buffer
-    (let ((context (pimacs--markdown-create-context)))
-      (pimacs--markdown-apply-operations
+    (let ((context (pimacs--render-create-context)))
+      (pimacs--render-apply-operations
        context
-       (pimacs--render-markdown-experimental
-        context "[Pimacs](https://example.com)" nil))
+       (pimacs-markdown-tests--render-final
+        "[Pimacs](https://example.com)"))
       (let ((widget (get-char-property
-                     (pimacs-markdown-context-content-begin context) 'button)))
+                     (pimacs-render-context-content-begin context) 'button)))
         (should (eq (car widget) 'url-link))
         (should (equal (widget-value widget) "https://example.com"))
         (should (eq (widget-get widget :action) 'widget-url-link-action))))))
@@ -221,28 +310,26 @@
 (ert-deftest pimacs-markdown-relative-links-use-file-link-widgets ()
   (with-temp-buffer
     (let ((pimacs--project-root "/tmp/pimacs-markdown-project/")
-          (context (pimacs--markdown-create-context)))
-      (pimacs--markdown-apply-operations
+          (context (pimacs--render-create-context)))
+      (pimacs--render-apply-operations
        context
-       (pimacs--render-markdown-experimental
-        context "[Relative link](../README.md)" nil))
+       (pimacs-markdown-tests--render-final
+        "[Relative link](../README.md)"))
       (let ((widget (get-char-property
-                     (pimacs-markdown-context-content-begin context) 'button)))
+                     (pimacs-render-context-content-begin context) 'button)))
         (should (eq (car widget) 'file-link))
         (should (equal (widget-value widget) "/tmp/README.md"))
         (should (eq (widget-get widget :action) 'widget-file-link-action))))))
 
 (ert-deftest pimacs-markdown-linked-image-preserves-both-urls ()
   (with-temp-buffer
-    (let ((context (pimacs--markdown-create-context)))
-      (pimacs--markdown-apply-operations
+    (let ((context (pimacs--render-create-context)))
+      (pimacs--render-apply-operations
        context
-       (pimacs--render-markdown-experimental
-        context
-        "[![Alt text](https://via.placeholder.com/100x50)](https://example.com)"
-        nil))
-      (let ((output (buffer-substring (pimacs-markdown-context-content-begin context)
-                                      (pimacs-markdown-context-content-end context))))
+       (pimacs-markdown-tests--render-final
+        "[![Alt text](https://via.placeholder.com/100x50)](https://example.com)"))
+      (let ((output (buffer-substring (pimacs-render-context-content-begin context)
+                                      (pimacs-render-context-content-end context))))
         (should (equal (substring-no-properties output) "Alt text"))
         (should (equal (get-text-property 0 'pimacs-markdown-image-url output)
                        "https://via.placeholder.com/100x50"))
@@ -286,10 +373,14 @@
                        (format "%.10f" (aref result 2))))))))
 
 (defun pimacs-markdown-profile-run ()
+  (require 'pimacs-markdown)
   (elp-instrument-package "pimacs--markdown-")
   (let (stats)
     (unwind-protect
-        (setq stats (ert-run-tests-batch "pimacs-markdown"))
+        (setq stats
+              (ert-run-tests-batch
+               '(or "pimacs-markdown"
+                    pimacs-markdown-streaming-fuzz-matches-full-render)))
       (pimacs-markdown-profile-results)
       (elp-restore-all))
     (kill-emacs (if (zerop (ert-stats-completed-unexpected stats)) 0 1))))

@@ -177,26 +177,31 @@ PRED is called with KEY VALUE."
         (markdown-table-align)
         (goto-char (markdown-table-end))))))
 
-(defun pimacs--render-markdown-with-markdown-mode (text streaming)
-  (if streaming
-      text
-    (with-temp-buffer
-      (insert text)
-      (let ((inhibit-message t))
-        (ignore-errors
-          (delay-mode-hooks
-            (gfm-view-mode))
-          (when pimacs-align-markdown-tables
-            (condition-case nil
-                (let ((inhibit-read-only t))
-                  (pimacs--align-markdown-tables))
-              (error nil)))
-          (font-lock-ensure))
-        (buffer-string)))))
+(defun pimacs--render-markdown-with-markdown-mode (text)
+  (with-temp-buffer
+    (insert text)
+    (let ((inhibit-message t))
+      (ignore-errors
+        (delay-mode-hooks
+          (gfm-view-mode))
+        (when pimacs-align-markdown-tables
+          (condition-case nil
+              (let ((inhibit-read-only t))
+                (pimacs--align-markdown-tables))
+            (error nil)))
+        (font-lock-ensure)))
+    (buffer-string)))
 
-(defun pimacs--render-markdown-default (_context text streaming)
-  (list (list :append
-              (pimacs--render-markdown-with-markdown-mode text streaming))))
+(defun pimacs--render-markdown-default (operation &optional _state text)
+  (pcase operation
+    (:create nil)
+    (:stream
+     (list (list :append
+                 (pimacs--render-markdown-with-markdown-mode text))))
+    (:final
+     (list (list :append
+                 (pimacs--render-markdown-with-markdown-mode text))))
+    (:destroy nil)))
 
 (defun pimacs--render-content (filename content)
   (with-temp-buffer

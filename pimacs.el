@@ -51,7 +51,8 @@
 
 (require 'pimacs-core)
 (require 'pimacs-utils)
-(require 'pimacs-markdown)
+(autoload 'pimacs--render-markdown-experimental "pimacs-markdown")
+(autoload 'pimacs--render-thinking-markdown "pimacs-markdown")
 (require 'pimacs-section)
 (require 'pimacs-edit)
 (require 'pimacs-agent)
@@ -165,8 +166,10 @@ when agent stops."
 (defcustom pimacs-markdown-renderer #'pimacs--render-markdown-default
   "Function used to render Markdown content.
 
-It receives CONTEXT, Markdown TEXT, and a non-nil STREAMING flag for text
-deltas.  It must return a list of `:append' and `:delete' operations.
+Pi calls it as `(RENDERER :create)', `(RENDERER :stream STATE TEXT)',
+`(RENDERER :final STATE TEXT)', and `(RENDERER :destroy STATE)'.  `:create'
+returns opaque renderer state.  `:stream' and `:final' return `:append' and
+`:delete' operations.  `:destroy' releases resources.
 
 The default preserves the existing `markdown-mode' renderer.  Set this to
 `pimacs--render-markdown-experimental' to opt into the experimental renderer."
@@ -176,8 +179,8 @@ The default preserves the existing `markdown-mode' renderer.  Set this to
 (defcustom pimacs-thinking-renderer #'pimacs--render-thinking-default
   "Function used to render assistant thinking content.
 
-It receives CONTEXT, thinking TEXT, and a non-nil STREAMING flag for text
-deltas.  It must return a list of `:append' and `:delete' operations.
+It implements the same `:create', `:stream', `:final', and `:destroy'
+renderer protocol as `pimacs-markdown-renderer'.
 
 The default preserves the legacy, dimmed plain-text rendering.  Set this to
 `pimacs--render-thinking-markdown' to render thinking as Markdown."
@@ -353,134 +356,134 @@ with the message plist to insert the custom message content."
   call-section result-section prev-text tool-name args)
 
 (cl-defstruct pimacs-content-section
-  section markdown-context)
+  section content)
 
-(defun pimacs--markdown-create-context ()
+(cl-defstruct pimacs--renderer-session
+  renderer
+  state
+  destroyed)
+
+(cl-defstruct pimacs--rendered-content
+  context
+  renderer-session)
+
+(cl-defstruct pimacs-render-context
+  content-begin
+  content-end
+  rendered-length)
+
+(defun pimacs--render-create-context ()
   (let ((content-begin (point-marker))
         (content-end (point-marker)))
-    (make-pimacs-markdown-context
+    (make-pimacs-render-context
      :content-begin content-begin
      :content-end content-end
      :rendered-length 0)))
 
-(defun pimacs--markdown-relative-link-p (url)
-  (and (not (string-match-p "\\`[[:alpha:]][[:alnum:]+.-]*:" url))
-       (not (string-prefix-p "//" url))
-       (not (string-prefix-p "#" url))))
-
-(defun pimacs--markdown-apply-url-widgets (start end)
-  (let ((position start))
-    (while (< position end)
-      (let ((next (next-single-property-change
-                   position 'pimacs-markdown-link-url nil end)))
-        (when-let ((url (get-text-property position 'pimacs-markdown-link-url)))
-          (let ((relative (pimacs--markdown-relative-link-p url)))
-            (widget-convert-button (if relative 'file-link 'url-link) position next
-                                   :value (if relative
-                                              (expand-file-name url (pimacs--project-root))
-                                            url)
-                                   :suppress-face t
-                                   :help-echo url)))
-        (setq position next)))))
-
-(defun pimacs--markdown-apply-operations (context operations)
+(defun pimacs--render-apply-operations (context operations)
   (dolist (operation operations)
     (pcase operation
-      (`(:append ,text)
+      (`(:append ,text . ,_)
        (unless (stringp text)
-         (error "Markdown append operation requires a string: %S" operation))
-       (goto-char (pimacs-markdown-context-content-end context))
-       (let ((start (point)))
+         (error "Renderer append operation requires a string: %S" operation))
+       (goto-char (pimacs-render-context-content-end context))
+       (let ((start (point))
+             (buffer (current-buffer))
+             (after-insert (plist-get (cddr operation) :after-insert))
+             (data (plist-get (cddr operation) :data)))
          (insert text)
-         (pimacs--markdown-apply-url-widgets start (point)))
-       (set-marker (pimacs-markdown-context-content-end context) (point))
-       (cl-incf (pimacs-markdown-context-rendered-length context) (length text)))
+         (set-marker (pimacs-render-context-content-end context) (point))
+         (cl-incf (pimacs-render-context-rendered-length context) (length text))
+         (when after-insert
+           (unless (and (symbolp after-insert) (fboundp after-insert))
+             (error "Renderer after-insert hook must be a function symbol: %S" operation))
+           (let ((size (buffer-size)))
+             (with-current-buffer buffer
+               (funcall after-insert start (point) data))
+             (unless (= size (buffer-size))
+               (error "Renderer after-insert hook modified the buffer: %S" operation))))))
       (`(:delete ,count)
        (unless (and (integerp count) (>= count 0))
-         (error "Markdown delete operation requires a non-negative integer: %S" operation))
-       (let* ((content-begin (pimacs-markdown-context-content-begin context))
-              (content-end (pimacs-markdown-context-content-end context))
+         (error "Renderer delete operation requires a non-negative integer: %S" operation))
+       (let* ((content-begin (pimacs-render-context-content-begin context))
+              (content-end (pimacs-render-context-content-end context))
               (end-position (marker-position content-end)))
          (when (> count (- end-position (marker-position content-begin)))
-           (error "Markdown delete operation exceeds the content range: %S" operation))
+           (error "Renderer delete operation exceeds the content range: %S" operation))
          (delete-region (- end-position count) end-position)
          (set-marker content-end (- end-position count))
-         (cl-decf (pimacs-markdown-context-rendered-length context) count)))
+         (cl-decf (pimacs-render-context-rendered-length context) count)))
       (_
        (error "Unknown Markdown operation: %S" operation)))))
 
-(defun pimacs--markdown-insert (text streaming)
-  (let ((context (pimacs--markdown-create-context)))
-    (pimacs--markdown-apply-operations
+(defun pimacs--renderer-create (renderer)
+  (make-pimacs--renderer-session
+   :renderer renderer
+   :state (funcall renderer :create)
+   :destroyed nil))
+
+(defun pimacs--renderer-destroy (session)
+  (unless (pimacs--renderer-session-destroyed session)
+    (unwind-protect
+        (funcall (pimacs--renderer-session-renderer session)
+                 :destroy (pimacs--renderer-session-state session))
+      (setf (pimacs--renderer-session-state session) nil
+            (pimacs--renderer-session-destroyed session) t))))
+
+(defun pimacs--renderer-render (session text streaming)
+  (when (pimacs--renderer-session-destroyed session)
+    (error "Renderer session is already destroyed"))
+  (if streaming
+      (funcall (pimacs--renderer-session-renderer session)
+               :stream (pimacs--renderer-session-state session) text)
+    (unwind-protect
+        (funcall (pimacs--renderer-session-renderer session)
+                 :final (pimacs--renderer-session-state session) text)
+      (pimacs--renderer-destroy session))))
+
+(defun pimacs--render-create-content (renderer)
+  (make-pimacs--rendered-content
+   :context (pimacs--render-create-context)
+   :renderer-session (pimacs--renderer-create renderer)))
+
+(defun pimacs--render-insert (renderer text streaming)
+  (let* ((content (pimacs--render-create-content renderer))
+         (context (pimacs--rendered-content-context content)))
+    (pimacs--render-apply-operations
      context
-     (pimacs--render-markdown context text streaming))
-    context))
+     (pimacs--renderer-render
+      (pimacs--rendered-content-renderer-session content) text streaming))
+    content))
 
-(defun pimacs--markdown-clear-context (context)
-  (set-marker (pimacs-markdown-context-content-begin context) nil)
-  (set-marker (pimacs-markdown-context-content-end context) nil))
+(defun pimacs--render-clear-content (content)
+  (pimacs--renderer-destroy (pimacs--rendered-content-renderer-session content))
+  (let ((context (pimacs--rendered-content-context content)))
+    (set-marker (pimacs-render-context-content-begin context) nil)
+    (set-marker (pimacs-render-context-content-end context) nil)))
 
-(defun pimacs--render-markdown (context text streaming)
-  (funcall pimacs-markdown-renderer context text streaming))
+(defun pimacs--insert-rendered-content (operations)
+  (let ((context (pimacs--render-create-context)))
+    (unwind-protect
+        (pimacs--render-apply-operations context operations)
+      (set-marker (pimacs-render-context-content-begin context) nil)
+      (set-marker (pimacs-render-context-content-end context) nil))))
 
-(defun pimacs--thinking-markdown-face (face)
-  (let ((faces (if (listp face) face (list face)))
-        attributes)
-    (when (cl-intersection faces '(pimacs-markdown-heading-face
-                                   pimacs-markdown-bold-face))
-      (setq attributes (plist-put attributes :weight 'bold)))
-    (when (memq 'pimacs-markdown-italic-face faces)
-      (setq attributes (plist-put attributes :slant 'italic)))
-    (when (memq 'pimacs-markdown-strike-through-face faces)
-      (setq attributes (plist-put attributes :strike-through t)))
-    (when (cl-intersection faces '(pimacs-markdown-inline-code-face
-                                   pimacs-markdown-equation-face
-                                   pimacs-markdown-code-block-face
-                                   pimacs-markdown-table-header-face
-                                   pimacs-markdown-table-border-face))
-      (setq attributes (plist-put attributes :inherit 'fixed-pitch)))
-    (when (memq 'pimacs-markdown-link-face faces)
-      (setq attributes (plist-put attributes :underline t)))
-    (if attributes
-        (list attributes 'pimacs-thinking-face)
-      'pimacs-thinking-face)))
+(defun pimacs--render-content-update (content text streaming)
+  (pimacs--renderer-render
+   (pimacs--rendered-content-renderer-session content) text streaming))
 
-(defun pimacs--thinking-markdown-string (text)
-  (let ((result (copy-sequence text))
-        (start 0)
-        (end (length text)))
-    (while (< start end)
-      (let ((next (next-single-property-change start 'face text end)))
-        (put-text-property start next 'face
-                           (pimacs--thinking-markdown-face
-                            (get-text-property start 'face text))
-                           result)
-        (setq start next)))
-    result))
-
-(defun pimacs--render-thinking-default (_context text streaming)
-  (list (list :append
-              (propertize (if streaming text (pimacs--fill-string text))
-                          'face 'pimacs-thinking-face))))
-
-(defun pimacs--render-thinking-markdown (context text streaming)
-  (mapcar
-   (lambda (operation)
-     (pcase operation
-       (`(:append ,string)
-        (list :append (pimacs--thinking-markdown-string string)))
-       (_ operation)))
-   (pimacs--render-markdown-experimental context text streaming)))
-
-(defun pimacs--render-thinking (context text streaming)
-  (funcall pimacs-thinking-renderer context text streaming))
+(defun pimacs--render-thinking-default (operation &optional _state text)
+  (pcase operation
+    (:create nil)
+    (:stream
+     (list (list :append (propertize text 'face 'pimacs-thinking-face))))
+    (:final
+     (list (list :append
+                 (propertize (pimacs--fill-string text) 'face 'pimacs-thinking-face))))
+    (:destroy nil)))
 
 (defun pimacs--thinking-insert (text streaming)
-  (let ((context (pimacs--markdown-create-context)))
-    (pimacs--markdown-apply-operations
-     context
-     (pimacs--render-thinking context text streaming))
-    context))
+  (pimacs--render-insert pimacs-thinking-renderer text streaming))
 
 (pimacs--def-permanent-buffer-local pimacs--prompt-widget nil)
 (pimacs--def-permanent-buffer-local pimacs--attached-images (vector))
@@ -668,7 +671,7 @@ with the message plist to insert the custom message content."
   (pcase (plist-get item :type)
     ("text"
      (if markdown-p
-         (pimacs--markdown-insert (plist-get item :text) nil)
+         (pimacs--render-insert pimacs-markdown-renderer (plist-get item :text) nil)
        (insert (plist-get item :text))))
     ("image"
      (when-let ((image (pimacs--create-image item)))
@@ -752,7 +755,7 @@ with the message plist to insert the custom message content."
                         (pimacs--format-number-short tokens-before))))
     (pimacs-section--create-section 'compact pimacs-section--root-section
       (pimacs--insert-role-prefix "assistant")
-      (pimacs--markdown-insert (concat header summary) nil))))
+      (pimacs--render-insert pimacs-markdown-renderer (concat header summary) nil))))
 
 (defun pimacs--insert-session-info (name)
   (pimacs-section--create-section 'info pimacs-section--root-section
@@ -856,42 +859,38 @@ with the message plist to insert the custom message content."
          (pimacs--widget-save-excursion
            (if-let ((content-section (gethash content-index pimacs--content-sections)))
                (pimacs-section--append-section (pimacs-content-section-section content-section)
-                 (pimacs--markdown-apply-operations
-                  (pimacs-content-section-markdown-context content-section)
-                  (pimacs--render-thinking
-                   (pimacs-content-section-markdown-context content-section)
-                   delta
-                   t)))
+                 (let ((content (pimacs-content-section-content content-section)))
+                   (pimacs--render-apply-operations
+                    (pimacs--rendered-content-context content)
+                    (pimacs--render-content-update content delta t))))
              (let ((section (pimacs-section--new-section 'thinking pimacs-section--root-section))
-                   markdown-context)
+                   content)
                (pimacs-section--insert-section section
                  (pimacs--insert-role-prefix role)
-                 (setq markdown-context (pimacs--thinking-insert delta t)))
+                 (setq content (pimacs--thinking-insert delta t)))
                (puthash content-index
                         (make-pimacs-content-section
                          :section section
-                         :markdown-context markdown-context)
+                         :content content)
                         pimacs--content-sections))))))
       ("text_delta"
        (unless (string-empty-p delta)
          (pimacs--widget-save-excursion
            (if-let ((content-section (gethash content-index pimacs--content-sections)))
                (pimacs-section--append-section (pimacs-content-section-section content-section)
-                 (pimacs--markdown-apply-operations
-                  (pimacs-content-section-markdown-context content-section)
-                  (pimacs--render-markdown
-                   (pimacs-content-section-markdown-context content-section)
-                   delta
-                   t)))
+                 (let ((content (pimacs-content-section-content content-section)))
+                   (pimacs--render-apply-operations
+                    (pimacs--rendered-content-context content)
+                    (pimacs--render-content-update content delta t))))
              (let ((section (pimacs-section--new-section 'assistant pimacs-section--root-section))
-                   markdown-context)
+                   content)
                (pimacs-section--insert-section section
                  (pimacs--insert-role-prefix role)
-                 (setq markdown-context (pimacs--markdown-insert delta t)))
+                 (setq content (pimacs--render-insert pimacs-markdown-renderer delta t)))
                (puthash content-index
                         (make-pimacs-content-section
                          :section section
-                         :markdown-context markdown-context)
+                         :content content)
                         pimacs--content-sections))))))
       ("toolcall_end"
        (let* ((tool-call (plist-get assistant-message-event :toolCall))
@@ -922,11 +921,15 @@ with the message plist to insert the custom message content."
          (pimacs--docontent (item (plist-get message :content))
            (pcase (plist-get item :type)
              ("thinking"
-              (let ((content (list item))
-                    (content-section (gethash index pimacs--content-sections)))
-                (when-let ((context (and content-section
-                                         (pimacs-content-section-markdown-context content-section))))
-                  (pimacs--markdown-clear-context context))
+              (let* ((content (list item))
+                     (content-section (gethash index pimacs--content-sections))
+                     (rendered-content (and content-section
+                                            (pimacs-content-section-content content-section)))
+                     (operations (and rendered-content
+                                      (pimacs--render-content-update
+                                       rendered-content (plist-get item :thinking) nil))))
+                (when rendered-content
+                  (pimacs--render-clear-content rendered-content))
                 (pimacs--widget-save-excursion
                   (let ((section
                          (pimacs-section--create-or-replace-section
@@ -935,17 +938,23 @@ with the message plist to insert the custom message content."
                              'thinking
                              pimacs-section--root-section
                            (pimacs--insert-role-prefix role)
-                           (pimacs--insert-content content))))
+                           (if rendered-content
+                               (pimacs--insert-rendered-content operations)
+                             (pimacs--insert-content content)))))
                     (pimacs-section--set-info section (make-pimacs-section-assistant-info
                                                        :header (pimacs--content-header content)
                                                        :content content
                                                        :type 'thinking))))))
              ("text"
-              (let ((content (list item))
-                    (content-section (gethash index pimacs--content-sections)))
-                (when-let ((context (and content-section
-                                         (pimacs-content-section-markdown-context content-section))))
-                  (pimacs--markdown-clear-context context))
+              (let* ((content (list item))
+                     (content-section (gethash index pimacs--content-sections))
+                     (rendered-content (and content-section
+                                            (pimacs-content-section-content content-section)))
+                     (operations (and rendered-content
+                                      (pimacs--render-content-update
+                                       rendered-content (plist-get item :text) nil))))
+                (when rendered-content
+                  (pimacs--render-clear-content rendered-content))
                 (pimacs--widget-save-excursion
                   (let ((section
                          (pimacs-section--create-or-replace-section
@@ -954,7 +963,9 @@ with the message plist to insert the custom message content."
                              'assistant
                              pimacs-section--root-section
                            (pimacs--insert-role-prefix role)
-                           (pimacs--insert-content content t))))
+                           (if rendered-content
+                               (pimacs--insert-rendered-content operations)
+                             (pimacs--insert-content content t)))))
                     (pimacs-section--set-info section (make-pimacs-section-assistant-info
                                                        :header (pimacs--content-header content)
                                                        :content content

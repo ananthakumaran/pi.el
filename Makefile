@@ -97,8 +97,10 @@ define ESCRIPT
   (insert-file-contents "pimacs.el")
   (while
       (ignore-errors
-        (let ((form-start (point))
-              (sexp (read (current-buffer))))
+        (let* ((sexp (read (current-buffer)))
+               (form-start (save-excursion
+                             (backward-sexp 1)
+                             (point))))
           (when sexp
             (when (eq (car sexp) 'defcustom)
               (unless (cadr (cddr sexp))
