@@ -53,26 +53,51 @@
 (defun pimacs--markdown-reference-label (text)
   (downcase (string-trim text "\\[" "\\]")))
 
+(defconst pimacs--markdown-reference-definition-query
+  (treesit-query-compile
+   'markdown '((link_reference_definition) @definition)))
+
+(defconst pimacs--markdown-block-continuation-query
+  (treesit-query-compile
+   'markdown '((block_continuation) @continuation)))
+
+(defconst pimacs--markdown-inline-special-query
+  (treesit-query-compile
+   'markdown_inline
+   '((emphasis) @special
+     (strong_emphasis) @special
+     (strikethrough) @special
+     (code_span) @special
+     (inline_link) @special
+     (image) @special
+     (full_reference_link) @special
+     (shortcut_link) @special
+     (collapsed_reference_link) @special
+     (uri_autolink) @special
+     (email_autolink) @special
+     (latex_block) @special
+     (backslash_escape) @special
+     (hard_line_break) @special
+     (html_tag) @special)))
+
 (defun pimacs--markdown-reference-definitions (root)
   (let (definitions)
-    (cl-labels
-        ((walk (node)
-           (if (string= (treesit-node-type node) "link_reference_definition")
-               (let ((label (pimacs--markdown-node-child node "link_label"))
-                     (destination (pimacs--markdown-node-child node "link_destination"))
-                     (title (pimacs--markdown-node-child node "link_title")))
-                 (when (and label destination)
-                   (push (cons (pimacs--markdown-reference-label
-                                (pimacs--markdown-node-text label))
-                               (list (string-trim
-                                      (pimacs--markdown-node-text destination) "<" ">")
-                                     (and title
-                                          (string-trim
-                                           (pimacs--markdown-node-text title) "\"'("
-                                           "\"')"))))
-                         definitions)))
-             (mapc #'walk (pimacs--markdown-node-children node)))))
-      (walk root))
+    (dolist (node (treesit-query-capture
+                   root pimacs--markdown-reference-definition-query
+                   nil nil t))
+      (let ((label (pimacs--markdown-node-child node "link_label"))
+            (destination (pimacs--markdown-node-child node "link_destination"))
+            (title (pimacs--markdown-node-child node "link_title")))
+        (when (and label destination)
+          (push (cons (pimacs--markdown-reference-label
+                       (pimacs--markdown-node-text label))
+                      (list (string-trim
+                             (pimacs--markdown-node-text destination) "<" ">")
+                            (and title
+                                 (string-trim
+                                  (pimacs--markdown-node-text title) "\"'("
+                                  "\"')"))))
+                definitions))))
     (nreverse definitions)))
 
 (cl-defstruct pimacs--markdown-inline-parser-state
@@ -754,13 +779,11 @@ When non-nil, diagnostics are appended to the temporary buffer
 
 (defun pimacs--markdown-node-text-without-block-continuations (node)
   (let ((position (treesit-node-start node))
-        continuations
+        (continuations
+         (treesit-query-capture
+          node pimacs--markdown-block-continuation-query
+          nil nil t))
         chunks)
-    (cl-labels ((walk (current)
-                  (if (string= (treesit-node-type current) "block_continuation")
-                      (push current continuations)
-                    (mapc #'walk (pimacs--markdown-node-children current)))))
-      (mapc #'walk (pimacs--markdown-node-children node)))
     (dolist (continuation (sort continuations (lambda (left right)
                                                 (< (treesit-node-start left)
                                                    (treesit-node-start right)))))
@@ -772,25 +795,28 @@ When non-nil, diagnostics are appended to the temporary buffer
     (apply #'concat (nreverse chunks))))
 
 (defun pimacs--markdown-inline-special-nodes (root begin end)
-  (let (nodes)
-    (cl-labels
-        ((walk (node)
-           (let ((type (treesit-node-type node))
-                 (start (treesit-node-start node))
-                 (finish (treesit-node-end node)))
-             (cond
-              ((or (<= finish begin) (>= start end)))
-              ((member type '("emphasis" "strong_emphasis" "strikethrough"
-                              "code_span" "inline_link" "image"
-                              "full_reference_link" "shortcut_link" "collapsed_reference_link"
-                              "uri_autolink" "email_autolink" "latex_block"
-                              "backslash_escape" "hard_line_break" "html_tag"))
-               (push node nodes))
-              (t
-               (mapc #'walk (pimacs--markdown-node-children node)))))))
-      (walk root))
-    (sort nodes (lambda (left right)
-                  (< (treesit-node-start left) (treesit-node-start right))))))
+  (let* ((candidates
+          (sort (treesit-query-capture
+                 root pimacs--markdown-inline-special-query
+                 begin end t)
+                (lambda (left right)
+                  (let ((left-start (treesit-node-start left))
+                        (right-start (treesit-node-start right)))
+                    (or (< left-start right-start)
+                        (and (= left-start right-start)
+                             (> (treesit-node-end left)
+                                (treesit-node-end right))))))))
+         nodes
+         stack)
+    (dolist (node candidates)
+      (while (and stack
+                  (<= (treesit-node-end (car stack))
+                      (treesit-node-start node)))
+        (pop stack))
+      (unless stack
+        (push node nodes)
+        (push node stack)))
+    (nreverse nodes)))
 
 (defun pimacs--markdown-html-tag-face (node)
   (pcase (pimacs--markdown-node-text node)
