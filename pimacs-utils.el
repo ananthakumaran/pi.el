@@ -63,6 +63,33 @@
   (when (stringp uuid)
     (substring uuid -8)))
 
+(defun pimacs--buffer-string-common-prefix-length (buffer start end string)
+  (with-current-buffer buffer
+    (let ((buffer-position start)
+          (string-position 0)
+          (string-end (length string))
+          done)
+      (while (and (not done)
+                  (< buffer-position end)
+                  (< string-position string-end))
+        (if (not (equal (text-properties-at buffer-position buffer)
+                        (text-properties-at string-position string)))
+            (setq done t)
+          (let* ((buffer-property-end
+                  (next-property-change buffer-position buffer end))
+                 (string-property-end
+                  (next-property-change string-position string string-end))
+                 (span-end
+                  (+ buffer-position
+                     (min (- buffer-property-end buffer-position)
+                          (- string-property-end string-position)))))
+            (while (and (< buffer-position span-end) (not done))
+              (if (= (char-after buffer-position) (aref string string-position))
+                  (setq buffer-position (1+ buffer-position)
+                        string-position (1+ string-position))
+                (setq done t))))))
+      (- buffer-position start))))
+
 (defmacro pimacs--def-permanent-buffer-local (name &optional init-value)
   "Declare NAME as buffer local variable with optional INIT-VALUE."
   `(progn

@@ -590,10 +590,8 @@ When non-nil, diagnostics are appended to the temporary buffer
       (list old-length rendered))))
 
 (defun pimacs--markdown-operations (delete-length rendered)
-  (append (unless (zerop delete-length) (list (list :delete delete-length)))
-          (unless (string-empty-p rendered)
-            (list (list :append rendered
-                        :after-insert #'pimacs--markdown-apply-url-widgets)))))
+  (unless (and (zerop delete-length) (string-empty-p rendered))
+    (list (list :replace-suffix delete-length rendered))))
 
 (defun pimacs--markdown-checkpoint-debug-details (checkpoint)
   (and checkpoint
@@ -643,52 +641,83 @@ When non-nil, diagnostics are appended to the temporary buffer
           :checkpoints-before (pimacs--markdown-debug-checkpoints session))))
 
 (defun pimacs--markdown-update-debug-output (session replacement)
-  (let* ((delete-length (nth 0 replacement))
+  (let* ((unoptimized-delete-length (nth 0 replacement))
+         (rendered (nth 1 replacement))
+         (unoptimized-append-length (length rendered))
          (previous-output (pimacs--markdown-render-session-debug-output session))
-         (output-valid-p (and previous-output
-                              (<= delete-length (length previous-output))))
+         (output-valid-p (and (stringp previous-output)
+                              (<= unoptimized-delete-length
+                                  (length previous-output))))
+         (old-suffix (cond
+                      (output-valid-p
+                       (substring previous-output
+                                  (- (length previous-output)
+                                     unoptimized-delete-length)))
+                      ((zerop unoptimized-delete-length) "")
+                      (t nil)))
+         (common-prefix-length
+          (when old-suffix
+            (with-temp-buffer
+              (insert old-suffix)
+              (pimacs--buffer-string-common-prefix-length
+               (current-buffer) (point-min) (point-max) rendered))))
          (prefix (if output-valid-p
                      (substring previous-output 0
-                                (- (length previous-output) delete-length))
-                   "")))
+                                (- (length previous-output)
+                                   unoptimized-delete-length))
+                   ""))
+         (delete-length (and common-prefix-length
+                             (- unoptimized-delete-length common-prefix-length)))
+         (append-length (and common-prefix-length
+                             (- unoptimized-append-length common-prefix-length)))
+         (deleted-text (if common-prefix-length
+                           (substring-no-properties
+                            (substring old-suffix common-prefix-length))
+                         "<unavailable>"))
+         (append-text (if common-prefix-length
+                          (substring-no-properties
+                           (substring rendered common-prefix-length))
+                        "<unavailable>")))
     (setf (pimacs--markdown-render-session-debug-output session)
-          (concat prefix (nth 1 replacement)))
-    (if output-valid-p
-        (substring-no-properties
-         (substring previous-output (- (length previous-output) delete-length)))
-      "<unavailable>")))
+          (concat prefix rendered))
+    (list :unoptimized-delete-length unoptimized-delete-length
+          :unoptimized-append-length unoptimized-append-length
+          :common-prefix-length (or common-prefix-length "<unavailable>")
+          :delete-length (or delete-length "<unavailable>")
+          :deleted-text deleted-text
+          :append-length (or append-length "<unavailable>")
+          :append-text append-text)))
 
 (defun pimacs--markdown-log-stream-update (session text edit-position raw-ranges plan replacement)
   (when pimacs-markdown-incremental-render-debug
-    (let ((checkpoint (plist-get plan :checkpoint))
-          (fallback-reason (plist-get plan :fallback-reason)))
-      (pimacs--markdown-debug-log
-       session
-       :event :stream
-       :source-length (point-max)
-       :delta-length (length text)
-       :delta-text (substring-no-properties text)
-       :edit-position edit-position
-       :changed-ranges raw-ranges
-       :coalesced-ranges (plist-get plan :ranges)
-       :boundaries (plist-get plan :boundaries)
-       :restart-position (plist-get plan :restart)
-       :checkpoint (plist-get plan :checkpoint-details)
-       :checkpoint-valid (plist-get plan :checkpoint-valid)
-       :fallback-reason fallback-reason
-       :overwritten-level
-       (if fallback-reason
-           :document
-         (and checkpoint
-              (pimacs--markdown-render-checkpoint-type checkpoint)))
-       :delete-length (nth 0 replacement)
-       :deleted-text (pimacs--markdown-update-debug-output session replacement)
-       :append-length (length (nth 1 replacement))
-       :append-text (substring-no-properties (nth 1 replacement))
-       :rendered-length
-       (pimacs--markdown-render-session-rendered-length session)
-       :checkpoints-before (plist-get plan :checkpoints-before)
-       :checkpoints-after (pimacs--markdown-debug-checkpoints session)))))
+    (let* ((checkpoint (plist-get plan :checkpoint))
+           (fallback-reason (plist-get plan :fallback-reason))
+           (debug-output (pimacs--markdown-update-debug-output session replacement)))
+      (apply #'pimacs--markdown-debug-log
+             session
+             (append
+              (list :event :stream
+                    :source-length (point-max)
+                    :delta-length (length text)
+                    :delta-text (substring-no-properties text)
+                    :edit-position edit-position
+                    :changed-ranges raw-ranges
+                    :coalesced-ranges (plist-get plan :ranges)
+                    :boundaries (plist-get plan :boundaries)
+                    :restart-position (plist-get plan :restart)
+                    :checkpoint (plist-get plan :checkpoint-details)
+                    :checkpoint-valid (plist-get plan :checkpoint-valid)
+                    :fallback-reason fallback-reason
+                    :overwritten-level
+                    (if fallback-reason
+                        :document
+                      (and checkpoint
+                           (pimacs--markdown-render-checkpoint-type checkpoint))))
+              debug-output
+              (list :rendered-length
+                    (pimacs--markdown-render-session-rendered-length session)
+                    :checkpoints-before (plist-get plan :checkpoints-before)
+                    :checkpoints-after (pimacs--markdown-debug-checkpoints session)))))))
 
 (defun pimacs--markdown-render-streaming (session text)
   (let* ((session (pimacs--markdown-initialize-render-session session))
@@ -1391,11 +1420,14 @@ When non-nil, diagnostics are appended to the temporary buffer
   (if (memq operation '(:stream :final))
       (mapcar
        (lambda (render-operation)
-         (if (eq (car-safe render-operation) :append)
-             (cons :append
-                   (cons (pimacs--thinking-markdown-string (cadr render-operation))
-                         (cddr render-operation)))
-           render-operation))
+         (pcase render-operation
+           (`(:append ,rendered . ,rest)
+            (cons :append
+                  (cons (pimacs--thinking-markdown-string rendered) rest)))
+           (`(:replace-suffix ,count ,rendered)
+            (list :replace-suffix count
+                  (pimacs--thinking-markdown-string rendered)))
+           (_ render-operation)))
        (pimacs--render-markdown-experimental operation state text))
     (pimacs--render-markdown-experimental operation state text)))
 

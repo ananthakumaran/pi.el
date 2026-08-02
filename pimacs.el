@@ -168,8 +168,8 @@ when agent stops."
 
 Pi calls it as `(RENDERER :create)', `(RENDERER :stream STATE TEXT)',
 `(RENDERER :final STATE TEXT)', and `(RENDERER :destroy STATE)'.  `:create'
-returns opaque renderer state.  `:stream' and `:final' return `:append' and
-`:delete' operations.  `:destroy' releases resources.
+returns opaque renderer state.  `:stream' and `:final' return `:append',
+`:delete', and `:replace-suffix' operations.  `:destroy' releases resources.
 
 The default preserves the existing `markdown-mode' renderer.  Set this to
 `pimacs--render-markdown-experimental' to opt into the experimental renderer."
@@ -380,6 +380,28 @@ with the message plist to insert the custom message content."
      :content-end content-end
      :rendered-length 0)))
 
+(defun pimacs--render-replace-suffix (context count text)
+  (unless (and (integerp count) (>= count 0))
+    (error "Renderer replace-suffix operation requires a non-negative integer: %S" count))
+  (unless (stringp text)
+    (error "Renderer replace-suffix operation requires a string: %S" text))
+  (let* ((content-begin (pimacs-render-context-content-begin context))
+         (content-end (pimacs-render-context-content-end context))
+         (end-position (marker-position content-end)))
+    (when (> count (- end-position (marker-position content-begin)))
+      (error "Renderer replace-suffix operation exceeds the content range: %S" count))
+    (let* ((start-position (- end-position count))
+           (prefix-length
+            (pimacs--buffer-string-common-prefix-length
+             (current-buffer) start-position end-position text))
+           (replacement-start (+ start-position prefix-length)))
+      (delete-region replacement-start end-position)
+      (goto-char replacement-start)
+      (insert (substring text prefix-length))
+      (set-marker content-end (point))
+      (cl-incf (pimacs-render-context-rendered-length context)
+               (- (length text) count)))))
+
 (defun pimacs--render-apply-operations (context operations)
   (dolist (operation operations)
     (pcase operation
@@ -413,6 +435,8 @@ with the message plist to insert the custom message content."
          (delete-region (- end-position count) end-position)
          (set-marker content-end (- end-position count))
          (cl-decf (pimacs-render-context-rendered-length context) count)))
+      (`(:replace-suffix ,count ,text)
+       (pimacs--render-replace-suffix context count text))
       (_
        (error "Unknown Markdown operation: %S" operation)))))
 

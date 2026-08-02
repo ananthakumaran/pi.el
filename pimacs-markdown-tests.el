@@ -214,10 +214,9 @@
                                  (pimacs--render-markdown-experimental
                                   :stream state (substring source position end)))
                           (pcase operation
-                            (`(:delete ,count)
-                             (setq output (substring output 0 (- count))))
-                            (`(:append ,text . ,_)
-                             (setq output (concat output text)))))
+                            (`(:replace-suffix ,count ,text)
+                             (setq output
+                                   (concat (substring output 0 (- count)) text)))))
                         (setq position end)))
                     (should (equal output (pimacs--markdown-render-source source))))
                 (pimacs--render-markdown-experimental :destroy state)))))))))
@@ -228,9 +227,7 @@
       (unwind-protect
           (let ((operations
                  (pimacs--render-markdown-experimental :stream state "**Pimacs**")))
-            (should (equal (substring-no-properties
-                            (plist-get (car operations) :append))
-                           "Pimacs"))
+            (should (equal (car operations) '(:replace-suffix 0 "Pimacs")))
             (should (pimacs--markdown-render-session-parser state)))
         (pimacs--render-markdown-experimental :destroy state)))))
 
@@ -259,13 +256,12 @@
                            (pimacs--markdown-render-session-checkpoints state)
                            :key #'pimacs--markdown-render-checkpoint-type
                            :test #'string=))
-          (let* ((operations
-                  (pimacs--render-markdown-experimental :stream state " blockquote"))
-                 (delete-operation (cl-find :delete operations :key #'car))
-                 (append-operation (cl-find :append operations :key #'car)))
-            (should (= (cadr delete-operation)
+          (let ((operation
+                 (car (pimacs--render-markdown-experimental
+                       :stream state " blockquote"))))
+            (should (= (cadr operation)
                        (length (pimacs--markdown-render-source "> Final"))))
-            (should (equal (cadr append-operation)
+            (should (equal (caddr operation)
                            (pimacs--markdown-render-source "> Final blockquote")))))
       (pimacs--render-markdown-experimental :destroy state))))
 
