@@ -183,16 +183,81 @@
 
 ;;; Markdown Renderer
 
-(defcustom pimacs-markdown-incremental-render-debug nil
-  "Whether to capture incremental Markdown rendering diagnostics.
+(defface pimacs-markdown-heading-face
+  '((t :inherit font-lock-function-name-face :weight bold))
+  "Face used for Markdown headings."
+  :group 'pimacs)
 
-When non-nil, diagnostics are appended to the temporary buffer
-`*pimacs-markdown-incremental-debug*'."
-  :type 'boolean
+(defface pimacs-markdown-inline-code-face
+  '((t :inherit (fixed-pitch font-lock-constant-face)))
+  "Face used for inline code."
+  :group 'pimacs)
+
+(defface pimacs-markdown-equation-face
+  '((t :inherit (fixed-pitch font-lock-constant-face)))
+  "Face used for Markdown equations."
+  :group 'pimacs)
+
+(defface pimacs-markdown-bold-face
+  '((t :inherit bold))
+  "Face used for bold text."
+  :group 'pimacs)
+
+(defface pimacs-markdown-italic-face
+  '((t :inherit italic))
+  "Face used for italic text."
+  :group 'pimacs)
+
+(defface pimacs-markdown-strike-through-face
+  '((t :strike-through t))
+  "Face used for Markdown strike-through text."
+  :group 'pimacs)
+
+(defface pimacs-markdown-superscript-face
+  '((t :height 0.8 :raise 0.3))
+  "Face used for Markdown superscript text."
+  :group 'pimacs)
+
+(defface pimacs-markdown-subscript-face
+  '((t :height 0.8 :raise -0.2))
+  "Face used for Markdown subscript text."
+  :group 'pimacs)
+
+(defface pimacs-markdown-link-face
+  '((t :inherit link))
+  "Face used for provisional Markdown links."
+  :group 'pimacs)
+
+(defface pimacs-markdown-list-marker-face
+  '((t :inherit shadow :slant normal :weight normal))
+  "Face used for Markdown list markers."
+  :group 'pimacs)
+
+(defface pimacs-markdown-checkbox-face
+  '((t :inherit font-lock-builtin-face))
+  "Face used for Markdown task-list checkboxes."
+  :group 'pimacs)
+
+(defface pimacs-markdown-blockquote-face
+  '((t :inherit font-lock-comment-face))
+  "Face used for Markdown blockquotes."
+  :group 'pimacs)
+
+(defface pimacs-markdown-horizontal-rule-face
+  '((t :inherit shadow))
+  "Face used for Markdown horizontal rules."
+  :group 'pimacs)
+
+(defface pimacs-markdown-code-block-face
+  '((t :inherit fixed-pitch))
+  "Face used as the base face of Markdown code blocks."
   :group 'pimacs)
 
 (defconst pimacs--markdown-incremental-debug-buffer-name
   "*pimacs-markdown-incremental-debug*")
+
+(defconst pimacs--markdown-list-bullets
+  '("▪" "▫" "◇" "•" "○"))
 
 (cl-defstruct pimacs--markdown-render-checkpoint
   marker
@@ -208,6 +273,14 @@ When non-nil, diagnostics are appended to the temporary buffer
   rendered-length
   update-number
   debug-output)
+
+(defcustom pimacs-markdown-incremental-render-debug nil
+  "Whether to capture incremental Markdown rendering diagnostics.
+
+When non-nil, diagnostics are appended to the temporary buffer
+`*pimacs-markdown-incremental-debug*'."
+  :type 'boolean
+  :group 'pimacs)
 
 (defvar-local pimacs--markdown-render-session nil)
 
@@ -527,8 +600,7 @@ When non-nil, diagnostics are appended to the temporary buffer
              (pimacs--markdown-render-checkpoint-output-offset checkpoint)
              :type (pimacs--markdown-render-checkpoint-type checkpoint))))
 
-(defun pimacs--markdown-incremental-render-plan
-    (session root raw-ranges references-changed edit-position)
+(defun pimacs--markdown-incremental-render-plan (session root raw-ranges references-changed edit-position)
   (let* ((ranges (pimacs--markdown-coalesce-ranges raw-ranges))
          (boundary-positions
           (mapcar (lambda (range)
@@ -582,8 +654,7 @@ When non-nil, diagnostics are appended to the temporary buffer
          (substring previous-output (- (length previous-output) delete-length)))
       "<unavailable>")))
 
-(defun pimacs--markdown-log-stream-update
-    (session text edit-position raw-ranges plan replacement)
+(defun pimacs--markdown-log-stream-update (session text edit-position raw-ranges plan replacement)
   (when pimacs-markdown-incremental-render-debug
     (let ((checkpoint (plist-get plan :checkpoint))
           (fallback-reason (plist-get plan :fallback-reason)))
@@ -656,79 +727,6 @@ When non-nil, diagnostics are appended to the temporary buffer
       (error
        (pimacs--markdown-cleanup-session session)
        (signal (car error) (cdr error))))))
-
-(defface pimacs-markdown-heading-face
-  '((t :inherit font-lock-function-name-face :weight bold))
-  "Face used for Markdown headings."
-  :group 'pimacs)
-
-(defface pimacs-markdown-inline-code-face
-  '((t :inherit (fixed-pitch font-lock-constant-face)))
-  "Face used for inline code."
-  :group 'pimacs)
-
-(defface pimacs-markdown-equation-face
-  '((t :inherit (fixed-pitch font-lock-constant-face)))
-  "Face used for Markdown equations."
-  :group 'pimacs)
-
-(defface pimacs-markdown-bold-face
-  '((t :inherit bold))
-  "Face used for bold text."
-  :group 'pimacs)
-
-(defface pimacs-markdown-italic-face
-  '((t :inherit italic))
-  "Face used for italic text."
-  :group 'pimacs)
-
-(defface pimacs-markdown-strike-through-face
-  '((t :strike-through t))
-  "Face used for Markdown strike-through text."
-  :group 'pimacs)
-
-(defface pimacs-markdown-superscript-face
-  '((t :height 0.8 :raise 0.3))
-  "Face used for Markdown superscript text."
-  :group 'pimacs)
-
-(defface pimacs-markdown-subscript-face
-  '((t :height 0.8 :raise -0.2))
-  "Face used for Markdown subscript text."
-  :group 'pimacs)
-
-(defface pimacs-markdown-link-face
-  '((t :inherit link))
-  "Face used for provisional Markdown links."
-  :group 'pimacs)
-
-(defface pimacs-markdown-list-marker-face
-  '((t :inherit shadow :slant normal :weight normal))
-  "Face used for Markdown list markers."
-  :group 'pimacs)
-
-(defface pimacs-markdown-checkbox-face
-  '((t :inherit font-lock-builtin-face))
-  "Face used for Markdown task-list checkboxes."
-  :group 'pimacs)
-
-(defface pimacs-markdown-blockquote-face
-  '((t :inherit font-lock-comment-face))
-  "Face used for Markdown blockquotes."
-  :group 'pimacs)
-
-(defface pimacs-markdown-horizontal-rule-face
-  '((t :inherit shadow))
-  "Face used for Markdown horizontal rules."
-  :group 'pimacs)
-
-(defface pimacs-markdown-code-block-face
-  '((t :inherit fixed-pitch))
-  "Face used as the base face of Markdown code blocks."
-  :group 'pimacs)
-
-(defconst pimacs--markdown-list-bullets
-  '("▪" "▫" "◇" "•" "○"))
 
 (defun pimacs--markdown-propertize-face (text face)
   (when (> (length text) 0)
