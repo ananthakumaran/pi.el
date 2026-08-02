@@ -203,16 +203,17 @@ PRED is called with KEY VALUE."
                  (pimacs--render-markdown-with-markdown-mode text))))
     (:destroy nil)))
 
-(defun pimacs--render-content (filename content)
+(defun pimacs--render-content (filename content &optional mode)
   (with-temp-buffer
-    ;; Use a fake temp filename preserving extension only.
-    (setq-local
-     buffer-file-name
-     (expand-file-name
-      (concat "pimacs-fontify"
-              (when-let ((ext (file-name-extension filename t)))
-                ext))
-      temporary-file-directory))
+    (when filename
+      ;; Use a fake temp filename preserving extension only.
+      (setq-local
+       buffer-file-name
+       (expand-file-name
+        (concat "pimacs-fontify"
+                (when-let ((ext (file-name-extension filename t)))
+                  ext))
+        temporary-file-directory)))
 
     (insert content)
 
@@ -221,7 +222,9 @@ PRED is called with KEY VALUE."
         (delay-mode-hooks
           (let ((enable-local-variables nil)
                 (enable-local-eval nil))
-            (set-auto-mode)
+            (if mode
+                (funcall mode)
+              (set-auto-mode))
             (font-lock-ensure)))))
 
     ;; Prevent save prompts

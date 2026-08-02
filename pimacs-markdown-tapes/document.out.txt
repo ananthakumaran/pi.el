@@ -257,32 +257,44 @@
 @ ^^^^^^^^^^^^^^^^^^ heading
 │
 │ // JavaScript example
-@ ^^^^^^^^^^^^^^^^^^^^^ code-block
+@ ^^^ font-lock-comment-delimiter
+@    ^^^^^^^^^^^^^^^^^^ font-lock-comment
 │ function greet(name) {
-@ ^^^^^^^^^^^^^^^^^^^^^^ code-block
+@ ^^^^^^^^ font-lock-keyword
+@          ^^^^^ font-lock-function-name
+@                ^^^^ font-lock-variable-name
 │   console.log(`Hello, ${name}!`);
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+@               ^^^^^^^^^^^^^^^^^ font-lock-string
 │ }
-@ ^ code-block
 │
 │ greet("World");
-@ ^^^^^^^^^^^^^^^ code-block
+@       ^^^^^^^ font-lock-string
 │
 │ # Python example
-@ ^^^^^^^^^^^^^^^^ code-block
+@ ^^ font-lock-comment-delimiter
+@   ^^^^^^^^^^^^^^ font-lock-comment
 │ def fibonacci(n):
-@ ^^^^^^^^^^^^^^^^^ code-block
+@ ^^^ font-lock-keyword
+@     ^^^^^^^^^ font-lock-function-name
 │     a, b = 0, 1
-@ ^^^^^^^^^^^^^^^ code-block
+@     ^ font-lock-variable-name
+@        ^ font-lock-variable-name
+@          ^ font-lock-operator
 │     for _ in range(n):
-@ ^^^^^^^^^^^^^^^^^^^^^^ code-block
+@     ^^^ font-lock-keyword
+@           ^^ font-lock-keyword
+@              ^^^^^ font-lock-builtin
 │         yield a
-@ ^^^^^^^^^^^^^^^ code-block
+@         ^^^^^ font-lock-keyword
 │         a, b = b, a + b
-@ ^^^^^^^^^^^^^^^^^^^^^^^ code-block
+@         ^ font-lock-variable-name
+@            ^ font-lock-variable-name
+@              ^ font-lock-operator
+@                     ^ font-lock-operator
 │
 │ print(list(fibonacci(10)))
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+@ ^^^^^ font-lock-builtin
+@       ^^^^ font-lock-builtin
 │
 │ // Rust example
 @ ^^^^^^^^^^^^^^^ code-block
@@ -298,13 +310,12 @@
 @ ^ code-block
 │
 │ # Shell commands
-@ ^^^^^^^^^^^^^^^^ code-block
+@ ^^ font-lock-comment-delimiter
+@   ^^^^^^^^^^^^^^ font-lock-comment
 │ $ echo "Hello World"
-@ ^^^^^^^^^^^^^^^^^^^^ code-block
+@        ^^^^^^^^^^^^^ font-lock-string
 │ $ ls -la
-@ ^^^^^^^^ code-block
 │ $ npm install
-@ ^^^^^^^^^^^^^ code-block
 │
 │ {
 @ ^ code-block
@@ -337,31 +348,48 @@
 @ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ heading
 │
 │ function highlightLines() {
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+@ ^^^^^^^^ font-lock-keyword
+@          ^^^^^^^^^^^^^^ font-lock-function-name
 │   const a = 1; // Line 1
-@ ^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+@   ^^^^^ font-lock-keyword
+@         ^ font-lock-variable-name
+@                ^^^ font-lock-comment-delimiter
+@                   ^^^^^^ font-lock-comment
 │   const b = 2; // Line 2
-@ ^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+@   ^^^^^ font-lock-keyword
+@         ^ font-lock-variable-name
+@                ^^^ font-lock-comment-delimiter
+@                   ^^^^^^ font-lock-comment
 │   const c = 3; // Line 3 (highlighted)
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+@   ^^^^^ font-lock-keyword
+@         ^ font-lock-variable-name
+@                ^^^ font-lock-comment-delimiter
+@                   ^^^^^^^^^^^^^^^^^^^^ font-lock-comment
 │   const d = 4; // Line 4 (highlighted)
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+@   ^^^^^ font-lock-keyword
+@         ^ font-lock-variable-name
+@                ^^^ font-lock-comment-delimiter
+@                   ^^^^^^^^^^^^^^^^^^^^ font-lock-comment
 │   const e = 5; // Line 5 (highlighted)
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+@   ^^^^^ font-lock-keyword
+@         ^ font-lock-variable-name
+@                ^^^ font-lock-comment-delimiter
+@                   ^^^^^^^^^^^^^^^^^^^^ font-lock-comment
 │   return a + b + c + d + e;
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+@   ^^^^^^ font-lock-keyword
 │ }
-@ ^ code-block
 │
 │ Diff Code Blocks
 @ ^^^^^^^^^^^^^^^^ heading
 │
 │ - const oldValue = 'deprecated';
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+@ ^ diff-indicator-removed
+@  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ diff-removed
 │ + const newValue = 'improved';
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+@ ^ diff-indicator-added
+@  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ diff-added
 │   const unchanged = 'same';
-@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^ code-block
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^^^ diff-context
 │
 │ ────────────────────────────────────────────────────────────────────────────────
 @ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ horizontal-rule

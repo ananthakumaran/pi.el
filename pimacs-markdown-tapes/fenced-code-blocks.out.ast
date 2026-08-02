@@ -1,0 +1,329 @@
+markdown:
+document
+ section
+  fenced_code_block
+   fenced_code_block_delimiter "```"
+   info_string
+    language "elisp"
+   block_continuation
+   code_fence_content [
+   │ (+ 1 2)
+   │
+   ]
+    block_continuation
+   fenced_code_block_delimiter "```"
+  block_quote
+   block_quote_marker "> "
+   fenced_code_block
+    fenced_code_block_delimiter "```"
+    block_continuation "> "
+    code_fence_content [
+    │ code
+    │ > 
+    ]
+     block_continuation "> "
+    fenced_code_block_delimiter "```"
+  fenced_code_block
+   fenced_code_block_delimiter "```"
+   block_continuation
+   code_fence_content [
+   │ <
+   │  >
+   │
+   ]
+    block_continuation
+    block_continuation
+   fenced_code_block_delimiter "```"
+  fenced_code_block
+   fenced_code_block_delimiter "~~~"
+   block_continuation
+   code_fence_content [
+   │ <
+   │  >
+   │
+   ]
+    block_continuation
+    block_continuation
+   fenced_code_block_delimiter "~~~"
+  paragraph
+   inline [
+   │ ``
+   │ foo
+   │ ``
+   ]
+    code_span
+     code_span_delimiter "``"
+     text [
+     │
+     │ foo
+     │
+     ]
+     code_span_delimiter "``"
+  fenced_code_block
+   fenced_code_block_delimiter "```"
+   block_continuation
+   code_fence_content [
+   │ aaa
+   │ ~~~
+   │
+   ]
+    block_continuation
+    block_continuation
+   fenced_code_block_delimiter "```"
+  fenced_code_block
+   fenced_code_block_delimiter "~~~"
+   block_continuation
+   code_fence_content [
+   │ aaa
+   │ ```
+   │
+   ]
+    block_continuation
+    block_continuation
+   fenced_code_block_delimiter "~~~"
+  fenced_code_block
+   fenced_code_block_delimiter "````"
+   block_continuation
+   code_fence_content [
+   │ aaa
+   │ ```
+   │
+   ]
+    block_continuation
+    block_continuation
+   fenced_code_block_delimiter "``````"
+  fenced_code_block
+   fenced_code_block_delimiter "~~~~"
+   block_continuation
+   code_fence_content [
+   │ aaa
+   │ ~~~
+   │
+   ]
+    block_continuation
+    block_continuation
+   fenced_code_block_delimiter "~~~~"
+  block_quote
+   block_quote_marker "> "
+   fenced_code_block
+    fenced_code_block_delimiter "```"
+    block_continuation "> "
+    code_fence_content [
+    │ aaa
+    │
+    ]
+  paragraph
+   inline "bbb"
+    text "bbb"
+  fenced_code_block
+   fenced_code_block_delimiter "```"
+   block_continuation
+   code_fence_content [
+   │
+   │
+   │
+   ]
+    block_continuation
+    block_continuation
+   fenced_code_block_delimiter "```"
+  fenced_code_block
+   fenced_code_block_delimiter "```"
+   block_continuation
+   code_fence_content [
+   │
+   │
+   ]
+    block_continuation
+   fenced_code_block_delimiter " ```"
+  paragraph
+   inline [
+   │  aaa
+   │ aaa
+   ]
+    text [
+    │  aaa
+    │ aaa
+    ]
+  fenced_code_block
+   fenced_code_block_delimiter "```"
+   block_continuation
+   code_fence_content [
+   │
+   │
+   ]
+    block_continuation
+   fenced_code_block_delimiter "  ```"
+  paragraph
+   inline [
+   │ aaa
+   │   aaa
+   │ aaa
+   ]
+    text [
+    │ aaa
+    │   aaa
+    │ aaa
+    ]
+  fenced_code_block
+   fenced_code_block_delimiter "  ```"
+   block_continuation
+   code_fence_content [
+   │
+   │
+   ]
+    block_continuation
+   fenced_code_block_delimiter "   ```"
+  paragraph
+   inline [
+   │    aaa
+   │     aaa
+   │   aaa
+   ]
+    text [
+    │    aaa
+    │     aaa
+    │   aaa
+    ]
+  fenced_code_block
+   fenced_code_block_delimiter "   ```"
+   block_continuation
+   code_fence_content [
+   │
+   │     
+   ]
+    block_continuation
+   fenced_code_block_delimiter "```"
+  indented_code_block
+   block_continuation "    "
+  fenced_code_block
+   fenced_code_block_delimiter "```"
+   block_continuation
+   code_fence_content [
+   │ aaa
+   │
+   ]
+    block_continuation
+   fenced_code_block_delimiter "  ```"
+  fenced_code_block
+   fenced_code_block_delimiter "   ```"
+   block_continuation
+   code_fence_content [
+   │ aaa
+   │
+   ]
+    block_continuation
+   fenced_code_block_delimiter "  ```"
+  paragraph
+   inline [
+   │ ``` ```
+   │ aaa
+   ]
+    code_span
+     code_span_delimiter "```"
+     text " "
+     code_span_delimiter "```"
+    text [
+    │
+    │ aaa
+    ]
+  paragraph
+   inline "foo"
+    text "foo"
+  fenced_code_block
+   fenced_code_block_delimiter "```"
+   block_continuation
+   code_fence_content [
+   │ bar
+   │
+   ]
+    block_continuation
+   fenced_code_block_delimiter "```"
+  paragraph
+   inline "baz"
+    text "baz"
+  setext_heading
+   paragraph
+    inline "foo"
+     text "foo"
+   setext_h2_underline "---"
+  fenced_code_block
+   fenced_code_block_delimiter "~~~"
+   block_continuation
+   code_fence_content [
+   │ bar
+   │
+   ]
+    block_continuation
+   fenced_code_block_delimiter "~~~"
+ section
+  atx_heading
+   atx_h1_marker "#"
+   inline "baz"
+    text "baz"
+  fenced_code_block
+   fenced_code_block_delimiter "```"
+   info_string
+    language "ruby"
+   block_continuation
+   code_fence_content [
+   │ def foo(x)
+   │   return 3
+   │ end
+   │
+   ]
+    block_continuation
+    block_continuation
+    block_continuation
+   fenced_code_block_delimiter "```"
+  fenced_code_block
+   fenced_code_block_delimiter "~~~~"
+   info_string
+    language "ruby"
+   block_continuation
+   code_fence_content [
+   │ def foo(x)
+   │   return 3
+   │ end
+   │
+   ]
+    block_continuation
+    block_continuation
+    block_continuation
+   fenced_code_block_delimiter "~~~~~~~"
+  fenced_code_block
+   fenced_code_block_delimiter "````"
+   info_string
+    language ";"
+   block_continuation
+   fenced_code_block_delimiter "````"
+  paragraph
+   inline [
+   │ ``` aa ```
+   │ foo
+   ]
+    code_span
+     code_span_delimiter "```"
+     text " aa "
+     code_span_delimiter "```"
+    text [
+    │
+    │ foo
+    ]
+  fenced_code_block
+   fenced_code_block_delimiter "~~~"
+   info_string
+    language "aa"
+   block_continuation
+   code_fence_content [
+   │ foo
+   │
+   ]
+    block_continuation
+   fenced_code_block_delimiter "~~~"
+  fenced_code_block
+   fenced_code_block_delimiter "```"
+   block_continuation
+   code_fence_content [
+   │ (+ 1 2)
+   │
+   ]

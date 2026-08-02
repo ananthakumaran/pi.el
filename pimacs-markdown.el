@@ -108,7 +108,8 @@
   reference-definitions
   list-depth
   list-index
-  inline-parser-state)
+  inline-parser-state
+  fontify-code)
 
 (defun pimacs--markdown-render-context-for-list-item (context list-index)
   (let ((context (copy-pimacs--markdown-render-context context)))
@@ -176,7 +177,8 @@
               (pimacs--markdown-reference-definitions root)
               :list-depth 0
               :list-index nil
-              :inline-parser-state state)))
+              :inline-parser-state state
+              :fontify-code t)))
        (unwind-protect
            (funcall renderer root context)
          (pimacs--markdown-delete-inline-parser-pool state))))))
@@ -504,7 +506,9 @@ When non-nil, diagnostics are appended to the temporary buffer
          (context (make-pimacs--markdown-render-context
                    :reference-definitions
                    (pimacs--markdown-render-session-reference-definitions session)
-                   :list-depth 0 :list-index nil :inline-parser-state inline-state))
+                   :list-depth 0 :list-index nil
+                   :inline-parser-state inline-state
+                   :fontify-code nil))
          (position start)
          (length 0)
          checkpoints
@@ -838,23 +842,16 @@ When non-nil, diagnostics are appended to the temporary buffer
   "Alist mapping Markdown fence language names to major modes.")
 
 (defun pimacs--markdown-resolve-language-mode (language)
-  (or (cdr (assoc-string (downcase (or language ""))
-                         pimacs-markdown-language-aliases t))
-      (let ((mode (intern-soft (concat (downcase (or language "")) "-mode"))))
-        (and mode (fboundp mode) mode))
-      #'fundamental-mode))
+  (let ((mode (or (cdr (assoc-string (downcase (or language ""))
+                                     pimacs-markdown-language-aliases t))
+                  (intern-soft (concat (downcase (or language "")) "-mode")))))
+    (and mode (fboundp mode) mode)))
 
 (defun pimacs--markdown-fontify-code (code language)
-  (with-temp-buffer
-    (insert code)
-    (let ((inhibit-message t)
-          (mode (pimacs--markdown-resolve-language-mode language)))
-      (condition-case nil
-          (progn (funcall mode) (font-lock-ensure))
-        (error (fundamental-mode)))
-      (let ((text (buffer-string)))
-        (put-text-property 0 (length text) 'face 'pimacs-markdown-code-block-face text)
-        text))))
+  (if-let ((mode (pimacs--markdown-resolve-language-mode language)))
+      (pimacs--render-content nil code mode)
+    (pimacs--markdown-propertize-face
+     code 'pimacs-markdown-code-block-face)))
 
 (defun pimacs--markdown-autolink-label (url faces)
   (let ((label (copy-sequence url))
@@ -1112,16 +1109,21 @@ When non-nil, diagnostics are appended to the temporary buffer
    (replace-regexp-in-string "^    " "" (pimacs--markdown-node-text node))
    'pimacs-markdown-code-block-face))
 
-(defun pimacs--markdown-render-fenced-code-block (node)
+(defun pimacs--markdown-render-fenced-code-block (node context)
   (let* ((source (pimacs--markdown-node-text node))
          (delimiter (pimacs--markdown-node-child node "fenced_code_block_delimiter"))
-         (language-node (pimacs--markdown-node-child node "language"))
+         (info-string (pimacs--markdown-node-child node "info_string"))
+         (language-node (and info-string
+                             (pimacs--markdown-node-child info-string "language")))
          (content (pimacs--markdown-node-child node "code_fence_content"))
-         (language (and language-node (pimacs--markdown-node-text language-node))))
+         (language (and language-node
+                        (pimacs--markdown-node-text language-node))))
     (if (and delimiter content)
-        (pimacs--markdown-fontify-code
-         (pimacs--markdown-node-text-without-block-continuations content)
-         language)
+        (let ((code (pimacs--markdown-node-text-without-block-continuations content)))
+          (if (pimacs--markdown-render-context-fontify-code context)
+              (pimacs--markdown-fontify-code code language)
+            (pimacs--markdown-propertize-face
+             code 'pimacs-markdown-code-block-face)))
       source)))
 
 (defun pimacs--markdown-render-block-children (node context)
@@ -1315,7 +1317,7 @@ When non-nil, diagnostics are appended to the temporary buffer
     ("block_quote"
      (pimacs--markdown-render-block-quote-node node context))
     ("fenced_code_block"
-     (pimacs--markdown-render-fenced-code-block node))
+     (pimacs--markdown-render-fenced-code-block node context))
     ("indented_code_block"
      (pimacs--markdown-render-indented-code-block node))
     ("thematic_break"
