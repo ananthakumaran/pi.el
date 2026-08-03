@@ -33,18 +33,18 @@
     result))
 
 (defun pimacs-markdown-tests--render-final (input)
-  (let ((state (pimacs--render-markdown-experimental :create)))
+  (let ((state (pimacs--render-markdown :create)))
     (unwind-protect
-        (pimacs--render-markdown-experimental :final state input)
-      (pimacs--render-markdown-experimental :destroy state))))
+        (pimacs--render-markdown :final state input)
+      (pimacs--render-markdown :destroy state))))
 
 (defun pimacs-markdown-tests--render-complete (input)
   (with-temp-buffer
     (let ((context (pimacs--render-create-context))
-          (state (pimacs--render-markdown-experimental :create)))
+          (state (pimacs--render-markdown :create)))
       (pimacs--render-apply-operations
        context
-       (pimacs--render-markdown-experimental :final state input))
+       (pimacs--render-markdown :final state input))
       (pimacs-markdown-tests--face-only
        (buffer-substring (pimacs-render-context-content-begin context)
                          (pimacs-render-context-content-end context))))))
@@ -202,7 +202,7 @@
       (dolist (tape (pimacs-markdown-tests--tapes))
         (pcase-let ((`(,input-file ,source . ,_) tape))
           (ert-info ((format "Markdown streaming fuzz: %s" input-file))
-            (let ((state (pimacs--render-markdown-experimental :create))
+            (let ((state (pimacs--render-markdown :create))
                   (position 0)
                   (output ""))
               (unwind-protect
@@ -211,7 +211,7 @@
                       (let ((end (min (length source)
                                       (+ position (next-chunk-size)))))
                         (dolist (operation
-                                 (pimacs--render-markdown-experimental
+                                 (pimacs--render-markdown
                                   :stream state (substring source position end)))
                           (pcase operation
                             (`(:replace-suffix ,count ,text)
@@ -219,58 +219,58 @@
                                    (concat (substring output 0 (- count)) text)))))
                         (setq position end)))
                     (should (equal output (pimacs--markdown-render-source source))))
-                (pimacs--render-markdown-experimental :destroy state)))))))))
+                (pimacs--render-markdown :destroy state)))))))))
 
 (ert-deftest pimacs-markdown-streaming-renders-source ()
   (with-temp-buffer
-    (let ((state (pimacs--render-markdown-experimental :create)))
+    (let ((state (pimacs--render-markdown :create)))
       (unwind-protect
           (let ((operations
-                 (pimacs--render-markdown-experimental :stream state "**Pimacs**")))
+                 (pimacs--render-markdown :stream state "**Pimacs**")))
             (should (equal (car operations) '(:replace-suffix 0 "Pimacs")))
             (should (pimacs--markdown-render-session-parser state)))
-        (pimacs--render-markdown-experimental :destroy state)))))
+        (pimacs--render-markdown :destroy state)))))
 
 (ert-deftest pimacs-markdown-streaming-replaces-affected-suffix ()
   (with-temp-buffer
     (let ((context (pimacs--render-create-context))
-          (state (pimacs--render-markdown-experimental :create)))
+          (state (pimacs--render-markdown :create)))
       (unwind-protect
           (progn
             (dolist (delta '("# Heading\n\nParagraph " "with **bold** text"))
               (pimacs--render-apply-operations
-               context (pimacs--render-markdown-experimental :stream state delta)))
+               context (pimacs--render-markdown :stream state delta)))
             (should (equal (buffer-substring-no-properties
                             (pimacs-render-context-content-begin context)
                             (pimacs-render-context-content-end context))
                            "Heading\n\nParagraph with bold text")))
-        (pimacs--render-markdown-experimental :destroy state)))))
+        (pimacs--render-markdown :destroy state)))))
 
 (ert-deftest pimacs-markdown-streaming-checkpoints-section-blocks ()
-  (let ((state (pimacs--render-markdown-experimental :create)))
+  (let ((state (pimacs--render-markdown :create)))
     (unwind-protect
         (progn
-          (pimacs--render-markdown-experimental
+          (pimacs--render-markdown
            :stream state "# Section\n\nPrefix paragraph.\n\n> Final")
           (should (cl-find "block_quote"
                            (pimacs--markdown-render-session-checkpoints state)
                            :key #'pimacs--markdown-render-checkpoint-type
                            :test #'string=))
           (let ((operation
-                 (car (pimacs--render-markdown-experimental
+                 (car (pimacs--render-markdown
                        :stream state " blockquote"))))
             (should (= (cadr operation)
                        (length (pimacs--markdown-render-source "> Final"))))
             (should (equal (caddr operation)
                            (pimacs--markdown-render-source "> Final blockquote")))))
-      (pimacs--render-markdown-experimental :destroy state))))
+      (pimacs--render-markdown :destroy state))))
 
 (ert-deftest pimacs-markdown-final-render-cleans-streaming-session ()
   (with-temp-buffer
-    (let ((state (pimacs--render-markdown-experimental :create)))
-      (pimacs--render-markdown-experimental :stream state "partial")
+    (let ((state (pimacs--render-markdown :create)))
+      (pimacs--render-markdown :stream state "partial")
       (let ((operations
-             (pimacs--render-markdown-experimental :final state "**final**")))
+             (pimacs--render-markdown :final state "**final**")))
         (should (equal (substring-no-properties
                         (plist-get (car operations) :append))
                        "final"))

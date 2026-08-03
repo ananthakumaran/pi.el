@@ -51,7 +51,7 @@
 
 (require 'pimacs-core)
 (require 'pimacs-utils)
-(autoload 'pimacs--render-markdown-experimental "pimacs-markdown")
+(autoload 'pimacs--render-markdown "pimacs-markdown")
 (autoload 'pimacs--render-thinking-markdown "pimacs-markdown")
 (require 'pimacs-section)
 (require 'pimacs-edit)
@@ -172,7 +172,7 @@ returns opaque renderer state.  `:stream' and `:final' return `:append',
 `:delete', and `:replace-suffix' operations.  `:destroy' releases resources.
 
 The default preserves the existing `markdown-mode' renderer.  Set this to
-`pimacs--render-markdown-experimental' to opt into the experimental renderer."
+`pimacs--render-markdown' to opt into the tree-sitter renderer."
   :type 'function
   :group 'pimacs)
 

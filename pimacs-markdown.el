@@ -1428,10 +1428,10 @@ When non-nil, diagnostics are appended to the temporary buffer
             (list :replace-suffix count
                   (pimacs--thinking-markdown-string rendered)))
            (_ render-operation)))
-       (pimacs--render-markdown-experimental operation state text))
-    (pimacs--render-markdown-experimental operation state text)))
+       (pimacs--render-markdown operation state text))
+    (pimacs--render-markdown operation state text)))
 
-(defun pimacs--render-markdown-experimental (operation &optional state text)
+(defun pimacs--render-markdown (operation &optional state text)
   (pcase operation
     (:create
      (make-pimacs--markdown-render-session

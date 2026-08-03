@@ -377,12 +377,12 @@ File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
      Pi calls it as ‘(RENDERER :create)’, ‘(RENDERER :stream STATE
      TEXT)’, ‘(RENDERER :final STATE TEXT)’, and ‘(RENDERER :destroy
      STATE)’.  ‘:create’ returns opaque renderer state.  ‘:stream’ and
-     ‘:final’ return ‘:append’ and ‘:delete’ operations.  ‘:destroy’
-     releases resources.
+     ‘:final’ return ‘:append’, ‘:delete’, and ‘:replace-suffix’
+     operations.  ‘:destroy’ releases resources.
 
      The default preserves the existing ‘markdown-mode’ renderer.  Set
-     this to ‘pimacs--render-markdown-experimental’ to opt into the
-     experimental renderer.
+     this to ‘pimacs--render-markdown’ to opt into the tree-sitter
+     renderer.
 
  -- User Option: pimacs-thinking-renderer
           #'pimacs--render-thinking-default

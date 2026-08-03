@@ -449,11 +449,11 @@ Function used to render Markdown content.
 
 Pi calls it as @code{(RENDERER :create)}, @code{(RENDERER :stream STATE TEXT)},
 @code{(RENDERER :final STATE TEXT)}, and @code{(RENDERER :destroy STATE)}.  @code{:create}
-returns opaque renderer state.  @code{:stream} and @code{:final} return @code{:append} and
-@code{:delete} operations.  @code{:destroy} releases resources.
+returns opaque renderer state.  @code{:stream} and @code{:final} return @code{:append},
+@code{:delete}, and @code{:replace-suffix} operations.  @code{:destroy} releases resources.
 
 The default preserves the existing @code{markdown-mode} renderer.  Set this to
-@code{pimacs--render-markdown-experimental} to opt into the experimental renderer.
+@code{pimacs--render-markdown} to opt into the tree-sitter renderer.
 @end defopt
 
 @defopt pimacs-thinking-renderer @code{#'pimacs--render-thinking-default}
