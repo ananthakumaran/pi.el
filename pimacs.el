@@ -917,6 +917,42 @@ with the message plist to insert the custom message content."
                          :args args)
                         pimacs--tool-calls)))))))))
 
+(defun pimacs--message-update-mergeable-p (first second)
+  (let ((first-event (plist-get first :assistantMessageEvent))
+        (second-event (plist-get second :assistantMessageEvent)))
+    (and (member (plist-get first-event :type) '("thinking_delta" "text_delta"))
+         (equal (plist-get first-event :type) (plist-get second-event :type))
+         (equal (plist-get first-event :contentIndex) (plist-get second-event :contentIndex))
+         (equal (pimacs--message-role (plist-get first :message))
+                (pimacs--message-role (plist-get second :message)))
+         (stringp (plist-get first-event :delta))
+         (stringp (plist-get second-event :delta)))))
+
+(defun pimacs--merge-message-updates (events)
+  (let (merged-events)
+    (dolist (event events)
+      (if (and merged-events
+               (pimacs--message-update-mergeable-p (car merged-events) event))
+          (let* ((merged-event (copy-sequence (car merged-events)))
+                 (assistant-message-event
+                  (copy-sequence (plist-get merged-event :assistantMessageEvent))))
+            (setf (plist-get assistant-message-event :delta)
+                  (concat (plist-get assistant-message-event :delta)
+                          (plist-get (plist-get event :assistantMessageEvent) :delta)))
+            (setf (plist-get merged-event :assistantMessageEvent) assistant-message-event)
+            (setcar merged-events merged-event))
+        (push event merged-events)))
+    (let ((merged-events (nreverse merged-events)))
+      (message "pimacs: collapsed %d of %d message updates into %d renders"
+               (- (length events) (length merged-events))
+               (length events)
+               (length merged-events))
+      merged-events)))
+
+(defun pimacs--handle-message-update-batch (events)
+  (dolist (event (pimacs--merge-message-updates events))
+    (pimacs--handle-message-update event)))
+
 (defun pimacs--handle-message-end (event)
   (let* ((message (plist-get event :message))
          (error-message (plist-get message :errorMessage))
@@ -1548,7 +1584,7 @@ with the message plist to insert the custom message content."
     ("setTitle" (pimacs--handle-set-title event))))
 
 (defun pimacs--register-event-listeners ()
-  (pimacs--set-event-listener "message_update" #'pimacs--handle-message-update)
+  (pimacs--set-event-batch-listener "message_update" #'pimacs--handle-message-update-batch)
   (pimacs--set-event-listener "message_end" #'pimacs--handle-message-end)
   (pimacs--set-event-listener "bash_execution_update" #'pimacs--handle-bash-execution-update)
 
@@ -1631,6 +1667,7 @@ with the message plist to insert the custom message content."
   (let ((project-key pimacs--project-key))
     (remhash project-key pimacs--chats)
     (pimacs--hash-remove-if (lambda (k _v) (equal (car k) project-key)) pimacs--event-listeners)
+    (pimacs--hash-remove-if (lambda (k _v) (equal (car k) project-key)) pimacs--event-batch-listeners)
     (ignore-errors
       (pimacs--kill-agent))))
 

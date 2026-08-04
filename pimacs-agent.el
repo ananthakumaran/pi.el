@@ -75,6 +75,10 @@
   process buffer function)
 
 (defvar pimacs--event-listeners (make-hash-table :test 'equal))
+(defvar pimacs--event-batch-listeners (make-hash-table :test 'equal))
+
+(defconst pimacs--batchable-event-types '("message_update"))
+(defconst pimacs--event-batch-size 10)
 
 (defvar pimacs--request-counter 0)
 
@@ -98,18 +102,57 @@
             (funcall fn response))))
       (remhash request-id pimacs--response-callbacks))))
 
+(defun pimacs--dispatch-event-listener (listener event)
+  (with-current-buffer (car listener)
+    (funcall (cdr listener) event)))
+
 (defun pimacs--dispatch-event (event)
   (let ((key pimacs--project-key))
     (when-let (all-listener (gethash (cons key t) pimacs--event-listeners))
-      (with-current-buffer (car all-listener)
-        (apply (cdr all-listener) (list event))))
+      (pimacs--dispatch-event-listener all-listener event))
     (when-let (listener (gethash (cons key (plist-get event :type)) pimacs--event-listeners))
-      (with-current-buffer (car listener)
-        (apply (cdr listener) (list event))))))
+      (pimacs--dispatch-event-listener listener event))))
+
+(defun pimacs--dispatch-event-batch (events)
+  (let* ((key pimacs--project-key)
+         (type (plist-get (car events) :type))
+         (listener (gethash (cons key type) pimacs--event-batch-listeners)))
+    (if listener
+        (progn
+          (when-let (all-listener (gethash (cons key t) pimacs--event-listeners))
+            (dolist (event events)
+              (pimacs--dispatch-event-listener all-listener event)))
+          (with-current-buffer (car listener)
+            (funcall (cdr listener) events)))
+      (dolist (event events)
+        (pimacs--dispatch-event event)))))
 
 (defun pimacs--set-event-listener (name listener)
   "Set event listener NAME for all events.  LISTENER is the callback."
   (puthash (cons pimacs--project-key name) (cons (current-buffer) listener) pimacs--event-listeners))
+
+(defun pimacs--set-event-batch-listener (name listener)
+  (puthash (cons pimacs--project-key name) (cons (current-buffer) listener) pimacs--event-batch-listeners))
+
+(defun pimacs--batchable-event-p (event)
+  (member (plist-get event :type) pimacs--batchable-event-types))
+
+(defun pimacs--dispatch-responses (process responses)
+  (let (batch)
+    (dolist (response responses)
+      (if (and (pimacs--batchable-event-p response)
+               batch
+               (equal (plist-get response :type) (plist-get (car batch) :type))
+               (< (length batch) pimacs--event-batch-size))
+          (push response batch)
+        (when batch
+          (pimacs--dispatch-event-batch (nreverse batch))
+          (setq batch nil))
+        (if (pimacs--batchable-event-p response)
+            (push response batch)
+          (pimacs--dispatch process response))))
+    (when batch
+      (pimacs--dispatch-event-batch (nreverse batch)))))
 
 (defun pimacs--dispatch (process response)
   (cl-case (intern (plist-get response :type))
@@ -161,24 +204,24 @@
 (defun pimacs--enough-response-p ()
   (goto-char (point-min))
   (save-excursion
-    (when (search-forward "{")
+    (when (search-forward "{" nil t)
       (search-forward "\n" nil t))))
 
 (defun pimacs--decode-response (process)
   (with-current-buffer (process-buffer process)
-    (when (pimacs--enough-response-p)
-      (search-forward "{")
-      (backward-char 1)
-      (let* ((raw-start (point))
-             (response (pimacs--json-read-object)))
-        (when pimacs-log-rpc
-          (pimacs--maybe-log-rpc "output" (buffer-substring-no-properties raw-start (point))))
-        (delete-region (point-min) (point))
-        (when response
-          (ignore-error quit
-            (pimacs--dispatch process response))))
-      (when (>= (buffer-size) 16)
-        (pimacs--decode-response process)))))
+    (let (responses)
+      (while (pimacs--enough-response-p)
+        (search-forward "{")
+        (backward-char 1)
+        (let* ((raw-start (point))
+               (response (pimacs--json-read-object)))
+          (when pimacs-log-rpc
+            (pimacs--maybe-log-rpc "output" (buffer-substring-no-properties raw-start (point))))
+          (delete-region (point-min) (point))
+          (when response
+            (push response responses))))
+      (ignore-error quit
+        (pimacs--dispatch-responses process (nreverse responses))))))
 
 (defun pimacs--agent-version ()
   (with-temp-buffer
