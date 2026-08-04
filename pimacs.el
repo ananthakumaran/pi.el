@@ -857,8 +857,7 @@ with the message plist to insert the custom message content."
   (let* ((assistant-message-event (plist-get event :assistantMessageEvent))
          (event-type (plist-get assistant-message-event :type))
          (delta (plist-get assistant-message-event :delta))
-         (content-index (plist-get assistant-message-event :contentIndex))
-         (role (pimacs--message-role (plist-get event :message))))
+         (content-index (plist-get assistant-message-event :contentIndex)))
     (pcase event-type
       ("thinking_delta"
        (unless (string-empty-p delta)
@@ -872,7 +871,7 @@ with the message plist to insert the custom message content."
              (let ((section (pimacs-section--new-section 'thinking pimacs-section--root-section))
                    content)
                (pimacs-section--insert-section section
-                 (pimacs--insert-role-prefix role)
+                 (pimacs--insert-role-prefix "assistant")
                  (setq content (pimacs--thinking-insert delta t)))
                (puthash content-index
                         (make-pimacs-content-section
@@ -891,7 +890,7 @@ with the message plist to insert the custom message content."
              (let ((section (pimacs-section--new-section 'assistant pimacs-section--root-section))
                    content)
                (pimacs-section--insert-section section
-                 (pimacs--insert-role-prefix role)
+                 (pimacs--insert-role-prefix "assistant")
                  (setq content (pimacs--render-insert pimacs-markdown-renderer delta t)))
                (puthash content-index
                         (make-pimacs-content-section
@@ -923,8 +922,6 @@ with the message plist to insert the custom message content."
     (and (member (plist-get first-event :type) '("thinking_delta" "text_delta"))
          (equal (plist-get first-event :type) (plist-get second-event :type))
          (equal (plist-get first-event :contentIndex) (plist-get second-event :contentIndex))
-         (equal (pimacs--message-role (plist-get first :message))
-                (pimacs--message-role (plist-get second :message)))
          (stringp (plist-get first-event :delta))
          (stringp (plist-get second-event :delta)))))
 
@@ -942,12 +939,7 @@ with the message plist to insert the custom message content."
             (setf (plist-get merged-event :assistantMessageEvent) assistant-message-event)
             (setcar merged-events merged-event))
         (push event merged-events)))
-    (let ((merged-events (nreverse merged-events)))
-      (message "pimacs: collapsed %d of %d message updates into %d renders"
-               (- (length events) (length merged-events))
-               (length events)
-               (length merged-events))
-      merged-events)))
+    (nreverse merged-events)))
 
 (defun pimacs--handle-message-update-batch (events)
   (dolist (event (pimacs--merge-message-updates events))
