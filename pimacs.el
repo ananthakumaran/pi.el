@@ -496,16 +496,6 @@ with the message plist to insert the custom message content."
   (pimacs--renderer-render
    (pimacs--rendered-content-renderer-session content) text streaming))
 
-(defun pimacs--render-thinking-default (operation &optional _state text)
-  (pcase operation
-    (:create nil)
-    (:stream
-     (list (list :append (propertize text 'face 'pimacs-thinking-face))))
-    (:final
-     (list (list :append
-                 (propertize (pimacs--fill-string text) 'face 'pimacs-thinking-face))))
-    (:destroy nil)))
-
 (defun pimacs--thinking-insert (text streaming)
   (pimacs--render-insert pimacs-thinking-renderer text streaming))
 
@@ -747,15 +737,6 @@ with the message plist to insert the custom message content."
 
 (defun pimacs--insert-role-prefix (role)
   (insert (propertize (format "%s> " role) 'face (pimacs--role-face role))))
-
-(defun pimacs--fill-string (string)
-  (with-temp-buffer
-    (insert string)
-    (goto-char (point-min))
-    (while (not (eobp))
-      (fill-region (point) (line-end-position))
-      (forward-line 1))
-    (buffer-string)))
 
 (defun pimacs--insert-tool-name (tool-name)
   (insert (propertize (format "%s " tool-name) 'face 'pimacs-tool-name-face)))

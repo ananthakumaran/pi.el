@@ -32,6 +32,20 @@
 
 ;;; Markdown Parser
 
+(add-to-list
+ 'treesit-language-source-alist
+ '(markdown
+   "https://github.com/tree-sitter-grammars/tree-sitter-markdown"
+   "v0.5.3" "tree-sitter-markdown/src")
+ t)
+
+(add-to-list
+ 'treesit-language-source-alist
+ '(markdown-inline
+   "https://github.com/tree-sitter-grammars/tree-sitter-markdown"
+   "v0.5.3" "tree-sitter-markdown-inline/src")
+ t)
+
 (defun pimacs--markdown-node-children (node)
   (cl-loop for index below (treesit-node-child-count node t)
            collect (treesit-node-child node index t)))
@@ -116,13 +130,14 @@
     (setf (pimacs--markdown-render-context-list-index context) list-index)
     context))
 
+(defun pimacs--markdown-available-p ()
+  (and (treesit-available-p)
+       (treesit-language-available-p 'markdown)
+       (treesit-language-available-p 'markdown-inline)))
+
 (defun pimacs--markdown-create-parser (grammar)
-  (condition-case error
-      (treesit-parser-create grammar)
-    (error
-     (user-error
-      "Pimacs Markdown requires tree-sitter grammars `markdown' and `markdown-inline': %s"
-      (error-message-string error)))))
+  (when (treesit-language-available-p grammar)
+    (treesit-parser-create grammar)))
 
 (defun pimacs--markdown-with-parser (text grammar function)
   (let ((buffer (generate-new-buffer " *pimacs-markdown*")))
@@ -1415,35 +1430,39 @@ When non-nil, diagnostics are appended to the temporary buffer
     result))
 
 (defun pimacs--render-thinking-markdown (operation &optional state text)
-  (if (memq operation '(:stream :final))
-      (mapcar
-       (lambda (render-operation)
-         (pcase render-operation
-           (`(:append ,rendered . ,rest)
-            (cons :append
-                  (cons (pimacs--thinking-markdown-string rendered) rest)))
-           (`(:replace-suffix ,count ,rendered)
-            (list :replace-suffix count
-                  (pimacs--thinking-markdown-string rendered)))
-           (_ render-operation)))
-       (pimacs--render-markdown operation state text))
-    (pimacs--render-markdown operation state text)))
+  (if (pimacs--markdown-available-p)
+      (if (memq operation '(:stream :final))
+          (mapcar
+           (lambda (render-operation)
+             (pcase render-operation
+               (`(:append ,rendered . ,rest)
+                (cons :append
+                      (cons (pimacs--thinking-markdown-string rendered) rest)))
+               (`(:replace-suffix ,count ,rendered)
+                (list :replace-suffix count
+                      (pimacs--thinking-markdown-string rendered)))
+               (_ render-operation)))
+           (pimacs--render-markdown operation state text))
+        (pimacs--render-markdown operation state text))
+    (pimacs--render-thinking-default operation state text)))
 
 (defun pimacs--render-markdown (operation &optional state text)
-  (pcase operation
-    (:create
-     (make-pimacs--markdown-render-session
-      :checkpoints nil :changed-ranges nil :reference-definitions nil
-      :rendered-length 0 :update-number 0))
-    (:stream
-     (pimacs--markdown-render-streaming state text))
-    (:final
-     (unwind-protect
-         (list (list :append (pimacs--markdown-render-source text)
-                     :after-insert #'pimacs--markdown-apply-url-widgets))
-       (pimacs--markdown-cleanup-session state)))
-    (:destroy
-     (pimacs--markdown-cleanup-session state))))
+  (if (pimacs--markdown-available-p)
+      (pcase operation
+        (:create
+         (make-pimacs--markdown-render-session
+          :checkpoints nil :changed-ranges nil :reference-definitions nil
+          :rendered-length 0 :update-number 0))
+        (:stream
+         (pimacs--markdown-render-streaming state text))
+        (:final
+         (unwind-protect
+             (list (list :append (pimacs--markdown-render-source text)
+                         :after-insert #'pimacs--markdown-apply-url-widgets))
+           (pimacs--markdown-cleanup-session state)))
+        (:destroy
+         (pimacs--markdown-cleanup-session state)))
+    (pimacs--render-markdown-default operation state text)))
 
 (provide 'pimacs-markdown)
 
