@@ -30,6 +30,7 @@ release history, see the changelog (changelog.html).
 
 * Introduction::
 * Setup::
+* Doctor::
 * Usage::
 * Sandbox::
 * How It Works::
@@ -47,7 +48,7 @@ provides an interactive interface to the Pi Coding Agent directly from
 Emacs.
 
 
-File: pimacs.info,  Node: Setup,  Next: Usage,  Prev: Introduction,  Up: Top
+File: pimacs.info,  Node: Setup,  Next: Doctor,  Prev: Introduction,  Up: Top
 
 2 Setup
 *******
@@ -71,13 +72,23 @@ Add the following to your Emacs configuration:
      (use-package pimacs
        :ensure t
        :vc (:url "git@github.com:ananthakumaran/pimacs.el.git"
-            :rev :newest)
-       :commands (pimacs-chat))
+            :rev :newest))
 
 
-File: pimacs.info,  Node: Usage,  Next: Sandbox,  Prev: Setup,  Up: Top
+File: pimacs.info,  Node: Doctor,  Next: Usage,  Prev: Setup,  Up: Top
 
-3 Usage
+3 Doctor
+********
+
+Run ‘M-x pimacs-doctor’ to display a dependency report.  It checks that
+Pi is available and meets the minimum supported version, and that
+Tree-sitter and the Markdown grammars are installed.  When Pi or either
+grammar is missing, the report provides a button to install it.
+
+
+File: pimacs.info,  Node: Usage,  Next: Sandbox,  Prev: Doctor,  Up: Top
+
+4 Usage
 *******
 
 Run ‘M-x pimacs-chat’ from any file in your project to start a Pimacs
@@ -104,7 +115,7 @@ anywhere in the chat buffer to move point to the prompt input area.
 
 File: pimacs.info,  Node: Slash Commands,  Next: File Name Completion,  Up: Usage
 
-3.1 Slash Commands
+4.1 Slash Commands
 ==================
 
 Slash commands (https://pi.dev/docs/latest/usage#slash-commands) support
@@ -149,7 +160,7 @@ Command            Arguments   Description
 
 File: pimacs.info,  Node: File Name Completion,  Next: Bash,  Prev: Slash Commands,  Up: Usage
 
-3.2 File Name Completion
+4.2 File Name Completion
 ========================
 
 Type ‘@’ followed by a partial file path to trigger file name completion
@@ -159,7 +170,7 @@ in the prompt buffer.  The completion backend is controlled by
 
 File: pimacs.info,  Node: Bash,  Next: Sending Context,  Prev: File Name Completion,  Up: Usage
 
-3.3 Bash
+4.3 Bash
 ========
 
 Prefix a command with ‘!’ to run it in Bash.  Use ‘!!’ to run a command
@@ -170,7 +181,7 @@ without adding it to the conversation context.
 
 File: pimacs.info,  Node: Sending Context,  Next: Images,  Prev: Bash,  Up: Usage
 
-3.4 Sending Context
+4.4 Sending Context
 ===================
 
 You can send contextual information from any buffer to the Pimacs chat
@@ -190,7 +201,7 @@ Command                   Description
 
 File: pimacs.info,  Node: Images,  Next: State Lines,  Prev: Sending Context,  Up: Usage
 
-3.5 Images
+4.5 Images
 ==========
 
 You can attach images to your prompt to provide visual context to the
@@ -199,7 +210,7 @@ input area and are sent along with your message.  The agent may also
 render images inline in its responses, for example when using the ‘read’
 tool on a file that contains images.
 
-3.5.1 Supported Formats
+4.5.1 Supported Formats
 -----------------------
 
 The following image formats are supported:
@@ -217,7 +228,7 @@ the mouse, or place point on it and press ‘backspace’ or ‘delete’.
 
 File: pimacs.info,  Node: State Lines,  Next: Managing Sessions,  Prev: Images,  Up: Usage
 
-3.6 State Lines
+4.6 State Lines
 ===============
 
 The header line displays session context and model information.  The
@@ -251,7 +262,7 @@ status only in a state line, add its key to
 
 File: pimacs.info,  Node: Managing Sessions,  Prev: State Lines,  Up: Usage
 
-3.7 Managing Sessions
+4.7 Managing Sessions
 =====================
 
 Use ‘pimacs-switch-session’ to switch between active Pimacs chat
@@ -266,7 +277,7 @@ column header to sort by that column.
 
 File: pimacs.info,  Node: Sandbox,  Next: How It Works,  Prev: Usage,  Up: Top
 
-4 Sandbox
+5 Sandbox
 *********
 
 To run Pi inside a sandbox, customize ‘pimacs-executable’ and
@@ -279,7 +290,7 @@ To run Pi inside a sandbox, customize ‘pimacs-executable’ and
 
 File: pimacs.info,  Node: How It Works,  Next: Keybindings,  Prev: Sandbox,  Up: Top
 
-5 How It Works
+6 How It Works
 **************
 
 Emacs starts Pi in RPC mode (https://pi.dev/docs/latest/rpc).  In this
@@ -291,10 +302,10 @@ are not currently exposed through the RPC API.
 
 File: pimacs.info,  Node: Keybindings,  Next: Custom Variables,  Prev: How It Works,  Up: Top
 
-6 Keybindings
+7 Keybindings
 *************
 
-6.1 Chat Buffer Keybindings
+7.1 Chat Buffer Keybindings
 ===========================
 
 Key            Command                Description
@@ -313,7 +324,7 @@ Key            Command                Description
 ‘i’            ‘pimacs-focus-prompt’  Focus the prompt input field
 ‘q’            ‘pimacs-quit-chat’     Quit the chat buffer
 
-6.2 Prompt Input Keybindings
+7.2 Prompt Input Keybindings
 ============================
 
 Key            Command                Description
@@ -332,7 +343,7 @@ Key            Command                Description
 
 File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
 
-7 Custom Variables
+8 Custom Variables
 ******************
 
  -- User Option: pimacs-status-widget-hidden-keys nil
@@ -678,20 +689,21 @@ File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
 
 Tag Table:
 Node: Top746
-Node: Introduction1102
-Node: Setup1359
-Node: Usage2030
-Node: Slash Commands2880
-Node: File Name Completion5121
-Node: Bash5449
-Node: Sending Context5716
-Node: Images6524
-Node: State Lines7389
-Node: Managing Sessions8717
-Node: Sandbox9310
-Node: How It Works9692
-Node: Keybindings10142
-Node: Custom Variables12300
+Node: Introduction1113
+Node: Setup1370
+Node: Doctor2011
+Node: Usage2383
+Node: Slash Commands3234
+Node: File Name Completion5475
+Node: Bash5803
+Node: Sending Context6070
+Node: Images6878
+Node: State Lines7743
+Node: Managing Sessions9071
+Node: Sandbox9664
+Node: How It Works10046
+Node: Keybindings10496
+Node: Custom Variables12654
 
 End Tag Table
 

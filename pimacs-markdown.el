@@ -13,7 +13,7 @@
 ;; General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -31,20 +31,6 @@
 
 
 ;;; Markdown Parser
-
-(add-to-list
- 'treesit-language-source-alist
- '(markdown
-   "https://github.com/tree-sitter-grammars/tree-sitter-markdown"
-   "v0.5.3" "tree-sitter-markdown/src")
- t)
-
-(add-to-list
- 'treesit-language-source-alist
- '(markdown-inline
-   "https://github.com/tree-sitter-grammars/tree-sitter-markdown"
-   "v0.5.3" "tree-sitter-markdown-inline/src")
- t)
 
 (defun pimacs--markdown-node-children (node)
   (cl-loop for index below (treesit-node-child-count node t)

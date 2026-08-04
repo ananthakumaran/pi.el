@@ -64,6 +64,7 @@ Pimacs is an Emacs client for @uref{https://pi.dev/, Pi Coding Agent}.  For rele
 @menu
 * Introduction::
 * Setup::
+* Doctor::
 * Usage::
 * Sandbox::
 * How It Works::
@@ -99,9 +100,16 @@ Add the following to your Emacs configuration:
 (use-package pimacs
   :ensure t
   :vc (:url "git@@github.com:ananthakumaran/pimacs.el.git"
-       :rev :newest)
-  :commands (pimacs-chat))
+       :rev :newest))
 @end lisp
+
+@node Doctor
+@chapter Doctor
+
+Run @kbd{M-x pimacs-doctor} to display a dependency report.  It checks that
+Pi is available and meets the minimum supported version, and that Tree-sitter
+and the Markdown grammars are installed.  When Pi or either grammar is
+missing, the report provides a button to install it.
 
 @node Usage
 @chapter Usage

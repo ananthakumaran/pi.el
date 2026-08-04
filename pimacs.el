@@ -19,7 +19,7 @@
 ;; General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;; This file is not part of GNU Emacs.
 
@@ -50,6 +50,7 @@
 (require 'transient)
 
 (require 'pimacs-core)
+(require 'pimacs-doctor)
 (require 'pimacs-utils)
 (autoload 'pimacs--render-markdown "pimacs-markdown")
 (autoload 'pimacs--render-thinking-markdown "pimacs-markdown")
