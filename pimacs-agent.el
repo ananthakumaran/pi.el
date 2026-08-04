@@ -198,7 +198,7 @@
 (defun pimacs--net-filter (process data)
   (with-current-buffer (process-buffer process)
     (goto-char (point-max))
-    (insert (format "%s" data)))
+    (insert data))
   (pimacs--decode-response process))
 
 (defun pimacs--enough-response-p ()
