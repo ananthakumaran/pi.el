@@ -1,0 +1,7 @@
+markdown:
+document
+ section
+  paragraph
+   inline "\\| a | b | c |"
+    backslash_escape "\\|"
+    text " a | b | c |"

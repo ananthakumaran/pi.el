@@ -1,10 +1,12 @@
 export EMACS ?= $(shell command -v emacs 2>/dev/null)
 CASK_DIR := $(shell cask package-directory)
+CASK_TREESIT_EXTRA_LOAD_PATH := $(shell $(EMACS) --batch --eval "(princ (mapconcat (lambda (path) path) treesit-extra-load-path path-separator))" 2>/dev/null)
+CASK_EMACS := PIMACS_TREESIT_EXTRA_LOAD_PATH="$(CASK_TREESIT_EXTRA_LOAD_PATH)" cask emacs --batch --eval '(setq treesit-extra-load-path (split-string (getenv "PIMACS_TREESIT_EXTRA_LOAD_PATH") path-separator t))'
 
 MATCH ?=
 PIMACS_VERSION := $(shell awk '/^;; Version:/ { print $$3; exit }' pimacs.el)
-PIMACS_DOC_SOURCES := pimacs-section.el pimacs-utils.el pimacs-state-line.el \
-	pimacs-core.el pimacs-agent.el pimacs-session.el pimacs.el
+PIMACS_DOC_SOURCES := pimacs-section.el pimacs-utils.el pimacs-markdown-table.el pimacs-markdown.el \
+	pimacs-state-line.el pimacs-core.el pimacs-agent.el pimacs-session.el pimacs.el
 
 $(CASK_DIR): Cask
 	cask install
@@ -20,24 +22,32 @@ setup: cask
 
 .PHONY: compile
 compile: cask
-	@cask emacs -batch -L . -L test \
-	  -f batch-byte-compile pimacs-utils.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el; \
+	@$(CASK_EMACS) -L . -L test \
+	  -f batch-byte-compile pimacs-utils.el pimacs-markdown-table.el pimacs-markdown.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el; \
 	  (ret=$$? ; cask clean-elc && exit $$ret)
 
 .PHONY: package-lint
 package-lint: cask
-	@cask emacs -Q --batch \
+	@$(CASK_EMACS) -Q \
 	  --eval "(setq package-lint-main-file \"pimacs.el\")" \
 	  -f package-lint-batch-and-exit \
-	  pimacs-utils.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el
+	  pimacs-utils.el pimacs-markdown-table.el pimacs-markdown.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el
 
 .PHONY: test
 test: compile
-	@cask emacs --batch -L . -L test -l pimacs-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
+	@$(CASK_EMACS) -L . -L test -l pimacs-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
+
+.PHONY: markdown-test
+markdown-test: compile
+	@$(CASK_EMACS) -L . -L test -l pimacs-markdown-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
 
 .PHONY: integration
 integration: compile
-	@cask emacs --batch -L . -L test -l integration/pimacs-integration-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
+	@$(CASK_EMACS) -L . -L test -l integration/pimacs-integration-tests.el --eval '(let ((ert-quiet (equal (getenv "PI_CODING_AGENT") "true"))) (ert-run-tests-batch-and-exit "$(MATCH)"))'
+
+.PHONY: markdown-profile
+markdown-profile: compile
+	@$(CASK_EMACS) -L . -L test -l pimacs-markdown-tests.el -f pimacs-markdown-profile-run
 
 .PHONY: coverage
 coverage: export UNDERCOVER_FORCE=true
@@ -46,7 +56,7 @@ coverage: test integration
 
 .PHONY: format
 format:
-	@cask emacs --batch -L . -l pimacs-utils.el -l pimacs-state-line.el -l pimacs-core.el -l pimacs.el -l pimacs-section.el -l pimacs-edit.el -l pimacs-agent.el -l pimacs-session.el -l pimacs-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el -l integration/pimacs-integration-tests.el \
+	@$(CASK_EMACS) -L . -l pimacs-utils.el -l pimacs-markdown-table.el -l pimacs-markdown.el -l pimacs-state-line.el -l pimacs-core.el -l pimacs.el -l pimacs-section.el -l pimacs-edit.el -l pimacs-agent.el -l pimacs-session.el -l pimacs-tests.el -l pimacs-markdown-tests.el -l pimacs-section-tests.el -l pimacs-state-line-tests.el -l integration/pimacs-integration-tests.el \
 	  --eval " \
 	  (let ((inhibit-message t) \
                 (message-log-max nil)) \
@@ -55,7 +65,7 @@ format:
 	      (with-current-buffer (find-file-noselect f) \
 	        (indent-region (point-min) (point-max)) \
 	        (save-buffer))))" \
-          pimacs-utils.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el pimacs-tests.el pimacs-section-tests.el pimacs-state-line-tests.el integration/pimacs-integration-tests.el
+          pimacs-utils.el pimacs-markdown-table.el pimacs-markdown.el pimacs-state-line.el pimacs-core.el pimacs-section.el pimacs-edit.el pimacs-agent.el pimacs-session.el pimacs.el pimacs-tests.el pimacs-markdown-tests.el pimacs-section-tests.el pimacs-state-line-tests.el integration/pimacs-integration-tests.el
 
 
 .PHONY: sandbox
@@ -78,6 +88,8 @@ define ESCRIPT
   (require 'subr-x)
   (insert-file-contents "pimacs-section.el")
   (insert-file-contents "pimacs-utils.el")
+  (insert-file-contents "pimacs-markdown-table.el")
+  (insert-file-contents "pimacs-markdown.el")
   (insert-file-contents "pimacs-state-line.el")
   (insert-file-contents "pimacs-core.el")
   (insert-file-contents "pimacs-agent.el")
@@ -85,8 +97,10 @@ define ESCRIPT
   (insert-file-contents "pimacs.el")
   (while
       (ignore-errors
-        (let ((form-start (point))
-              (sexp (read (current-buffer))))
+        (let* ((sexp (read (current-buffer)))
+               (form-start (save-excursion
+                             (backward-sexp 1)
+                             (point))))
           (when sexp
             (when (eq (car sexp) 'defcustom)
               (unless (cadr (cddr sexp))
@@ -139,11 +153,13 @@ export ESCRIPT
 
 .PHONY: docs-lint
 docs-lint:
-	@cask emacs --batch -L . \
+	@$(CASK_EMACS) -L . \
 	  --eval "(require 'checkdoc)" \
 	  --eval "(checkdoc-file \"pimacs.el\")" \
 	  --eval "(checkdoc-file \"pimacs-section.el\")" \
 	  --eval "(checkdoc-file \"pimacs-utils.el\")" \
+	  --eval "(checkdoc-file \"pimacs-markdown-table.el\")" \
+	  --eval "(checkdoc-file \"pimacs-markdown.el\")" \
 	  --eval "(checkdoc-file \"pimacs-state-line.el\")" \
 	  --eval "(checkdoc-file \"pimacs-edit.el\")" \
 	  --eval "(checkdoc-file \"pimacs-agent.el\")" \
@@ -176,6 +192,7 @@ endef
 verify:
 	$(call run-verify-task,format)
 	$(call run-verify-task,test)
+	$(call run-verify-task,markdown-test)
 	$(call run-verify-task,docs)
 	$(call run-verify-task,docs-lint)
 	$(call run-verify-task,package-lint)
@@ -184,6 +201,7 @@ verify:
 verify-full:
 	$(call run-verify-task,format)
 	$(call run-verify-task,test)
+	$(call run-verify-task,markdown-test)
 	$(call run-verify-task,docs)
 	$(call run-verify-task,integration)
 	$(call run-verify-task,docs-lint)

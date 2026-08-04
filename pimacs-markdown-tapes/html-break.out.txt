@@ -1,0 +1,34 @@
+│ before
+│ after
+│ more
+│ end
+│ italic
+@ ^^^^^^ italic
+│ line
+@ ^^^^ italic
+│ again
+@ ^^^^^ italic
+│ end
+@ ^^^ italic
+│ escaped <br> stays
+│ invalid <bra> <br//> <b
+│ code<br>literal
+@ ^^^^^^^^^^^^^^^ inline-code
+│ │ Key  │ Value  │
+@ ^ table-border
+@        ^ table-border
+@                 ^ table-border
+@   ^^^^ table-header
+@          ^^^^^^ table-header
+│ ├───── ┼──────── ┤
+@ ^^^^^^ table-border
+@        ^^^^^^^^^ table-border
+@                  ^ table-border
+│ │ row  │ top  │
+@ ^ table-border
+@        ^ table-border
+@               ^ table-border
+│ │   │ bottom  │
+@ ^ table-border
+@     ^ table-border
+@               ^ table-border

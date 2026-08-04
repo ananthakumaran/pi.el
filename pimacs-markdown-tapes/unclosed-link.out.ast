@@ -1,0 +1,9 @@
+markdown:
+document
+ section
+  paragraph
+   inline "[Pimacs]"
+    shortcut_link
+     text "["
+     link_text "Pimacs"
+     text "]"

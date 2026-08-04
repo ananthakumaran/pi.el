@@ -1,0 +1,15 @@
+markdown:
+document
+ section
+  list
+   list_item
+    list_marker_minus "- "
+    paragraph
+     inline "first"
+      text "first"
+  list
+   list_item
+    list_marker_dot "12. "
+    paragraph
+     inline "second"
+      text "second"

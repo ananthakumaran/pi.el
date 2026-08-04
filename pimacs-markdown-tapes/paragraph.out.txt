@@ -1,0 +1,9 @@
+│    Leading    spaces    collapse.
+│ Soft     line
+│   continuation.
+│
+│   New    paragraph.
+│ code   preserves  spaces
+@ ^^^^^^^^^^^^^^^^^^^^^^^^ inline-code
+│ bold    spaces
+@ ^^^^^^^^^^^^^^ bold

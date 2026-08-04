@@ -1,0 +1,7 @@
+│ bold and code
+@ ^^^^^^^^^^^^^ link
+@ ^^^^ bold
+@          ^^^^ inline-code
+│ italic
+@ ^^^^^^ link
+@ ^^^^^^ italic

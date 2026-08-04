@@ -1,0 +1,23 @@
+│ │ Name  │  Value │  Center  │
+@ ^ table-border
+@         ^ table-border
+@                  ^ table-border
+@                             ^ table-border
+@   ^^^^^ table-header
+@           ^^^^^^ table-header
+@                    ^^^^^^^^ table-header
+│ ├────── ┼─────── ┼──────── ┤
+@ ^^^^^^^ table-border
+@         ^^^^^^^^ table-border
+@                  ^^^^^^^^^ table-border
+@                            ^ table-border
+│ │ a|b  │  7 │  c  │
+@ ^ table-border
+@        ^ table-border
+@             ^ table-border
+@                   ^ table-border
+│ │   │  8 │  C  │
+@ ^ table-border
+@     ^ table-border
+@          ^ table-border
+@                ^ table-border

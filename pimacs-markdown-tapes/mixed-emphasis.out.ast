@@ -1,0 +1,99 @@
+markdown:
+document
+ section
+  paragraph
+   inline [
+   │ **bold*italic***
+   │ ***bold*italic**
+   │ *italic**bold***
+   │ ***bold**italic*
+   │ __bold_italic___
+   │ ___bold_italic__
+   │ _italic__bold___
+   │ ___bold__italic_
+   ]
+    emphasis
+     emphasis_delimiter "*"
+     emphasis
+      emphasis_delimiter "*"
+      text "bold"
+      emphasis_delimiter "*"
+     text "italic"
+     emphasis_delimiter "*"
+    text [
+    │ **
+    │
+    ]
+    strong_emphasis
+     emphasis_delimiter "*"
+     emphasis_delimiter "*"
+     emphasis
+      emphasis_delimiter "*"
+      text "bold"
+      emphasis_delimiter "*"
+     text "italic"
+     emphasis_delimiter "*"
+     emphasis_delimiter "*"
+    text [
+    │
+    │ *italic
+    ]
+    strong_emphasis
+     emphasis_delimiter "*"
+     emphasis_delimiter "*"
+     text "bold"
+     emphasis_delimiter "*"
+     emphasis_delimiter "*"
+    text [
+    │ *
+    │
+    ]
+    emphasis
+     emphasis_delimiter "*"
+     strong_emphasis
+      emphasis_delimiter "*"
+      emphasis_delimiter "*"
+      text "bold"
+      emphasis_delimiter "*"
+      emphasis_delimiter "*"
+     text "italic"
+     emphasis_delimiter "*"
+    text [
+    │
+    │
+    ]
+    strong_emphasis
+     emphasis_delimiter "_"
+     emphasis_delimiter "_"
+     text "bold_italic"
+     emphasis_delimiter "_"
+     emphasis_delimiter "_"
+    text [
+    │ _
+    │
+    ]
+    emphasis
+     emphasis_delimiter "_"
+     strong_emphasis
+      emphasis_delimiter "_"
+      emphasis_delimiter "_"
+      text "bold_italic"
+      emphasis_delimiter "_"
+      emphasis_delimiter "_"
+     text [
+     │
+     │
+     ]
+     emphasis
+      emphasis_delimiter "_"
+      text "italic__bold"
+      emphasis_delimiter "_"
+     emphasis_delimiter "_"
+    text [
+    │ _
+    │ __
+    ]
+    emphasis
+     emphasis_delimiter "_"
+     text "bold__italic"
+     emphasis_delimiter "_"

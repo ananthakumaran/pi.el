@@ -1,0 +1,12 @@
+│ 3. third
+@ ^^^ list-marker
+│ 4. fourth
+@ ^^^ list-marker
+│ after
+│
+│ 1. one
+@ ^^^ list-marker
+│ 2. two
+@ ^^^ list-marker
+│ 3. three
+@ ^^^ list-marker

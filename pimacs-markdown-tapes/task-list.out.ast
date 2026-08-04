@@ -1,0 +1,39 @@
+markdown:
+document
+ section
+  list
+   list_item
+    list_marker_minus "- "
+    task_list_marker_unchecked "[ ]"
+    paragraph
+     inline "open"
+      text "open"
+   list_item
+    list_marker_minus "- "
+    task_list_marker_checked "[x]"
+    paragraph
+     inline "done"
+      text "done"
+     block_continuation "  "
+    list
+     list_item
+      list_marker_minus "  - "
+      task_list_marker_unchecked "[ ]"
+      paragraph
+       inline "nested"
+        text "nested"
+   list_item
+    list_marker_minus "- "
+    task_list_marker_checked "[X]"
+    paragraph
+     inline "literal"
+      text "literal"
+   list_item
+    list_marker_minus "- "
+    paragraph
+     inline "[x]missing"
+      shortcut_link
+       text "["
+       link_text "x"
+       text "]"
+      text "missing"

@@ -1,0 +1,22 @@
+│ │ Aa  │ B  │
+@ ^ table-border
+@       ^ table-border
+@            ^ table-border
+@   ^^ italic
+@     ^ table-header
+@         ^^ table-header
+│ │   │ b  │
+@ ^ table-border
+@     ^ table-border
+@          ^ table-border
+@   ^ table-header
+@       ^^ table-header
+│ ├──── ┼──── ┤
+@ ^^^^^ table-border
+@       ^^^^^ table-border
+@             ^ table-border
+│ │ aA  │ bB  │
+@ ^ table-border
+@       ^ table-border
+@             ^ table-border
+@   ^^ inline-code

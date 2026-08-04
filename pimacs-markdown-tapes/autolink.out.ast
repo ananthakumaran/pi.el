@@ -1,0 +1,40 @@
+markdown:
+document
+ section
+  paragraph
+   inline [
+   │ http://example.com/page
+   │ See https://example.com/path?query=one.
+   │ nothttp://example.com
+   │ http:/wrong.com
+   │ `https://example.com/code`
+   │ [https://example.com/label](https://example.com/target)
+   │ http://one.example\*literal
+   ]
+    text [
+    │ http://example.com/page
+    │ See https://example.com/path?query=one.
+    │ nothttp://example.com
+    │ http:/wrong.com
+    │
+    ]
+    code_span
+     code_span_delimiter "`"
+     text "https://example.com/code"
+     code_span_delimiter "`"
+    text [
+    │
+    │
+    ]
+    inline_link
+     text "["
+     link_text "https://example.com/label"
+     text "]("
+     link_destination "https://example.com/target"
+     text ")"
+    text [
+    │
+    │ http://one.example
+    ]
+    backslash_escape "\\*"
+    text "literal"

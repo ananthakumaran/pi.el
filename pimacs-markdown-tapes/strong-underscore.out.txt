@@ -1,0 +1,5 @@
+│ A bold word.
+@   ^^^^ bold
+│
+│ __unclosed
+@ eof

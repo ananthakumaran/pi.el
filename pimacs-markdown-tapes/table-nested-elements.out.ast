@@ -1,0 +1,13 @@
+markdown:
+document
+ section
+  pipe_table
+   pipe_table_header
+    pipe_table_cell "*Aa* "
+    pipe_table_cell "B<br>b "
+   pipe_table_delimiter_row
+    pipe_table_delimiter_cell "---"
+    pipe_table_delimiter_cell "---"
+   pipe_table_row
+    pipe_table_cell "`aA` "
+    pipe_table_cell "bB "

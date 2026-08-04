@@ -1,0 +1,23 @@
+markdown:
+document
+ section
+  paragraph
+   inline [
+   │ ==Highlighted text==
+   │ <sup>Superscript</sup>
+   │ <sub>Subscript</sub>
+   ]
+    text [
+    │ ==Highlighted text==
+    │
+    ]
+    html_tag "<sup>"
+    text "Superscript"
+    html_tag "</sup>"
+    text [
+    │
+    │
+    ]
+    html_tag "<sub>"
+    text "Subscript"
+    html_tag "</sub>"

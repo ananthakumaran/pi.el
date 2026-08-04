@@ -1,0 +1,12 @@
+│ italic bold italic
+@ ^^^^^^^^^^^^^^^^^^ italic
+@        ^^^^ bold
+│
+│ triple
+@ ^^^^^^ italic
+@ ^^^^^^ bold
+│
+│ bold code link
+@ ^^^^^^^^^^^^^^ bold
+@      ^^^^ inline-code
+@           ^^^^ link

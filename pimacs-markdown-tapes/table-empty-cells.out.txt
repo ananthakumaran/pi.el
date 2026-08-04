@@ -1,0 +1,10 @@
+│ │   │
+@ ^ table-border
+@     ^ table-border
+@   ^ table-header
+│ ├─── ┤
+@ ^^^^ table-border
+@      ^ table-border
+│ │   │
+@ ^ table-border
+@     ^ table-border

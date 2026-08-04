@@ -1,0 +1,17 @@
+markdown:
+document
+ section
+  atx_heading
+   atx_h1_marker "#"
+   inline "Heading"
+    text "Heading"
+  pipe_table
+   pipe_table_header
+    pipe_table_cell "Foo "
+    pipe_table_cell "Bar "
+   pipe_table_delimiter_row
+    pipe_table_delimiter_cell "---"
+    pipe_table_delimiter_cell "---"
+   pipe_table_row
+    pipe_table_cell "a "
+    pipe_table_cell "b "

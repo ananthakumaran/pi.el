@@ -1,0 +1,13 @@
+markdown:
+document
+ section
+  paragraph
+   inline "See [Pimacs](https://example.com)."
+    text "See "
+    inline_link
+     text "["
+     link_text "Pimacs"
+     text "]("
+     link_destination "https://example.com"
+     text ")"
+    text "."

@@ -1,0 +1,121 @@
+│ (+ 1 2)
+│
+│ ▎ code
+@ ^^ blockquote
+@   ^^^^ code-block
+│ ▎
+@ ^ blockquote
+│
+│ <
+@ ^ code-block
+│  >
+@ ^^ code-block
+│
+│ <
+@ ^ code-block
+│  >
+@ ^^ code-block
+│
+│
+│ foo
+@ ^^^ inline-code
+│
+│
+│ aaa
+@ ^^^ code-block
+│ ~~~
+@ ^^^ code-block
+│
+│ aaa
+@ ^^^ code-block
+│ ```
+@ ^^^ code-block
+│
+│ aaa
+@ ^^^ code-block
+│ ```
+@ ^^^ code-block
+│
+│ aaa
+@ ^^^ code-block
+│ ~~~
+@ ^^^ code-block
+│
+│ ▎ aaa
+@ ^^ blockquote
+@   ^^^ code-block
+│ ▎
+@ ^ blockquote
+│
+│ bbb
+│
+│
+│
+│
+│
+│  aaa
+│ aaa
+│
+│ aaa
+│   aaa
+│ aaa
+│
+│    aaa
+│     aaa
+│   aaa
+│
+│     aaa
+@ ^^^^^^^ code-block
+│ ```
+@ ^^^ code-block
+│
+│ aaa
+@ ^^^ code-block
+│
+│ aaa
+@ ^^^ code-block
+│
+│  
+@ ^ inline-code
+│ aaa
+│
+│ foo
+│ bar
+@ ^^^ code-block
+│ baz
+│
+│ foo
+│ ---
+│ bar
+@ ^^^ code-block
+│ baz
+@ ^^^ heading
+│
+│ def foo(x)
+@ ^^^ font-lock-keyword
+@     ^^^ font-lock-function-name
+│   return 3
+@   ^^^^^^ font-lock-keyword
+│ end
+@ ^^^ font-lock-keyword
+│
+│ def foo(x)
+@ ^^^ font-lock-keyword
+@     ^^^ font-lock-function-name
+│   return 3
+@   ^^^^^^ font-lock-keyword
+│ end
+@ ^^^ font-lock-keyword
+│
+│ ````;
+│ ````
+│
+│ aa
+@ ^^ inline-code
+│ foo
+│
+│ foo
+@ ^^^ code-block
+│
+│ (+ 1 2)
+@ ^^^^^^^ code-block

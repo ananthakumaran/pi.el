@@ -1,0 +1,10 @@
+markdown:
+document
+ section
+  paragraph
+   inline [
+   │ Pimacs renders Markdown responses directly in Emacs, preserving syntax highlighting while keeping every paragraph comfortably readable in a narrow chat buffer.
+   ]
+    text [
+    │ Pimacs renders Markdown responses directly in Emacs, preserving syntax highlighting while keeping every paragraph comfortably readable in a narrow chat buffer.
+    ]

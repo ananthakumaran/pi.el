@@ -1,0 +1,6 @@
+markdown:
+document
+ section
+  paragraph
+   inline "`code"
+    text "`code"

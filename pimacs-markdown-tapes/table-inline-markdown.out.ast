@@ -1,0 +1,27 @@
+markdown:
+document
+ section
+  paragraph
+   inline "Table with descriptive content"
+    text "Table with descriptive content"
+  pipe_table
+   pipe_table_header
+    pipe_table_cell "Feature      "
+    pipe_table_cell "Description              "
+    pipe_table_cell "Status "
+   pipe_table_delimiter_row
+    pipe_table_delimiter_cell "--------------"
+    pipe_table_delimiter_cell "--------------------------"
+    pipe_table_delimiter_cell "--------"
+   pipe_table_row
+    pipe_table_cell "**Speed**    "
+    pipe_table_cell "Blazing fast performance "
+    pipe_table_cell "✅     "
+   pipe_table_row
+    pipe_table_cell "**Security** "
+    pipe_table_cell "End-to-end encryption    "
+    pipe_table_cell "✅     "
+   pipe_table_row
+    pipe_table_cell "**Cost**     "
+    pipe_table_cell "Free for basic users     "
+    pipe_table_cell "⚠️     "

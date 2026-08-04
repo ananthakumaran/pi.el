@@ -1,0 +1,51 @@
+markdown:
+document
+ section
+  link_reference_definition
+   link_label "[site]"
+   link_destination "https://example.com"
+   link_title "\"Pimacs website\""
+  link_reference_definition
+   link_label "[other]"
+   link_destination "<https://example.org>"
+   link_title "'Other website'"
+  paragraph
+   inline [
+   │ [Full reference][site]
+   │ [site]
+   │ [other][]
+   │ [Inline title](https://example.net "Inline link")
+   ]
+    full_reference_link
+     text "["
+     link_text "Full reference"
+     text "]"
+     link_label "[site]"
+    text [
+    │
+    │
+    ]
+    shortcut_link
+     text "["
+     link_text "site"
+     text "]"
+    text [
+    │
+    │
+    ]
+    collapsed_reference_link
+     text "["
+     link_text "other"
+     text "][]"
+    text [
+    │
+    │
+    ]
+    inline_link
+     text "["
+     link_text "Inline title"
+     text "]("
+     link_destination "https://example.net"
+     text " "
+     link_title "\"Inline link\""
+     text ")"

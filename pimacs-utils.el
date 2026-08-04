@@ -63,6 +63,33 @@
   (when (stringp uuid)
     (substring uuid -8)))
 
+(defun pimacs--buffer-string-common-prefix-length (buffer start end string)
+  (with-current-buffer buffer
+    (let ((buffer-position start)
+          (string-position 0)
+          (string-end (length string))
+          done)
+      (while (and (not done)
+                  (< buffer-position end)
+                  (< string-position string-end))
+        (if (not (equal (text-properties-at buffer-position buffer)
+                        (text-properties-at string-position string)))
+            (setq done t)
+          (let* ((buffer-property-end
+                  (next-property-change buffer-position buffer end))
+                 (string-property-end
+                  (next-property-change string-position string string-end))
+                 (span-end
+                  (+ buffer-position
+                     (min (- buffer-property-end buffer-position)
+                          (- string-property-end string-position)))))
+            (while (and (< buffer-position span-end) (not done))
+              (if (= (char-after buffer-position) (aref string string-position))
+                  (setq buffer-position (1+ buffer-position)
+                        string-position (1+ string-position))
+                (setq done t))))))
+      (- buffer-position start))))
+
 (defmacro pimacs--def-permanent-buffer-local (name &optional init-value)
   "Declare NAME as buffer local variable with optional INIT-VALUE."
   `(progn
@@ -177,7 +204,7 @@ PRED is called with KEY VALUE."
         (markdown-table-align)
         (goto-char (markdown-table-end))))))
 
-(defun pimacs--render-markdown (text)
+(defun pimacs--render-markdown-with-markdown-mode (text)
   (with-temp-buffer
     (insert text)
     (let ((inhibit-message t))
@@ -189,19 +216,31 @@ PRED is called with KEY VALUE."
               (let ((inhibit-read-only t))
                 (pimacs--align-markdown-tables))
             (error nil)))
-        (font-lock-ensure))
-      (buffer-string))))
+        (font-lock-ensure)))
+    (buffer-string)))
 
-(defun pimacs--render-content (filename content)
+(defun pimacs--render-markdown-default (operation &optional _state text)
+  (pcase operation
+    (:create nil)
+    (:stream
+     (list (list :append
+                 (pimacs--render-markdown-with-markdown-mode text))))
+    (:final
+     (list (list :append
+                 (pimacs--render-markdown-with-markdown-mode text))))
+    (:destroy nil)))
+
+(defun pimacs--render-content (filename content &optional mode)
   (with-temp-buffer
-    ;; Use a fake temp filename preserving extension only.
-    (setq-local
-     buffer-file-name
-     (expand-file-name
-      (concat "pimacs-fontify"
-              (when-let ((ext (file-name-extension filename t)))
-                ext))
-      temporary-file-directory))
+    (when filename
+      ;; Use a fake temp filename preserving extension only.
+      (setq-local
+       buffer-file-name
+       (expand-file-name
+        (concat "pimacs-fontify"
+                (when-let ((ext (file-name-extension filename t)))
+                  ext))
+        temporary-file-directory)))
 
     (insert content)
 
@@ -210,7 +249,9 @@ PRED is called with KEY VALUE."
         (delay-mode-hooks
           (let ((enable-local-variables nil)
                 (enable-local-eval nil))
-            (set-auto-mode)
+            (if mode
+                (funcall mode)
+              (set-auto-mode))
             (font-lock-ensure)))))
 
     ;; Prevent save prompts

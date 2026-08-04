@@ -369,6 +369,33 @@ File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
      ‘followUp’: Wait until the agent finishes.  Message is delivered
      only when agent stops.
 
+ -- User Option: pimacs-markdown-renderer
+          #'pimacs--render-markdown-default
+
+     Function used to render Markdown content.
+
+     Pi calls it as ‘(RENDERER :create)’, ‘(RENDERER :stream STATE
+     TEXT)’, ‘(RENDERER :final STATE TEXT)’, and ‘(RENDERER :destroy
+     STATE)’.  ‘:create’ returns opaque renderer state.  ‘:stream’ and
+     ‘:final’ return ‘:append’, ‘:delete’, and ‘:replace-suffix’
+     operations.  ‘:destroy’ releases resources.
+
+     The default preserves the existing ‘markdown-mode’ renderer.  Set
+     this to ‘pimacs--render-markdown’ to opt into the tree-sitter
+     renderer.
+
+ -- User Option: pimacs-thinking-renderer
+          #'pimacs--render-thinking-default
+
+     Function used to render assistant thinking content.
+
+     It implements the same ‘:create’, ‘:stream’, ‘:final’, and
+     ‘:destroy’ renderer protocol as ‘pimacs-markdown-renderer’.
+
+     The default preserves the legacy, dimmed plain-text rendering.  Set
+     this to ‘pimacs--render-thinking-markdown’ to render thinking as
+     Markdown.
+
  -- User Option: pimacs-slash-commands
 
           '(("model" pimacs-select-model 0 "Switch models")
@@ -611,6 +638,17 @@ File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
      Format of the Pimacs mode-line entry.
 
      See ‘pimacs-header-line-format’ for available components.
+
+ -- User Option: pimacs-markdown-incremental-render-debug nil
+
+     Whether to capture incremental Markdown rendering diagnostics.
+
+     When non-nil, diagnostics are appended to the temporary buffer
+     ‘*pimacs-markdown-incremental-debug*’.
+
+ -- User Option: pimacs-markdown-use-unicode-tables t
+
+     Whether to render Markdown tables with Unicode borders.
 
  -- User Option: pimacs-align-markdown-tables t
 

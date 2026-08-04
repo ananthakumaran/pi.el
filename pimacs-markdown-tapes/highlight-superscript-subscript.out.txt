@@ -1,0 +1,5 @@
+│ ==Highlighted text==
+│ Superscript
+@ ^^^^^^^^^^^ superscript
+│ Subscript
+@ ^^^^^^^^^ subscript

@@ -1,0 +1,55 @@
+markdown:
+document
+ section
+  paragraph
+   inline [
+   │ Inline $x + y$ and \(z\), with $**literal**$.
+   │ $$
+   │ x_1
+   │ $$
+   │ \[
+   │ y
+   │ \]
+   │ Dollar $1 and $$not a block.
+   ]
+    text "Inline "
+    latex_block
+     latex_span_delimiter "$"
+     text "x + y"
+     latex_span_delimiter "$"
+    text " and "
+    backslash_escape "\\("
+    text "z"
+    backslash_escape "\\)"
+    text ", with "
+    latex_block
+     latex_span_delimiter "$"
+     text "**literal**"
+     latex_span_delimiter "$"
+    text [
+    │ .
+    │
+    ]
+    latex_block
+     latex_span_delimiter "$$"
+     text [
+     │
+     │ x_1
+     │
+     ]
+     latex_span_delimiter "$$"
+    text [
+    │
+    │
+    ]
+    backslash_escape "\\["
+    text [
+    │
+    │ y
+    │
+    ]
+    backslash_escape "\\]"
+    text [
+    │
+    │ Dollar $1 and $$not a block.
+    ]

@@ -1,0 +1,14 @@
+│ │ A  │ B  │
+@ ^ table-border
+@      ^ table-border
+@           ^ table-border
+@   ^^ table-header
+@        ^^ table-header
+│ ├─── ┼─── ┤
+@ ^^^^ table-border
+@      ^^^^ table-border
+@           ^ table-border
+│ │ a  │   │
+@ ^ table-border
+@      ^ table-border
+@          ^ table-border

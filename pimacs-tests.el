@@ -154,6 +154,93 @@
                   "line1\nline2\n[Line 1 is 100KB, exceeds 50.0KB limit. Use bash: sed -n '1p' main.go | head -c 51200]")
                  '("line1\nline2" . "[Line 1 is 100KB, exceeds 50.0KB limit. Use bash: sed -n '1p' main.go | head -c 51200]"))))
 
+(ert-deftest pimacs--buffer-string-common-prefix-length ()
+  (cl-labels ((common-prefix (buffer-text string)
+                (with-temp-buffer
+                  (insert buffer-text)
+                  (pimacs--buffer-string-common-prefix-length
+                   (current-buffer) (point-min) (point-max) string))))
+    (should (= (common-prefix "" "") 0))
+    (should (= (common-prefix "" "text") 0))
+    (should (= (common-prefix "text" "") 0))
+    (should (= (common-prefix "matching" "matching") 8))
+    (with-temp-buffer
+      (insert "ignoredmatching")
+      (should (= (pimacs--buffer-string-common-prefix-length
+                  (current-buffer) (+ (point-min) 7) (point-max) "matching")
+                 8)))
+    (should (= (common-prefix "shared" "sharing") 4))
+    (should (= (common-prefix "prefix" "prefix-more") 6))
+    (should (= (common-prefix "prefix-more" "prefix") 6))
+    (let ((buffer-text (propertize "abcdef" 'face 'bold))
+          (string (propertize "abcdef" 'face 'bold)))
+      (should (= (common-prefix buffer-text string) 6)))
+    (let ((buffer-text (copy-sequence "abcdef"))
+          (string (copy-sequence "abcdef")))
+      (put-text-property 2 6 'face 'bold buffer-text)
+      (put-text-property 2 6 'face 'italic string)
+      (should (= (common-prefix buffer-text string) 2)))
+    (let ((buffer-text (copy-sequence "abcdef"))
+          (string (copy-sequence "abcdef")))
+      (put-text-property 1 5 'face 'bold buffer-text)
+      (put-text-property 1 5 'face 'bold string)
+      (put-text-property 3 6 'help-echo "Link" buffer-text)
+      (put-text-property 3 6 'help-echo "Link" string)
+      (should (= (common-prefix buffer-text string) 6)))
+    (let ((buffer-text (copy-sequence "abcdef"))
+          (string (copy-sequence "abcdef")))
+      (put-text-property 1 5 'face 'bold buffer-text)
+      (put-text-property 1 5 'face 'bold string)
+      (put-text-property 3 6 'help-echo "First link" buffer-text)
+      (put-text-property 3 6 'help-echo "Second link" string)
+      (should (= (common-prefix buffer-text string) 3)))
+    (let ((buffer-text (copy-sequence "abcdef"))
+          (string (copy-sequence "abcdef")))
+      (put-text-property 1 4 'face 'bold buffer-text)
+      (put-text-property 1 5 'face 'bold string)
+      (should (= (common-prefix buffer-text string) 4)))
+    (let ((buffer-text (copy-sequence "abcdef"))
+          (string (copy-sequence "abcdef")))
+      (put-text-property 4 6 'pimacs-test-property 'one buffer-text)
+      (put-text-property 4 6 'pimacs-test-property 'two string)
+      (should (= (common-prefix buffer-text string) 4)))))
+
+(ert-deftest pimacs--render-apply-operations-replaces-suffix ()
+  (with-temp-buffer
+    (let* ((context (pimacs--render-create-context))
+           (initial (concat (propertize "prefix " 'face 'bold)
+                            (propertize "old" 'face 'italic)))
+           (replacement (concat (propertize "prefix " 'face 'bold)
+                                (propertize "new" 'face 'italic)))
+           changes)
+      (pimacs--render-apply-operations context (list (list :append initial)))
+      (add-hook 'before-change-functions
+                (lambda (start end) (push (list start end) changes))
+                nil t)
+      (pimacs--render-apply-operations
+       context (list (list :replace-suffix (length initial) replacement)))
+      (should (equal (nreverse changes) '((8 11) (8 8))))
+      (should (equal-including-properties
+               (buffer-substring (pimacs-render-context-content-begin context)
+                                 (pimacs-render-context-content-end context))
+               replacement))
+      (should (= (pimacs-render-context-rendered-length context)
+                 (length replacement)))
+      (setq changes nil)
+      (pimacs--render-apply-operations
+       context (list (list :replace-suffix (length replacement) replacement)))
+      (should-not changes)
+      (let ((shortened (propertize "prefix" 'face 'bold)))
+        (pimacs--render-apply-operations
+         context (list (list :replace-suffix (length replacement) shortened)))
+        (should (equal (nreverse changes) '((7 11))))
+        (should (equal-including-properties
+                 (buffer-substring (pimacs-render-context-content-begin context)
+                                   (pimacs-render-context-content-end context))
+                 shortened))
+        (should (= (pimacs-render-context-rendered-length context)
+                   (length shortened)))))))
+
 (ert-deftest pimacs--join-test ()
   (should (equal (pimacs--join nil) ""))
   (should (equal (pimacs--join '()) ""))
@@ -320,6 +407,94 @@
                                (pimacs-section-beginning section)
                                (pimacs-section-end section)))))
     (should (= (hash-table-count pimacs--content-sections) 0))))
+
+(ert-deftest pimacs--markdown-renderer-lifecycle ()
+  (with-temp-buffer
+    (pimacs-section--create-root-section)
+    (setq pimacs--content-sections (make-hash-table :test 'eql))
+    (setq pimacs--prompt-widget
+          (widget-create 'editable-field :format "%v" :value ""))
+    (widget-setup)
+
+    (let* ((operations nil)
+           (pimacs-markdown-renderer
+            (lambda (operation &optional _state text)
+              (push operation operations)
+              (pcase operation
+                (:create (list :renderer-state))
+                (:stream (list (list :append (concat "stream: " text))))
+                (:final (list (list :append (concat "full: " text))))
+                (:destroy nil)))))
+      (pimacs--handle-message-update
+       '(:assistantMessageEvent (:type "text_delta" :delta "Hello" :contentIndex 0)
+                                :message (:role "assistant")))
+      (should (string-match-p "assistant> stream: Hello" (buffer-string)))
+      (pimacs--handle-message-update
+       '(:assistantMessageEvent (:type "text_delta" :delta " world" :contentIndex 0)
+                                :message (:role "assistant")))
+      (let ((section (pimacs-content-section-section
+                      (gethash 0 pimacs--content-sections))))
+        (should (string-match-p
+                 "stream: Hello.*stream:  world"
+                 (buffer-substring-no-properties
+                  (pimacs-section-beginning section)
+                  (pimacs-section-end section)))))
+
+      (pimacs--handle-message-end
+       '(:message (:role "assistant"
+                         :content ((:type "text" :text "Hello world")))))
+      (should (string-match-p "assistant> full: Hello world" (buffer-string)))
+      (should-not (string-match-p "stream: Hello" (buffer-string)))
+      (should (equal (nreverse operations)
+                     '(:create :stream :stream :final :destroy))))))
+
+(ert-deftest pimacs--thinking-renderer-default-preserves-legacy-rendering ()
+  (with-temp-buffer
+    (let ((text "# Heading\n**bold**"))
+      (pimacs--thinking-insert text nil)
+      (should (equal (buffer-substring-no-properties (point-min) (point-max))
+                     (pimacs--fill-string text)))
+      (should (eq (get-text-property (point-min) 'face)
+                  'pimacs-thinking-face)))
+    (erase-buffer)
+    (let* ((content (pimacs--render-create-content pimacs-thinking-renderer))
+           (context (pimacs--rendered-content-context content)))
+      (unwind-protect
+          (progn
+            (pimacs--render-apply-operations
+             context (pimacs--render-content-update content "**bold**" t))
+            (should (equal (buffer-substring-no-properties (point-min) (point-max))
+                           "**bold**"))
+            (should (eq (get-text-property (point-min) 'face)
+                        'pimacs-thinking-face)))
+        (pimacs--render-clear-content content)))))
+
+(ert-deftest pimacs--thinking-markdown-renderer-uses-only-dimmed-non-color-faces ()
+  (with-temp-buffer
+    (let ((pimacs-thinking-renderer #'pimacs--render-thinking-markdown))
+      (pimacs--thinking-insert
+       "# Heading\n**bold** and *italic* ~~strike~~ `code` [link](https://example.com)" nil)
+      (cl-labels ((property-at (text property)
+                    (save-excursion
+                      (goto-char (point-min))
+                      (search-forward text)
+                      (get-text-property (- (point) (length text)) property))))
+        (should (equal (buffer-substring-no-properties (point-min) (point-max))
+                       "Heading\nbold and italic strike code link"))
+        (should (equal (property-at "Heading" 'face)
+                       '((:weight bold) pimacs-thinking-face)))
+        (should (equal (property-at "bold" 'face)
+                       '((:weight bold) pimacs-thinking-face)))
+        (should (eq (property-at "and" 'face) 'pimacs-thinking-face))
+        (should (equal (property-at "italic" 'face)
+                       '((:slant italic) pimacs-thinking-face)))
+        (should (equal (property-at "strike" 'face)
+                       '((:strike-through t) pimacs-thinking-face)))
+        (should (equal (property-at "code" 'face)
+                       '((:inherit fixed-pitch) pimacs-thinking-face)))
+        (should (equal (property-at "link" 'face)
+                       '((:underline t) pimacs-thinking-face)))
+        (should (equal (property-at "link" 'help-echo) "https://example.com"))))))
 
 (ert-deftest pimacs-clear-ui-keeps-sections-before-prompt-widgets ()
   (with-temp-buffer

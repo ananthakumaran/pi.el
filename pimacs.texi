@@ -443,6 +443,30 @@ before the next LLM call.
 when agent stops.
 @end defopt
 
+@defopt pimacs-markdown-renderer @code{#'pimacs--render-markdown-default}
+
+Function used to render Markdown content.
+
+Pi calls it as @code{(RENDERER :create)}, @code{(RENDERER :stream STATE TEXT)},
+@code{(RENDERER :final STATE TEXT)}, and @code{(RENDERER :destroy STATE)}.  @code{:create}
+returns opaque renderer state.  @code{:stream} and @code{:final} return @code{:append},
+@code{:delete}, and @code{:replace-suffix} operations.  @code{:destroy} releases resources.
+
+The default preserves the existing @code{markdown-mode} renderer.  Set this to
+@code{pimacs--render-markdown} to opt into the tree-sitter renderer.
+@end defopt
+
+@defopt pimacs-thinking-renderer @code{#'pimacs--render-thinking-default}
+
+Function used to render assistant thinking content.
+
+It implements the same @code{:create}, @code{:stream}, @code{:final}, and @code{:destroy}
+renderer protocol as @code{pimacs-markdown-renderer}.
+
+The default preserves the legacy, dimmed plain-text rendering.  Set this to
+@code{pimacs--render-thinking-markdown} to render thinking as Markdown.
+@end defopt
+
 @defopt pimacs-slash-commands
 
 @lisp
@@ -713,6 +737,19 @@ Use at most one @code{:spacer}.
 Format of the Pimacs mode-line entry.
 
 See @code{pimacs-header-line-format} for available components.
+@end defopt
+
+@defopt pimacs-markdown-incremental-render-debug @code{nil}
+
+Whether to capture incremental Markdown rendering diagnostics.
+
+When non-nil, diagnostics are appended to the temporary buffer
+@code{*pimacs-markdown-incremental-debug*}.
+@end defopt
+
+@defopt pimacs-markdown-use-unicode-tables @code{t}
+
+Whether to render Markdown tables with Unicode borders.
 @end defopt
 
 @defopt pimacs-align-markdown-tables @code{t}

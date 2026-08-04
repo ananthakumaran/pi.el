@@ -1,0 +1,9 @@
+│ Inline x + y and (z), with **literal**.
+@        ^^^^^ equation
+@                            ^^^^^^^^^^^ equation
+│ x_1
+@ ^^^ equation
+│ [
+│ y
+│ ]
+│ Dollar $1 and $$not a block.

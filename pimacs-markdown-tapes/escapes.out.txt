@@ -1,0 +1,18 @@
+│ *literal* _literal_ `literal` [literal](url) \ ~literal~ \a
+│ a
+│ b
+│ bold * literal
+@ ^^^^^^^^^^^^^^ bold
+│ link ]
+@ ^^^^^^ link
+│ > not a quote
+│ │ | not a table  │ still text  │
+@ ^ table-border
+@                  ^ table-border
+@                                ^ table-border
+@   ^^^^^^^^^^^^^^ table-header
+@                    ^^^^^^^^^^^ table-header
+│ ├─────────────── ┼──────────── ┤
+@ ^^^^^^^^^^^^^^^^ table-border
+@                  ^^^^^^^^^^^^^ table-border
+@                                ^ table-border

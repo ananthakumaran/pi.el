@@ -1,0 +1,16 @@
+markdown:
+document
+ section
+  paragraph
+   inline "A *word* and _another_."
+    text "A "
+    emphasis
+     emphasis_delimiter "*"
+     text "word"
+     emphasis_delimiter "*"
+    text " and "
+    emphasis
+     emphasis_delimiter "_"
+     text "another"
+     emphasis_delimiter "_"
+    text "."

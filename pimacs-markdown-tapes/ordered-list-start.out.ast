@@ -1,0 +1,36 @@
+markdown:
+document
+ section
+  list
+   list_item
+    list_marker_dot "3. "
+    paragraph
+     inline "third"
+      text "third"
+   list_item
+    list_marker_dot "1. "
+    paragraph
+     inline [
+     │ fourth
+     │ after
+     ]
+      text [
+      │ fourth
+      │ after
+      ]
+     block_continuation
+   list_item
+    list_marker_dot "1. "
+    paragraph
+     inline "one"
+      text "one"
+   list_item
+    list_marker_dot "1. "
+    paragraph
+     inline "two"
+      text "two"
+   list_item
+    list_marker_dot "1. "
+    paragraph
+     inline "three"
+      text "three"

@@ -1,0 +1,43 @@
+markdown:
+document
+ section
+  block_quote
+   block_quote_marker "> "
+   paragraph
+    inline [
+    │ *quoted* text
+    │ continued
+    ]
+     emphasis
+      emphasis_delimiter "*"
+      text "quoted"
+      emphasis_delimiter "*"
+     text [
+     │  text
+     │ continued
+     ]
+    block_continuation "> "
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline [
+     │ nested
+     │ > outer
+     ]
+      text [
+      │ nested
+      │ > outer
+      ]
+     block_continuation "> "
+   section
+    atx_heading
+     atx_h1_marker "#"
+     inline "heading"
+      text "heading"
+     block_continuation ">"
+    paragraph
+     inline "nospace"
+      text "nospace"
+  paragraph
+   inline "after"
+    text "after"

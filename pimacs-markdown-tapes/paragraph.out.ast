@@ -1,0 +1,38 @@
+markdown:
+document
+ section
+  paragraph
+   inline [
+   │    Leading    spaces    collapse.
+   │ Soft     line
+   │   continuation.
+   ]
+    text [
+    │    Leading    spaces    collapse.
+    │ Soft     line
+    │   continuation.
+    ]
+  paragraph
+   inline [
+   │   New    paragraph.
+   │ `code   preserves  spaces`
+   │ **bold    spaces**
+   ]
+    text [
+    │   New    paragraph.
+    │
+    ]
+    code_span
+     code_span_delimiter "`"
+     text "code   preserves  spaces"
+     code_span_delimiter "`"
+    text [
+    │
+    │
+    ]
+    strong_emphasis
+     emphasis_delimiter "*"
+     emphasis_delimiter "*"
+     text "bold    spaces"
+     emphasis_delimiter "*"
+     emphasis_delimiter "*"

@@ -1,0 +1,16 @@
+│ Heading
+@ ^^^^^^^ heading
+│ │ Foo  │ Bar  │
+@ ^ table-border
+@        ^ table-border
+@               ^ table-border
+@   ^^^^ table-header
+@          ^^^^ table-header
+│ ├───── ┼───── ┤
+@ ^^^^^^ table-border
+@        ^^^^^^ table-border
+@               ^ table-border
+│ │ a  │ b  │
+@ ^ table-border
+@      ^ table-border
+@           ^ table-border

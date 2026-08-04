@@ -1,0 +1,1775 @@
+markdown:
+document
+ section
+  atx_heading
+   atx_h1_marker "#"
+   inline "Markdown Feature Test Document"
+    text "Markdown Feature Test Document"
+  paragraph
+   inline [
+   │ A comprehensive test document for rendering markdown features.
+   ]
+    text [
+    │ A comprehensive test document for rendering markdown features.
+    ]
+  thematic_break [
+  │ ---
+  │
+  ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Table of Contents"
+     text "Table of Contents"
+   list
+    list_item
+     list_marker_dot "1. "
+     paragraph
+      inline "[Headings](#headings)"
+       inline_link
+        text "["
+        link_text "Headings"
+        text "]("
+        link_destination "#headings"
+        text ")"
+    list_item
+     list_marker_dot "2. "
+     paragraph
+      inline "[Text Formatting](#text-formatting)"
+       inline_link
+        text "["
+        link_text "Text Formatting"
+        text "]("
+        link_destination "#text-formatting"
+        text ")"
+    list_item
+     list_marker_dot "3. "
+     paragraph
+      inline "[Lists](#lists)"
+       inline_link
+        text "["
+        link_text "Lists"
+        text "]("
+        link_destination "#lists"
+        text ")"
+    list_item
+     list_marker_dot "4. "
+     paragraph
+      inline "[Links & Images](#links--images)"
+       inline_link
+        text "["
+        link_text "Links & Images"
+        text "]("
+        link_destination "#links--images"
+        text ")"
+    list_item
+     list_marker_dot "5. "
+     paragraph
+      inline "[Code](#code)"
+       inline_link
+        text "["
+        link_text "Code"
+        text "]("
+        link_destination "#code"
+        text ")"
+    list_item
+     list_marker_dot "6. "
+     paragraph
+      inline "[Tables](#tables)"
+       inline_link
+        text "["
+        link_text "Tables"
+        text "]("
+        link_destination "#tables"
+        text ")"
+    list_item
+     list_marker_dot "7. "
+     paragraph
+      inline "[Blockquotes](#blockquotes)"
+       inline_link
+        text "["
+        link_text "Blockquotes"
+        text "]("
+        link_destination "#blockquotes"
+        text ")"
+    list_item
+     list_marker_dot "8. "
+     paragraph
+      inline "[Horizontal Rules](#horizontal-rules)"
+       inline_link
+        text "["
+        link_text "Horizontal Rules"
+        text "]("
+        link_destination "#horizontal-rules"
+        text ")"
+    list_item
+     list_marker_dot "9. "
+     paragraph
+      inline "[Task Lists](#task-lists)"
+       inline_link
+        text "["
+        link_text "Task Lists"
+        text "]("
+        link_destination "#task-lists"
+        text ")"
+    list_item
+     list_marker_dot "10. "
+     paragraph
+      inline "[Footnotes](#footnotes)"
+       inline_link
+        text "["
+        link_text "Footnotes"
+        text "]("
+        link_destination "#footnotes"
+        text ")"
+    list_item
+     list_marker_dot "11. "
+     paragraph
+      inline "[Definition Lists](#definition-lists)"
+       inline_link
+        text "["
+        link_text "Definition Lists"
+        text "]("
+        link_destination "#definition-lists"
+        text ")"
+    list_item
+     list_marker_dot "12. "
+     paragraph
+      inline "[Math](#math)"
+       inline_link
+        text "["
+        link_text "Math"
+        text "]("
+        link_destination "#math"
+        text ")"
+    list_item
+     list_marker_dot "13. "
+     paragraph
+      inline "[HTML Embedding](#html-embedding)"
+       inline_link
+        text "["
+        link_text "HTML Embedding"
+        text "]("
+        link_destination "#html-embedding"
+        text ")"
+    list_item
+     list_marker_dot "14. "
+     paragraph
+      inline "[Admonitions/Callouts](#admonitionscallouts)"
+       inline_link
+        text "["
+        link_text "Admonitions/Callouts"
+        text "]("
+        link_destination "#admonitionscallouts"
+        text ")"
+    list_item
+     list_marker_dot "15. "
+     paragraph
+      inline "[Mermaid Diagrams](#mermaid-diagrams)"
+       inline_link
+        text "["
+        link_text "Mermaid Diagrams"
+        text "]("
+        link_destination "#mermaid-diagrams"
+        text ")"
+      block_continuation
+   thematic_break [
+   │ ---
+   │
+   ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Headings"
+     text "Headings"
+ section
+  atx_heading
+   atx_h1_marker "#"
+   inline "Heading 1 (H1)"
+    text "Heading 1 (H1)"
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Heading 2 (H2)"
+     text "Heading 2 (H2)"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Heading 3 (H3)"
+      text "Heading 3 (H3)"
+    section
+     atx_heading
+      atx_h4_marker "####"
+      inline "Heading 4 (H4)"
+       text "Heading 4 (H4)"
+     section
+      atx_heading
+       atx_h5_marker "#####"
+       inline "Heading 5 (H5)"
+        text "Heading 5 (H5)"
+      section
+       atx_heading
+        atx_h6_marker "######"
+        inline "Heading 6 (H6)"
+         text "Heading 6 (H6)"
+       thematic_break [
+       │ ---
+       │
+       ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Text Formatting"
+     text "Text Formatting"
+   paragraph
+    inline [
+    │ **Bold text** (double asterisk)
+    │ __Bold text__ (double underscore)
+    ]
+     strong_emphasis
+      emphasis_delimiter "*"
+      emphasis_delimiter "*"
+      text "Bold text"
+      emphasis_delimiter "*"
+      emphasis_delimiter "*"
+     text [
+     │  (double asterisk)
+     │
+     ]
+     strong_emphasis
+      emphasis_delimiter "_"
+      emphasis_delimiter "_"
+      text "Bold text"
+      emphasis_delimiter "_"
+      emphasis_delimiter "_"
+     text " (double underscore)"
+   paragraph
+    inline [
+    │ *Italic text* (single asterisk)
+    │ _Italic text_ (single underscore)
+    ]
+     emphasis
+      emphasis_delimiter "*"
+      text "Italic text"
+      emphasis_delimiter "*"
+     text [
+     │  (single asterisk)
+     │
+     ]
+     emphasis
+      emphasis_delimiter "_"
+      text "Italic text"
+      emphasis_delimiter "_"
+     text " (single underscore)"
+   paragraph
+    inline [
+    │ ***Bold and Italic*** (triple asterisk)
+    │ ___Bold and Italic___ (triple underscore)
+    ]
+     emphasis
+      emphasis_delimiter "*"
+      strong_emphasis
+       emphasis_delimiter "*"
+       emphasis_delimiter "*"
+       text "Bold and Italic"
+       emphasis_delimiter "*"
+       emphasis_delimiter "*"
+      emphasis_delimiter "*"
+     text [
+     │  (triple asterisk)
+     │
+     ]
+     emphasis
+      emphasis_delimiter "_"
+      strong_emphasis
+       emphasis_delimiter "_"
+       emphasis_delimiter "_"
+       text "Bold and Italic"
+       emphasis_delimiter "_"
+       emphasis_delimiter "_"
+      emphasis_delimiter "_"
+     text " (triple underscore)"
+   paragraph
+    inline "~~Strikethrough~~ (tilde)"
+     strikethrough
+      emphasis_delimiter "~"
+      strikethrough
+       emphasis_delimiter "~"
+       text "Strikethrough"
+       emphasis_delimiter "~"
+      emphasis_delimiter "~"
+     text " (tilde)"
+   paragraph
+    inline "==Highlighted text== (equal signs - GitHub Flavored)"
+     text "==Highlighted text== (equal signs - GitHub Flavored)"
+   paragraph
+    inline [
+    │ <sup>Superscript</sup>
+    │ <sub>Subscript</sub>
+    ]
+     html_tag "<sup>"
+     text "Superscript"
+     html_tag "</sup>"
+     text [
+     │
+     │
+     ]
+     html_tag "<sub>"
+     text "Subscript"
+     html_tag "</sub>"
+   paragraph
+    inline "`Inline code` (backticks)"
+     code_span
+      code_span_delimiter "`"
+      text "Inline code"
+      code_span_delimiter "`"
+     text " (backticks)"
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline [
+     │ **Note**: Some renderers may not support all extensions equally.
+     ]
+      strong_emphasis
+       emphasis_delimiter "*"
+       emphasis_delimiter "*"
+       text "Note"
+       emphasis_delimiter "*"
+       emphasis_delimiter "*"
+      text ": Some renderers may not support all extensions equally."
+   thematic_break [
+   │ ---
+   │
+   ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Lists"
+     text "Lists"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Unordered Lists"
+      text "Unordered Lists"
+    list
+     list_item
+      list_marker_minus "- "
+      paragraph
+       inline "Item 1"
+        text "Item 1"
+     list_item
+      list_marker_minus "- "
+      paragraph
+       inline "Item 2"
+        text "Item 2"
+       block_continuation "  "
+      list
+       list_item
+        list_marker_minus "- "
+        paragraph
+         inline "Nested item 2a"
+          text "Nested item 2a"
+         block_continuation "  "
+       list_item
+        list_marker_minus "- "
+        paragraph
+         inline "Nested item 2b"
+          text "Nested item 2b"
+         block_continuation "    "
+        list
+         list_item
+          list_marker_minus "- "
+          paragraph
+           inline "Deep nested item"
+            text "Deep nested item"
+           block_continuation "  "
+       list_item
+        list_marker_minus "- "
+        paragraph
+         inline "Nested item 2c"
+          text "Nested item 2c"
+     list_item
+      list_marker_minus "- "
+      paragraph
+       inline "Item 3"
+        text "Item 3"
+       block_continuation
+    list
+     list_item
+      list_marker_star "* "
+      paragraph
+       inline "Alternative bullet (asterisk)"
+        text "Alternative bullet (asterisk)"
+    list
+     list_item
+      list_marker_plus "+ "
+      paragraph
+       inline "Alternative bullet (plus)"
+        text "Alternative bullet (plus)"
+    list
+     list_item
+      list_marker_minus "- "
+      paragraph
+       inline "Alternative bullet (dash)"
+        text "Alternative bullet (dash)"
+       block_continuation
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Ordered Lists"
+      text "Ordered Lists"
+    list
+     list_item
+      list_marker_dot "1. "
+      paragraph
+       inline "First item"
+        text "First item"
+     list_item
+      list_marker_dot "2. "
+      paragraph
+       inline "Second item"
+        text "Second item"
+       block_continuation "   "
+      list
+       list_item
+        list_marker_dot "1. "
+        paragraph
+         inline "Nested ordered item"
+          text "Nested ordered item"
+         block_continuation "   "
+       list_item
+        list_marker_dot "2. "
+        paragraph
+         inline "Another nested item"
+          text "Another nested item"
+     list_item
+      list_marker_dot "3. "
+      paragraph
+       inline "Third item"
+        text "Third item"
+     list_item
+      list_marker_dot "4. "
+      paragraph
+       inline "Fourth item"
+        text "Fourth item"
+       block_continuation
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Mixed Lists"
+      text "Mixed Lists"
+    list
+     list_item
+      list_marker_dot "5. "
+      paragraph
+       inline "Ordered item"
+        text "Ordered item"
+       block_continuation "   "
+      list
+       list_item
+        list_marker_minus "- "
+        paragraph
+         inline "Unordered nested"
+          text "Unordered nested"
+         block_continuation "   "
+       list_item
+        list_marker_minus "- "
+        paragraph
+         inline "Another unordered"
+          text "Another unordered"
+     list_item
+      list_marker_dot "6. "
+      paragraph
+       inline "Next ordered"
+        text "Next ordered"
+       block_continuation "   "
+      list
+       list_item
+        list_marker_dot "1. "
+        paragraph
+         inline "Ordered nested"
+          text "Ordered nested"
+         block_continuation "   "
+       list_item
+        list_marker_dot "2. "
+        paragraph
+         inline "Another ordered"
+          text "Another ordered"
+         block_continuation
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "List with Paragraphs"
+      text "List with Paragraphs"
+    list
+     list_item
+      list_marker_minus "- "
+      paragraph
+       inline "Item with multiple paragraphs"
+        text "Item with multiple paragraphs"
+       block_continuation
+      block_continuation "  "
+      paragraph
+       inline "This is a second paragraph in the same list item."
+        text "This is a second paragraph in the same list item."
+       block_continuation
+     list_item
+      list_marker_minus "- "
+      paragraph
+       inline "Another item"
+        text "Another item"
+       block_continuation "  "
+      list
+       list_item
+        list_marker_minus "- "
+        paragraph
+         inline "With a nested list"
+          text "With a nested list"
+         block_continuation "    "
+        list
+         list_item
+          list_marker_minus "- "
+          paragraph
+           inline "And deeper nesting"
+            text "And deeper nesting"
+           block_continuation
+    thematic_break [
+    │ ---
+    │
+    ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Links & Images"
+     text "Links & Images"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Links"
+      text "Links"
+    paragraph
+     inline "[Simple link](https://example.com)"
+      inline_link
+       text "["
+       link_text "Simple link"
+       text "]("
+       link_destination "https://example.com"
+       text ")"
+    paragraph
+     inline "[Link with title](https://example.com \"Example Domain\")"
+      inline_link
+       text "["
+       link_text "Link with title"
+       text "]("
+       link_destination "https://example.com"
+       text " "
+       link_title "\"Example Domain\""
+       text ")"
+    paragraph
+     inline "[Reference-style link][ref-link]"
+      full_reference_link
+       text "["
+       link_text "Reference-style link"
+       text "]"
+       link_label "[ref-link]"
+    paragraph
+     inline "[Relative link](../README.md)"
+      inline_link
+       text "["
+       link_text "Relative link"
+       text "]("
+       link_destination "../README.md"
+       text ")"
+    paragraph
+     inline "[Email link](mailto:test@example.com)"
+      inline_link
+       text "["
+       link_text "Email link"
+       text "]("
+       link_destination "mailto:test@example.com"
+       text ")"
+    paragraph
+     inline "[Anchor link](#tables)"
+      inline_link
+       text "["
+       link_text "Anchor link"
+       text "]("
+       link_destination "#tables"
+       text ")"
+    link_reference_definition
+     link_label "[ref-link]"
+     link_destination "https://reference-example.com"
+     link_title "\"Reference Link Title\""
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Images"
+      text "Images"
+    paragraph
+     inline [
+     │ ![Alt text](https://via.placeholder.com/300x150 "Image Title")
+     ]
+      image
+       text "!["
+       image_description "Alt text"
+       text "]("
+       link_destination "https://via.placeholder.com/300x150"
+       text " "
+       link_title "\"Image Title\""
+       text ")"
+    paragraph
+     inline "![Reference-style link title tooltip\")"
+      text "![Reference-style link title tooltip\")"
+    paragraph
+     inline "![Reference-style image][ref-image]"
+      image
+       text "!["
+       image_description "Reference-style image"
+       text "]"
+       link_label "[ref-image]"
+    link_reference_definition
+     link_label "[ref-image]"
+     link_destination "https://via.placeholder.com/200x100"
+     link_title "\"Reference Image\""
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Linked Images"
+      text "Linked Images"
+    paragraph
+     inline [
+     │ [![Alt text](https://via.placeholder.com/100x50)](https://example.com)
+     ]
+      inline_link
+       text "["
+       link_text
+        image
+         text "!["
+         image_description "Alt text"
+         text "]("
+         link_destination "https://via.placeholder.com/100x50"
+         text ")"
+       text "]("
+       link_destination "https://example.com"
+       text ")"
+    thematic_break [
+    │ ---
+    │
+    ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Code"
+     text "Code"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Inline Code"
+      text "Inline Code"
+    paragraph
+     inline "Use `console.log(\"hello\")` to print to console."
+      text "Use "
+      code_span
+       code_span_delimiter "`"
+       text "console.log(\"hello\")"
+       code_span_delimiter "`"
+      text " to print to console."
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Fenced Code Blocks"
+      text "Fenced Code Blocks"
+    fenced_code_block
+     fenced_code_block_delimiter "```"
+     info_string
+      language "javascript"
+     block_continuation
+     code_fence_content [
+     │ // JavaScript example
+     │ function greet(name) {
+     │   console.log(`Hello, ${name}!`);
+     │ }
+     │
+     │ greet("World");
+     │
+     ]
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+     fenced_code_block_delimiter "```"
+    fenced_code_block
+     fenced_code_block_delimiter "```"
+     info_string
+      language "python"
+     block_continuation
+     code_fence_content [
+     │ # Python example
+     │ def fibonacci(n):
+     │     a, b = 0, 1
+     │     for _ in range(n):
+     │         yield a
+     │         a, b = b, a + b
+     │
+     │ print(list(fibonacci(10)))
+     │
+     ]
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+     fenced_code_block_delimiter "```"
+    fenced_code_block
+     fenced_code_block_delimiter "```"
+     info_string
+      language "rust"
+     block_continuation
+     code_fence_content [
+     │ // Rust example
+     │ fn main() {
+     │     let numbers = vec![1, 2, 3, 4, 5];
+     │     let doubled: Vec<i32> = numbers.iter().map(|x| x * 2).collect();
+     │     println!("{:?}", doubled);
+     │ }
+     │
+     ]
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+     fenced_code_block_delimiter "```"
+    fenced_code_block
+     fenced_code_block_delimiter "```"
+     info_string
+      language "bash"
+     block_continuation
+     code_fence_content [
+     │ # Shell commands
+     │ $ echo "Hello World"
+     │ $ ls -la
+     │ $ npm install
+     │
+     ]
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+     fenced_code_block_delimiter "```"
+    fenced_code_block
+     fenced_code_block_delimiter "```"
+     info_string
+      language "json"
+     block_continuation
+     code_fence_content [
+     │ {
+     │   "name": "example",
+     │   "version": "1.0.0",
+     │   "dependencies": {
+     │     "lodash": "^4.17.21"
+     │   }
+     │ }
+     │
+     ]
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+     fenced_code_block_delimiter "```"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Indented Code Blocks (4 spaces)"
+      text "Indented Code Blocks (4 spaces)"
+    indented_code_block
+     block_continuation "    "
+     block_continuation "    "
+     block_continuation "    "
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Code Block with Line Numbers (if supported)"
+      text "Code Block with Line Numbers (if supported)"
+    fenced_code_block
+     fenced_code_block_delimiter "```"
+     info_string
+      language "javascript"
+     block_continuation
+     code_fence_content [
+     │ function highlightLines() {
+     │   const a = 1; // Line 1
+     │   const b = 2; // Line 2
+     │   const c = 3; // Line 3 (highlighted)
+     │   const d = 4; // Line 4 (highlighted)
+     │   const e = 5; // Line 5 (highlighted)
+     │   return a + b + c + d + e;
+     │ }
+     │
+     ]
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+     fenced_code_block_delimiter "```"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Diff Code Blocks"
+      text "Diff Code Blocks"
+    fenced_code_block
+     fenced_code_block_delimiter "```"
+     info_string
+      language "diff"
+     block_continuation
+     code_fence_content [
+     │ - const oldValue = 'deprecated';
+     │ + const newValue = 'improved';
+     │   const unchanged = 'same';
+     │
+     ]
+      block_continuation
+      block_continuation
+      block_continuation
+     fenced_code_block_delimiter "```"
+    thematic_break [
+    │ ---
+    │
+    ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Tables"
+     text "Tables"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Basic Table"
+      text "Basic Table"
+    pipe_table
+     pipe_table_header
+      pipe_table_cell "Column 1 "
+      pipe_table_cell "Column 2 "
+      pipe_table_cell "Column 3 "
+     pipe_table_delimiter_row
+      pipe_table_delimiter_cell "----------"
+      pipe_table_delimiter_cell "----------"
+      pipe_table_delimiter_cell "----------"
+     pipe_table_row
+      pipe_table_cell "Row 1    "
+      pipe_table_cell "Data     "
+      pipe_table_cell "More     "
+     pipe_table_row
+      pipe_table_cell "Row 2    "
+      pipe_table_cell "Data     "
+      pipe_table_cell "More     "
+     pipe_table_row
+      pipe_table_cell "Row 3    "
+      pipe_table_cell "Data     "
+      pipe_table_cell "More     "
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Table with Alignment"
+      text "Table with Alignment"
+    pipe_table
+     pipe_table_header
+      pipe_table_cell "Left Aligned "
+      pipe_table_cell "Center Aligned "
+      pipe_table_cell "Right Aligned "
+     pipe_table_delimiter_row
+      pipe_table_delimiter_cell
+       pipe_table_align_left ":"
+      pipe_table_delimiter_cell
+       pipe_table_align_left ":"
+       pipe_table_align_right ":"
+      pipe_table_delimiter_cell
+       pipe_table_align_right ":"
+     pipe_table_row
+      pipe_table_cell "Left         "
+      pipe_table_cell "Center         "
+      pipe_table_cell "Right         "
+     pipe_table_row
+      pipe_table_cell "Data         "
+      pipe_table_cell "Data           "
+      pipe_table_cell "Data          "
+     pipe_table_row
+      pipe_table_cell "More         "
+      pipe_table_cell "Text           "
+      pipe_table_cell "Numbers       "
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Complex Table"
+      text "Complex Table"
+    pipe_table
+     pipe_table_header
+      pipe_table_cell "Feature "
+      pipe_table_cell "Supported "
+      pipe_table_cell "Notes "
+     pipe_table_delimiter_row
+      pipe_table_delimiter_cell "---------"
+      pipe_table_delimiter_cell
+       pipe_table_align_left ":"
+       pipe_table_align_right ":"
+      pipe_table_delimiter_cell "-------"
+     pipe_table_row
+      pipe_table_cell "Headers "
+      pipe_table_cell "✅ "
+      pipe_table_cell "Standard "
+     pipe_table_row
+      pipe_table_cell "Alignment "
+      pipe_table_cell "✅ "
+      pipe_table_cell "Left/Center/Right "
+     pipe_table_row
+      pipe_table_cell "Multi-line cells "
+      pipe_table_cell "⚠️ "
+      pipe_table_cell "Limited support "
+     pipe_table_row
+      pipe_table_cell "Colspan/Rowspan "
+      pipe_table_cell "❌ "
+      pipe_table_cell "Not in standard Markdown "
+     pipe_table_row
+      pipe_table_cell "HTML in cells "
+      pipe_table_cell "✅ "
+      pipe_table_cell "If enabled "
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Table with Code and Formatting"
+      text "Table with Code and Formatting"
+    pipe_table
+     pipe_table_header
+      pipe_table_cell "Language "
+      pipe_table_cell "Example "
+      pipe_table_cell "**Bold** "
+      pipe_table_cell "*Italic* "
+     pipe_table_delimiter_row
+      pipe_table_delimiter_cell "----------"
+      pipe_table_delimiter_cell "---------"
+      pipe_table_delimiter_cell "----------"
+      pipe_table_delimiter_cell "----------"
+     pipe_table_row
+      pipe_table_cell "JS "
+      pipe_table_cell "`const x = 1;` "
+      pipe_table_cell "**Yes** "
+      pipe_table_cell "*Yes* "
+     pipe_table_row
+      pipe_table_cell "Python "
+      pipe_table_cell "`x = 1` "
+      pipe_table_cell "**Yes** "
+      pipe_table_cell "*Yes* "
+     pipe_table_row
+      pipe_table_cell "Rust "
+      pipe_table_cell "`let x = 1;` "
+      pipe_table_cell "**Yes** "
+      pipe_table_cell "*Yes* "
+    thematic_break [
+    │ ---
+    │
+    ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Blockquotes"
+     text "Blockquotes"
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline "Simple blockquote"
+      text "Simple blockquote"
+     block_continuation ">"
+    block_continuation "> "
+    paragraph
+     inline "Multiple paragraphs in a blockquote."
+      text "Multiple paragraphs in a blockquote."
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline "**Blockquote with formatting**"
+      strong_emphasis
+       emphasis_delimiter "*"
+       emphasis_delimiter "*"
+       text "Blockquote with formatting"
+       emphasis_delimiter "*"
+       emphasis_delimiter "*"
+     block_continuation ">"
+    block_continuation "> "
+    list
+     list_item
+      list_marker_minus "- "
+      paragraph
+       inline "List item 1"
+        text "List item 1"
+       block_continuation "> "
+     list_item
+      list_marker_minus "- "
+      paragraph
+       inline "List item 2"
+        text "List item 2"
+       block_continuation ">"
+      block_continuation "> "
+    block_quote
+     block_quote_marker "> "
+     paragraph
+      inline "Nested blockquote"
+       text "Nested blockquote"
+      block_continuation "> >"
+     block_continuation "> > "
+     paragraph
+      inline "Deep nesting"
+       text "Deep nesting"
+   block_quote
+    block_quote_marker "> "
+    section
+     atx_heading
+      atx_h3_marker "###"
+      inline "Blockquote with Heading"
+       text "Blockquote with Heading"
+      block_continuation ">"
+     block_continuation "> "
+     paragraph
+      inline "Content here."
+       text "Content here."
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline [
+     │ [!NOTE]
+     │ > This is a GitHub-style callout (note)
+     ]
+      shortcut_link
+       text "["
+       link_text "!NOTE"
+       text "]"
+      text [
+      │
+      │ > This is a GitHub-style callout (note)
+      ]
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline [
+     │ [!WARNING]
+     │ > This is a warning callout
+     ]
+      shortcut_link
+       text "["
+       link_text "!WARNING"
+       text "]"
+      text [
+      │
+      │ > This is a warning callout
+      ]
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline [
+     │ [!TIP]
+     │ > This is a tip callout
+     ]
+      shortcut_link
+       text "["
+       link_text "!TIP"
+       text "]"
+      text [
+      │
+      │ > This is a tip callout
+      ]
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline [
+     │ [!IMPORTANT]
+     │ > This is an important callout
+     ]
+      shortcut_link
+       text "["
+       link_text "!IMPORTANT"
+       text "]"
+      text [
+      │
+      │ > This is an important callout
+      ]
+   thematic_break [
+   │ ---
+   │
+   ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Horizontal Rules"
+     text "Horizontal Rules"
+   thematic_break [
+   │ ***
+   │
+   ]
+   thematic_break [
+   │ ---
+   │
+   ]
+   thematic_break [
+   │ ___
+   │
+   ]
+   thematic_break [
+   │ ---
+   │
+   ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Task Lists"
+     text "Task Lists"
+   list
+    list_item
+     list_marker_minus "- "
+     task_list_marker_checked "[x]"
+     paragraph
+      inline "Completed task"
+       text "Completed task"
+    list_item
+     list_marker_minus "- "
+     task_list_marker_unchecked "[ ]"
+     paragraph
+      inline "Incomplete task"
+       text "Incomplete task"
+    list_item
+     list_marker_minus "- "
+     task_list_marker_checked "[x]"
+     paragraph
+      inline "Another completed task"
+       text "Another completed task"
+      block_continuation "  "
+     list
+      list_item
+       list_marker_minus "- "
+       task_list_marker_unchecked "[ ]"
+       paragraph
+        inline "Nested incomplete"
+         text "Nested incomplete"
+        block_continuation "  "
+      list_item
+       list_marker_minus "- "
+       task_list_marker_checked "[x]"
+       paragraph
+        inline "Nested complete"
+         text "Nested complete"
+    list_item
+     list_marker_minus "- "
+     task_list_marker_unchecked "[ ]"
+     paragraph
+      inline "Task with **bold** and *italic*"
+       text "Task with "
+       strong_emphasis
+        emphasis_delimiter "*"
+        emphasis_delimiter "*"
+        text "bold"
+        emphasis_delimiter "*"
+        emphasis_delimiter "*"
+       text " and "
+       emphasis
+        emphasis_delimiter "*"
+        text "italic"
+        emphasis_delimiter "*"
+      block_continuation
+   thematic_break [
+   │ ---
+   │
+   ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Footnotes"
+     text "Footnotes"
+   paragraph
+    inline "Here's a sentence with a footnote[^1]."
+     text "Here's a sentence with a footnote"
+     shortcut_link
+      text "["
+      link_text "^1"
+      text "]"
+     text "."
+   paragraph
+    inline "Another sentence with a different footnote[^longnote]."
+     text "Another sentence with a different footnote"
+     shortcut_link
+      text "["
+      link_text "^longnote"
+      text "]"
+     text "."
+   paragraph
+    inline "[^1]: This is the first footnote."
+     shortcut_link
+      text "["
+      link_text "^1"
+      text "]"
+     text ": This is the first footnote."
+   paragraph
+    inline [
+    │ [^longnote]: This is a longer footnote with multiple paragraphs.
+    ]
+     shortcut_link
+      text "["
+      link_text "^longnote"
+      text "]"
+     text ": This is a longer footnote with multiple paragraphs."
+   indented_code_block [
+   │     Indented paragraph in the footnote.
+   │
+   │     Another paragraph.
+   │
+   │
+   ]
+   thematic_break [
+   │ ---
+   │
+   ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Definition Lists"
+     text "Definition Lists"
+   paragraph
+    inline [
+    │ Term 1
+    │ : Definition for term 1
+    ]
+     text [
+     │ Term 1
+     │ : Definition for term 1
+     ]
+   paragraph
+    inline [
+    │ Term 2
+    │ : Definition for term 2
+    │ : Another definition for term 2
+    ]
+     text [
+     │ Term 2
+     │ : Definition for term 2
+     │ : Another definition for term 2
+     ]
+   paragraph
+    inline [
+    │ Term 3
+    │ :   Definition with multiple paragraphs.
+    ]
+     text [
+     │ Term 3
+     │ :   Definition with multiple paragraphs.
+     ]
+   indented_code_block [
+   │     Second paragraph.
+   │
+   │
+   ]
+   thematic_break [
+   │ ---
+   │
+   ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Math"
+     text "Math"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Inline Math"
+      text "Inline Math"
+    paragraph
+     inline [
+     │ The quadratic formula is $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$.
+     ]
+      text "The quadratic formula is "
+      latex_block
+       latex_span_delimiter "$"
+       text "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}"
+       latex_span_delimiter "$"
+      text "."
+    paragraph
+     inline "Euler's identity: $e^{i\\pi} + 1 = 0$."
+      text "Euler's identity: "
+      latex_block
+       latex_span_delimiter "$"
+       text "e^{i\\pi} + 1 = 0"
+       latex_span_delimiter "$"
+      text "."
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Block Math"
+      text "Block Math"
+    paragraph
+     inline [
+     │ $$
+     │ \int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+     │ $$
+     ]
+      latex_block
+       latex_span_delimiter "$$"
+       text [
+       │
+       │ \int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+       │
+       ]
+       latex_span_delimiter "$$"
+    paragraph
+     inline [
+     │ $$
+     │ \begin{aligned}
+     │ \nabla \times \vec{E} &= -\frac{\partial \vec{B}}{\partial t} \\
+     │ \nabla \times \vec{B} &= \mu_0 \vec{J} + \mu_0 \epsilon_0 \frac{\partial \vec{E}}{\partial t}
+     │ \end{aligned}
+     │ $$
+     ]
+      latex_block
+       latex_span_delimiter "$$"
+       text [
+       │
+       │ \begin{aligned}
+       │ \nabla \times \vec{E} &= -\frac{\partial \vec{B}}{\partial t} 
+       ]
+       backslash_escape "\\\\"
+       text [
+       │
+       │ \nabla \times \vec{B} &= \mu_0 \vec{J} + \mu_0 \epsilon_0 \frac{\partial \vec{E}}{\partial t}
+       │ \end{aligned}
+       │
+       ]
+       latex_span_delimiter "$$"
+    thematic_break [
+    │ ---
+    │
+    ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "HTML Embedding"
+     text "HTML Embedding"
+   html_block
+    block_continuation
+    block_continuation
+    block_continuation
+   html_block
+    block_continuation
+    block_continuation
+    block_continuation
+    block_continuation
+   paragraph
+    inline "<kbd>Ctrl</kbd> + <kbd>C</kbd> to copy"
+     html_tag "<kbd>"
+     text "Ctrl"
+     html_tag "</kbd>"
+     text " + "
+     html_tag "<kbd>"
+     text "C"
+     html_tag "</kbd>"
+     text " to copy"
+   thematic_break [
+   │ ---
+   │
+   ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Admonitions/Callouts"
+     text "Admonitions/Callouts"
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline [
+     │ [!NOTE]
+     │ > Useful information that users should know, even when skimming.
+     ]
+      shortcut_link
+       text "["
+       link_text "!NOTE"
+       text "]"
+      text [
+      │
+      │ > Useful information that users should know, even when skimming.
+      ]
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline [
+     │ [!TIP]
+     │ > Helpful advice for doing things better or more easily.
+     ]
+      shortcut_link
+       text "["
+       link_text "!TIP"
+       text "]"
+      text [
+      │
+      │ > Helpful advice for doing things better or more easily.
+      ]
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline [
+     │ [!IMPORTANT]
+     │ > Key information users need to know to achieve their goal.
+     ]
+      shortcut_link
+       text "["
+       link_text "!IMPORTANT"
+       text "]"
+      text [
+      │
+      │ > Key information users need to know to achieve their goal.
+      ]
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline [
+     │ [!WARNING]
+     │ > Urgent info that needs immediate attention to avoid problems.
+     ]
+      shortcut_link
+       text "["
+       link_text "!WARNING"
+       text "]"
+      text [
+      │
+      │ > Urgent info that needs immediate attention to avoid problems.
+      ]
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline [
+     │ [!CAUTION]
+     │ > Risks or negative consequences of certain actions.
+     ]
+      shortcut_link
+       text "["
+       link_text "!CAUTION"
+       text "]"
+      text [
+      │
+      │ > Risks or negative consequences of certain actions.
+      ]
+   block_quote
+    block_quote_marker "> "
+    paragraph
+     inline "[!NOTE]"
+      shortcut_link
+       text "["
+       link_text "!NOTE"
+       text "]"
+     block_continuation "> "
+    section
+     atx_heading
+      atx_h3_marker "###"
+      inline "Admonition with Title"
+       text "Admonition with Title"
+      block_continuation ">"
+     block_continuation "> "
+     paragraph
+      inline [
+      │ Content with **formatting**, `code`, and [links](https://example.com).
+      ]
+       text "Content with "
+       strong_emphasis
+        emphasis_delimiter "*"
+        emphasis_delimiter "*"
+        text "formatting"
+        emphasis_delimiter "*"
+        emphasis_delimiter "*"
+       text ", "
+       code_span
+        code_span_delimiter "`"
+        text "code"
+        code_span_delimiter "`"
+       text ", and "
+       inline_link
+        text "["
+        link_text "links"
+        text "]("
+        link_destination "https://example.com"
+        text ")"
+       text "."
+      block_continuation ">"
+     block_continuation "> "
+     list
+      list_item
+       list_marker_minus "- "
+       paragraph
+        inline "List item 1"
+         text "List item 1"
+        block_continuation "> "
+      list_item
+       list_marker_minus "- "
+       paragraph
+        inline "List item 2"
+         text "List item 2"
+   thematic_break [
+   │ ---
+   │
+   ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Mermaid Diagrams"
+     text "Mermaid Diagrams"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Flowchart"
+      text "Flowchart"
+    fenced_code_block
+     fenced_code_block_delimiter "```"
+     info_string
+      language "mermaid"
+     block_continuation
+     code_fence_content [
+     │ flowchart TD
+     │     A[Start] --> B{Decision}
+     │     B -->|Yes| C[Action 1]
+     │     B -->|No| D[Action 2]
+     │     C --> E[End]
+     │     D --> E
+     │
+     ]
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+     fenced_code_block_delimiter "```"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Sequence Diagram"
+      text "Sequence Diagram"
+    fenced_code_block
+     fenced_code_block_delimiter "```"
+     info_string
+      language "mermaid"
+     block_continuation
+     code_fence_content [
+     │ sequenceDiagram
+     │     participant Alice
+     │     participant Bob
+     │     Alice->>Bob: Hello Bob!
+     │     Bob-->>Alice: Hi Alice!
+     │     Note right of Bob: Bob thinks
+     │     Bob->>Alice: How are you?
+     │
+     ]
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+     fenced_code_block_delimiter "```"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Class Diagram"
+      text "Class Diagram"
+    fenced_code_block
+     fenced_code_block_delimiter "```"
+     info_string
+      language "mermaid"
+     block_continuation
+     code_fence_content [
+     │ classDiagram
+     │     Animal <|-- Dog
+     │     Animal <|-- Cat
+     │     Animal: +name: String
+     │     Animal: +makeSound()
+     │     Dog: +breed: String
+     │     Cat: +color: String
+     │
+     ]
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+     fenced_code_block_delimiter "```"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Git Graph"
+      text "Git Graph"
+    fenced_code_block
+     fenced_code_block_delimiter "```"
+     info_string
+      language "mermaid"
+     block_continuation
+     code_fence_content [
+     │ gitGraph
+     │     commit
+     │     branch develop
+     │     commit
+     │     commit
+     │     checkout main
+     │     merge develop
+     │     commit
+     │
+     ]
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+      block_continuation
+     fenced_code_block_delimiter "```"
+    thematic_break [
+    │ ---
+    │
+    ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Additional Edge Cases"
+     text "Additional Edge Cases"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Escaping Characters"
+      text "Escaping Characters"
+    paragraph
+     inline [
+     │ \*Not italic\*
+     │ \# Not a heading
+     │ \[Not a link\](http://example.com)
+     │ \`Not code\`
+     ]
+      backslash_escape "\\*"
+      text "Not italic"
+      backslash_escape "\\*"
+      text [
+      │
+      │
+      ]
+      backslash_escape "\\#"
+      text [
+      │  Not a heading
+      │
+      ]
+      backslash_escape "\\["
+      text "Not a link"
+      backslash_escape "\\]"
+      text [
+      │ (http://example.com)
+      │
+      ]
+      backslash_escape "\\`"
+      text "Not code"
+      backslash_escape "\\`"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Unicode & Special Characters"
+      text "Unicode & Special Characters"
+    paragraph
+     inline "Emoji: 🎉 🚀 💻 🎯 ✨"
+      text "Emoji: 🎉 🚀 💻 🎯 ✨"
+    paragraph
+     inline "Arrows: ← ↑ → ↓ ↔ ⇐ ⇑ ⇒ ⇓ ⇔"
+      text "Arrows: ← ↑ → ↓ ↔ ⇐ ⇑ ⇒ ⇓ ⇔"
+    paragraph
+     inline "Symbols: © ® ™ § ¶ † ‡ • … ‰ ′ ″"
+      text "Symbols: © ® ™ § ¶ † ‡ • … ‰ ′ ″"
+    paragraph
+     inline "Math: ∑ ∏ ∫ ∂ √ ∞ ≈ ≠ ≤ ≥ ± ÷ ×"
+      text "Math: ∑ ∏ ∫ ∂ √ ∞ ≈ ≠ ≤ ≥ ± ÷ ×"
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Very Long Line Test"
+      text "Very Long Line Test"
+    paragraph
+     inline [
+     │ This is a very long line that should test how the renderer handles text wrapping and horizontal scrolling when the content exceeds the viewport width. It contains no natural break points and should demonstrate whether the renderer implements proper word wrapping or requires horizontal scrolling.
+     ]
+      text [
+      │ This is a very long line that should test how the renderer handles text wrapping and horizontal scrolling when the content exceeds the viewport width. It contains no natural break points and should demonstrate whether the renderer implements proper word wrapping or requires horizontal scrolling.
+      ]
+   section
+    atx_heading
+     atx_h3_marker "###"
+     inline "Empty Elements"
+      text "Empty Elements"
+    paragraph
+     inline "Paragraph before empty line."
+      text "Paragraph before empty line."
+    paragraph
+     inline "Paragraph after empty line."
+      text "Paragraph after empty line."
+    thematic_break [
+    │ ---
+    │
+    ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Raw HTML Blocks"
+     text "Raw HTML Blocks"
+   html_block
+    block_continuation
+    block_continuation
+    block_continuation
+    block_continuation
+    block_continuation
+    block_continuation
+    block_continuation
+    block_continuation
+    block_continuation
+    block_continuation
+   thematic_break [
+   │ ---
+   │
+   ]
+  section
+   atx_heading
+    atx_h2_marker "##"
+    inline "Comments"
+     text "Comments"
+   html_block [
+   │ <!-- This is an HTML comment -->
+   │
+   ]
+   html_block
+    block_continuation
+    block_continuation
+    block_continuation
+   thematic_break [
+   │ ---
+   │
+   ]
+   paragraph
+    inline [
+    │ *End of test document. Generated for markdown rendering verification.*
+    ]
+     emphasis
+      emphasis_delimiter "*"
+      text [
+      │ End of test document. Generated for markdown rendering verification.
+      ]
+      emphasis_delimiter "*"

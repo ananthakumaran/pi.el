@@ -1,0 +1,46 @@
+markdown:
+document
+ section
+  paragraph
+   inline "*italic **bold** italic*"
+    emphasis
+     emphasis_delimiter "*"
+     text "italic "
+     strong_emphasis
+      emphasis_delimiter "*"
+      emphasis_delimiter "*"
+      text "bold"
+      emphasis_delimiter "*"
+      emphasis_delimiter "*"
+     text " italic"
+     emphasis_delimiter "*"
+  paragraph
+   inline "***triple***"
+    emphasis
+     emphasis_delimiter "*"
+     strong_emphasis
+      emphasis_delimiter "*"
+      emphasis_delimiter "*"
+      text "triple"
+      emphasis_delimiter "*"
+      emphasis_delimiter "*"
+     emphasis_delimiter "*"
+  paragraph
+   inline "**bold `code` [link](https://example.com)**"
+    strong_emphasis
+     emphasis_delimiter "*"
+     emphasis_delimiter "*"
+     text "bold "
+     code_span
+      code_span_delimiter "`"
+      text "code"
+      code_span_delimiter "`"
+     text " "
+     inline_link
+      text "["
+      link_text "link"
+      text "]("
+      link_destination "https://example.com"
+      text ")"
+     emphasis_delimiter "*"
+     emphasis_delimiter "*"

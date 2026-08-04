@@ -1,0 +1,4 @@
+│ ▪ first
+@ ^^ list-marker
+│ 12. second
+@ ^^^^ list-marker

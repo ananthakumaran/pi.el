@@ -1,0 +1,22 @@
+markdown:
+document
+ section
+  pipe_table
+   pipe_table_header
+    pipe_table_cell "🚀 Feature "
+    pipe_table_cell "Description "
+    pipe_table_cell "Status ✅ "
+   pipe_table_delimiter_row
+    pipe_table_delimiter_cell "---"
+    pipe_table_delimiter_cell "---"
+    pipe_table_delimiter_cell "---"
+   pipe_table_row
+    pipe_table_cell "🚀 A very long feature name "
+    pipe_table_cell [
+    │ This description should wrap because it does not fit in the table width. 
+    ]
+    pipe_table_cell "✅ "
+   pipe_table_row
+    pipe_table_cell "Corners 📌 "
+    pipe_table_cell "Emoji stays aligned near the right corner 🎯 "
+    pipe_table_cell "⚠️ "

@@ -1,0 +1,19 @@
+markdown:
+document
+ section
+  paragraph
+   inline "plain _text_ and ~~strike~~."
+    text "plain "
+    emphasis
+     emphasis_delimiter "_"
+     text "text"
+     emphasis_delimiter "_"
+    text " and "
+    strikethrough
+     emphasis_delimiter "~"
+     strikethrough
+      emphasis_delimiter "~"
+      text "strike"
+      emphasis_delimiter "~"
+     emphasis_delimiter "~"
+    text "."

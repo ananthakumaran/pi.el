@@ -1,0 +1,9 @@
+│ http://example.com/page
+│ See https://example.com/path?query=one.
+│ nothttp://example.com
+│ http:/wrong.com
+│ https://example.com/code
+@ ^^^^^^^^^^^^^^^^^^^^^^^^ inline-code
+│ https://example.com/label
+@ ^^^^^^^^^^^^^^^^^^^^^^^^^ link
+│ http://one.example*literal

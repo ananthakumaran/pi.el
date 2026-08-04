@@ -1,0 +1,32 @@
+markdown:
+document
+ section
+  paragraph
+   inline [
+   │ Here is ![Pimacs logo](https://example.com/pimacs.png).
+   │ ![**Bold** image](https://example.com/bold.png)
+   ]
+    text "Here is "
+    image
+     text "!["
+     image_description "Pimacs logo"
+     text "]("
+     link_destination "https://example.com/pimacs.png"
+     text ")"
+    text [
+    │ .
+    │
+    ]
+    image
+     text "!["
+     image_description
+      strong_emphasis
+       emphasis_delimiter "*"
+       emphasis_delimiter "*"
+       text "Bold"
+       emphasis_delimiter "*"
+       emphasis_delimiter "*"
+      text " image"
+     text "]("
+     link_destination "https://example.com/bold.png"
+     text ")"

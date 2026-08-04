@@ -1,0 +1,13 @@
+│ ▪ [ ] open
+@ ^^ list-marker
+@   ^^^ checkbox
+│ ▪ [x] done
+@ ^^ list-marker
+@   ^^^ checkbox
+│   ▫ [ ] nested
+@   ^^ list-marker
+@     ^^^ checkbox
+│ ▪ [X] literal
+@ ^^ list-marker
+│ ▪ [x]missing
+@ ^^ list-marker
