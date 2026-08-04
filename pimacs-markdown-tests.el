@@ -102,7 +102,7 @@
   (with-temp-buffer
     (insert (treesit-node-text node t))
     (pimacs-markdown-tests--ast-children
-     (treesit-parser-root-node (treesit-parser-create 'markdown_inline)) depth t)))
+     (treesit-parser-root-node (treesit-parser-create 'markdown-inline)) depth t)))
 
 (defun pimacs-markdown-tests--ast-node (node depth &optional inline-tree)
   (let* ((type (treesit-node-type node))

@@ -29,8 +29,6 @@
 (require 'pimacs-core)
 (require 'pimacs-markdown-table)
 
-(add-to-list 'treesit-load-name-override-list
-             '(markdown_inline "libtree-sitter-markdown-inline" "tree_sitter_markdown_inline"))
 
 ;;; Markdown Parser
 
@@ -63,7 +61,7 @@
 
 (defconst pimacs--markdown-inline-special-query
   (treesit-query-compile
-   'markdown_inline
+   'markdown-inline
    '((emphasis) @special
      (strong_emphasis) @special
      (strikethrough) @special
@@ -123,7 +121,7 @@
       (treesit-parser-create grammar)
     (error
      (user-error
-      "Pimacs Markdown requires tree-sitter grammars `markdown' and `markdown_inline': %s"
+      "Pimacs Markdown requires tree-sitter grammars `markdown' and `markdown-inline': %s"
       (error-message-string error)))))
 
 (defun pimacs--markdown-with-parser (text grammar function)
@@ -145,7 +143,7 @@
             parser)
         (unwind-protect
             (with-current-buffer buffer
-              (setq parser (pimacs--markdown-create-parser 'markdown_inline)))
+              (setq parser (pimacs--markdown-create-parser 'markdown-inline)))
           (unless parser
             (kill-buffer buffer)))
         (setq entry (cons buffer parser))
@@ -1089,7 +1087,7 @@ When non-nil, diagnostics are appended to the temporary buffer
         (state (pimacs--markdown-render-context-inline-parser-state context)))
     (if state
         (pimacs--markdown-with-inline-parser text renderer state)
-      (pimacs--markdown-with-parser text 'markdown_inline renderer))))
+      (pimacs--markdown-with-parser text 'markdown-inline renderer))))
 
 (defun pimacs--markdown-render-inline-range (begin end context)
   (pimacs--markdown-render-inline-source
