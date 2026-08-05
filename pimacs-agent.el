@@ -140,17 +140,18 @@
 (defun pimacs--dispatch-responses (process responses)
   (let (batch)
     (dolist (response responses)
-      (if (and (pimacs--batchable-event-p response)
-               batch
-               (equal (plist-get response :type) (plist-get (car batch) :type))
-               (< (length batch) pimacs--event-batch-size))
-          (push response batch)
-        (when batch
-          (pimacs--dispatch-event-batch (nreverse batch))
-          (setq batch nil))
-        (if (pimacs--batchable-event-p response)
+      (let ((batchable (pimacs--batchable-event-p response)))
+        (if (and batchable
+                 batch
+                 (equal (plist-get response :type) (plist-get (car batch) :type))
+                 (< (length batch) pimacs--event-batch-size))
             (push response batch)
-          (pimacs--dispatch process response))))
+          (when batch
+            (pimacs--dispatch-event-batch (nreverse batch))
+            (setq batch nil))
+          (if batchable
+              (push response batch)
+            (pimacs--dispatch process response)))))
     (when batch
       (pimacs--dispatch-event-batch (nreverse batch)))))
 
