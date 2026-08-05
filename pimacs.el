@@ -1650,6 +1650,12 @@ with the message plist to insert the custom message content."
     (pimacs--autohide-sections))
   (pimacs--update-header-line))
 
+(defun pimacs-section-cycle-global ()
+  "Cycle visibility of all sections in the current chat buffer."
+  (interactive)
+  (pimacs-section--cycle-global)
+  (pimacs--recenter-chat))
+
 (defun pimacs--autohide-sections ()
   (when (pimacs--point-in-prompt-p)
     (pimacs-section-autohide)
@@ -2534,6 +2540,13 @@ With a prefix argument OTHER-WINDOW, visit in other window."
   "M-RET" #'pimacs-visit-item-other-window
   "TAB" #'pimacs-toggle-section
   "C-i" #'pimacs-toggle-section
+  "<backtab>" #'pimacs-section-cycle-global
+  "1" #'pimacs-section-show-level-1
+  "2" #'pimacs-section-show-level-2
+  "3" #'pimacs-section-show-level-3
+  "M-1" #'pimacs-section-show-level-1-all
+  "M-2" #'pimacs-section-show-level-2-all
+  "M-3" #'pimacs-section-show-level-3-all
   "n" #'pimacs-goto-next-section
   "M-n" #'pimacs-goto-next-section
   "N" #'pimacs-goto-next-user-message
@@ -2553,6 +2566,7 @@ With a prefix argument OTHER-WINDOW, visit in other window."
     (keymap-set map "C-r" #'pimacs-search-prompt)
     (keymap-set map "M-RET" #'pimacs-send-prompt-alternate)
     (keymap-set map "M-g l" #'pimacs-goto-last-section)
+    (keymap-set map "<backtab>" #'pimacs-section-cycle-global)
     (keymap-set map "C-k" #'widget-kill-line)
     (keymap-set map "C-e" #'widget-end-of-line)
     (keymap-set map "C-m" #'widget-field-activate)

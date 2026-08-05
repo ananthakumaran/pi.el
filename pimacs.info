@@ -316,6 +316,21 @@ Key            Command                Description
 ‘C-g’          ‘pimacs-abort’         Abort the current operation
 ‘TAB’, ‘C-i’   ‘pimacs-toggle-section’Toggle visibility of the section
                                       at point
+‘S-TAB’        ‘pimacs-section-cycle-global’Cycle global section visibility,
+                                      hiding all sections and then
+                                      expanding one more level at a time
+‘1’            ‘pimacs-section-show-level-1’Show the current section tree at
+                                      the first level
+‘2’            ‘pimacs-section-show-level-2’Show the current section tree
+                                      through the second level
+‘3’            ‘pimacs-section-show-level-3’Show the current section tree
+                                      through the third level
+‘M-1’          ‘pimacs-section-show-level-1-all’Show only headings of all root
+                                      sections
+‘M-2’          ‘pimacs-section-show-level-2-all’Show root sections and only
+                                      headings of their children
+‘M-3’          ‘pimacs-section-show-level-3-all’Show sections through the second
+                                      level and headings at the third
 ‘n’, ‘M-n’     ‘pimacs-goto-next-section’Move to the next section
 ‘N’            ‘pimacs-goto-next-user-message’Move to the next user message
 ‘p’, ‘M-p’     ‘pimacs-goto-previous-section’Move to the previous section
@@ -339,6 +354,7 @@ Key            Command                Description
 ‘M-RET’        ‘pimacs-send-prompt-alternate’Send the prompt using the
                                       alternate streaming behavior
 ‘M-g l’        ‘pimacs-goto-last-section’Jump to the most recent section
+‘S-TAB’        ‘pimacs-section-cycle-global’Cycle global section visibility
 
 
 File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
@@ -703,7 +719,7 @@ Node: Managing Sessions9071
 Node: Sandbox9664
 Node: How It Works10046
 Node: Keybindings10496
-Node: Custom Variables12654
+Node: Custom Variables13833
 
 End Tag Table
 

@@ -730,3 +730,44 @@
         (should (eq (pimacs-section-visibility a) :show))
         (should (eq (pimacs-section-visibility b) :autohide))
         (should (eq (pimacs-section-visibility c) :autoshow))))))
+
+(ert-deftest pimacs-section-cycle-global ()
+  (pimacs-section-tests-with-demo-buffer
+    (let ((build (pimacs-section--find-section '(build) pimacs-section--root-section))
+          (compile (pimacs-section--find-section '(build compile) pimacs-section--root-section))
+          (unit-tests (pimacs-section--find-section '(build test unit-tests)
+                                                    pimacs-section--root-section)))
+      ;; Hide every section.
+      (pimacs-section--cycle-global)
+      (should (eq (pimacs-section-visibility build) :hide))
+      (should (eq (pimacs-section-visibility compile) :hide))
+      (should (eq (pimacs-section-visibility unit-tests) :hide))
+      ;; Show the first level.
+      (pimacs-section--cycle-global)
+      (should (eq (pimacs-section-visibility build) :show))
+      (should (eq (pimacs-section-visibility compile) :hide))
+      ;; Show the second level.
+      (pimacs-section--cycle-global)
+      (should (eq (pimacs-section-visibility compile) :show))
+      (should (eq (pimacs-section-visibility unit-tests) :hide))
+      ;; Show every section, then cycle back to hiding everything.
+      (pimacs-section--cycle-global)
+      (should (eq (pimacs-section-visibility unit-tests) :show))
+      (pimacs-section--cycle-global)
+      (should (eq (pimacs-section-visibility build) :hide)))))
+
+(ert-deftest pimacs-section-show-levels-current-tree ()
+  (pimacs-section-tests-with-demo-buffer
+    (let ((build (pimacs-section--find-section '(build) pimacs-section--root-section))
+          (compile (pimacs-section--find-section '(build compile) pimacs-section--root-section))
+          (logs (pimacs-section--find-section '(logs) pimacs-section--root-section)))
+      (goto-char (pimacs-section-beginning build))
+      (pimacs-section-show-level-1)
+      (should (pimacs-section--hidden-p build))
+      (should (pimacs-section--visible-p logs))
+      (pimacs-section--set-visibility build :show)
+      (goto-char (pimacs-section-beginning build))
+      (pimacs-section-show-level-2)
+      (should (pimacs-section--visible-p build))
+      (should (pimacs-section--hidden-p compile))
+      (should (pimacs-section--visible-p logs)))))

@@ -359,6 +359,27 @@ in another window
 @item @kbd{TAB}, @kbd{C-i}
 @tab @code{pimacs-toggle-section}
 @tab Toggle visibility of the section at point
+@item @kbd{S-TAB}
+@tab @code{pimacs-section-cycle-global}
+@tab Cycle global section visibility, hiding all sections and then expanding one more level at a time
+@item @kbd{1}
+@tab @code{pimacs-section-show-level-1}
+@tab Show the current section tree at the first level
+@item @kbd{2}
+@tab @code{pimacs-section-show-level-2}
+@tab Show the current section tree through the second level
+@item @kbd{3}
+@tab @code{pimacs-section-show-level-3}
+@tab Show the current section tree through the third level
+@item @kbd{M-1}
+@tab @code{pimacs-section-show-level-1-all}
+@tab Show only headings of all root sections
+@item @kbd{M-2}
+@tab @code{pimacs-section-show-level-2-all}
+@tab Show root sections and only headings of their children
+@item @kbd{M-3}
+@tab @code{pimacs-section-show-level-3-all}
+@tab Show sections through the second level and headings at the third
 @item @kbd{n}, @kbd{M-n}
 @tab @code{pimacs-goto-next-section}
 @tab Move to the next section
@@ -407,6 +428,9 @@ in another window
 @item @kbd{M-g l}
 @tab @code{pimacs-goto-last-section}
 @tab Jump to the most recent section
+@item @kbd{S-TAB}
+@tab @code{pimacs-section-cycle-global}
+@tab Cycle global section visibility
 @end multitable
 
 @node Custom Variables

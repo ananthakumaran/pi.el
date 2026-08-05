@@ -519,15 +519,92 @@ EVENT is the mouse event that triggered the toggle."
                              (< (point) (pimacs-section-end child)))))
           (pimacs-section--set-visibility child :autohide))))))
 
+(defun pimacs-section--all-sections (section)
+  (cons section
+        (apply #'append
+               (mapcar #'pimacs-section--all-sections
+                       (pimacs-section-children section)))))
+
+(defun pimacs-section--set-visibility-level (sections depth level)
+  (dolist (section sections)
+    (pimacs-section--set-visibility
+     section (if (<= depth level) :show :hide))
+    (pimacs-section--set-visibility-level
+     (pimacs-section-children section) (1+ depth) level)))
+
+(defun pimacs-section--visible-level (children)
+  (let ((level 0)
+        (frontier children))
+    (while (and frontier
+                (cl-every (lambda (section)
+                            (not (pimacs-section--hidden-p section)))
+                          frontier))
+      (setq level (1+ level)
+            frontier (apply #'append
+                            (mapcar #'pimacs-section-children frontier))))
+    level))
+
+(defun pimacs-section--cycle-global ()
+  (when-let ((children (and pimacs-section--root-section
+                            (pimacs-section-children pimacs-section--root-section))))
+    (let* ((sections (apply #'append
+                            (mapcar #'pimacs-section--all-sections children)))
+           (all-visible (not (cl-some #'pimacs-section--hidden-p sections)))
+           (level (if all-visible
+                      0
+                    (1+ (pimacs-section--visible-level children)))))
+      (pimacs-section--set-visibility-level children 1 level))))
+
+(defun pimacs-section--show-level-all (level)
+  (when-let ((children (and pimacs-section--root-section
+                            (pimacs-section-children pimacs-section--root-section))))
+    (pimacs-section--set-visibility-level children 1 level)))
+
 (defun pimacs-section-show-level-1-all ()
-  "Collapse all the sections in the pimacs status buffer."
+  "Show only headings of all root sections."
   (interactive)
-  (save-excursion
-    (goto-char (point-min))
-    (while (and (not (eobp)) (pimacs-section--current-section))
-      (let ((section (pimacs-section--current-section)))
-	(pimacs-section--set-visibility section :hide))
-      (forward-line 1))))
+  (pimacs-section--show-level-all 0))
+
+(defun pimacs-section-show-level-2-all ()
+  "Show root sections and only headings of their children."
+  (interactive)
+  (pimacs-section--show-level-all 1))
+
+(defun pimacs-section-show-level-3-all ()
+  "Show sections through the second level and headings at the third."
+  (interactive)
+  (pimacs-section--show-level-all 2))
+
+(defun pimacs-section--show-level (section level)
+  (let ((depth (length (pimacs-section--section-path section))))
+    (while (> depth level)
+      (setq section (pimacs-section-parent section)
+            depth (1- depth)))
+    (if (< depth level)
+        (progn
+          (pimacs-section--set-visibility section :show)
+          (pimacs-section--set-visibility-level
+           (pimacs-section-children section) 1 (- level depth 1)))
+      (pimacs-section--set-visibility section :hide))
+    (goto-char (pimacs-section-beginning section))))
+
+(defun pimacs-section-show-level-1 ()
+  "Show surrounding sections on the first level."
+  (interactive)
+  (when-let ((section (pimacs-section--current-section)))
+    (pimacs-section--show-level section 1)))
+
+(defun pimacs-section-show-level-2 ()
+  "Show surrounding sections through the second level."
+  (interactive)
+  (when-let ((section (pimacs-section--current-section)))
+    (pimacs-section--show-level section 2)))
+
+(defun pimacs-section-show-level-3 ()
+  "Show surrounding sections through the third level."
+  (interactive)
+  (when-let ((section (pimacs-section--current-section)))
+    (pimacs-section--show-level section 3)))
 
 (defmacro pimacs-section--section-case (&rest clauses)
   "Make different action depending of current section.
