@@ -1,10 +1,10 @@
 import { appendFileSync } from "node:fs";
 import { spawn } from "node:child_process";
-import { once } from "node:events";
+import { createServer } from "node:net";
+import type { AddressInfo } from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,7 +17,46 @@ const ollamaHost = process.env.OLLAMA_HOST || "http://127.0.0.1:11434";
 const binPath = path.join(__dirname, "../node_modules/.bin/proxay");
 const logFile = "/tmp/proxay.log";
 
-function initialize() {
+// Keep a single proxay per agent process across module re-imports, bound to
+// an OS-assigned free port.
+const PROXAY_STATE_KEY = "__pimacsFixtureProxayState__";
+const PROXAY_HANDLERS_KEY = "__pimacsFixtureProxayHandlers__";
+
+interface ProxayState {
+  proxay: ReturnType<typeof spawn>;
+  port: number;
+}
+
+function getGlobalStore(): Record<string, unknown> {
+  return globalThis as unknown as Record<string, unknown>;
+}
+
+function getProxayState(): ProxayState | undefined {
+  return getGlobalStore()[PROXAY_STATE_KEY] as ProxayState | undefined;
+}
+
+function getFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = createServer();
+    server.once("error", reject);
+    server.listen(0, () => {
+      const port = (server.address() as AddressInfo).port;
+      server.close(() => resolve(port));
+    });
+  });
+}
+
+async function initialize(): Promise<ProxayState> {
+  const existing = getProxayState();
+  if (
+    existing &&
+    existing.proxay.exitCode === null &&
+    existing.proxay.signalCode === null
+  ) {
+    return existing;
+  }
+
+  const port = await getFreePort();
   const proxay = spawn(binPath, [
     "--mode",
     mode,
@@ -28,7 +67,7 @@ function initialize() {
     "--host",
     ollamaHost,
     "--port",
-    "5544",
+    String(port),
   ]);
 
   proxay.stdout.on("data", (data) => {
@@ -43,25 +82,31 @@ function initialize() {
     appendFileSync(logFile, `[exit] code=${code}\n`);
   });
 
-  return proxay;
+  const state = { proxay, port };
+  getGlobalStore()[PROXAY_STATE_KEY] = state;
+  return state;
 }
 
-export default function (pi: ExtensionAPI) {
-  const proxay = initialize();
+export default async function (pi: ExtensionAPI) {
+  const { port } = await initialize();
 
-  [
-    "exit",
-    "SIGINT",
-    "SIGUSR1",
-    "SIGUSR2",
-    "uncaughtException",
-    "SIGTERM",
-  ].forEach((eventType) => {
-    process.on(eventType, () => {
-      appendFileSync(logFile, `[pi](${eventType}) stopping proxay\n`);
-      proxay.kill();
+  if (!getGlobalStore()[PROXAY_HANDLERS_KEY]) {
+    getGlobalStore()[PROXAY_HANDLERS_KEY] = true;
+
+    [
+      "exit",
+      "SIGINT",
+      "SIGUSR1",
+      "SIGUSR2",
+      "uncaughtException",
+      "SIGTERM",
+    ].forEach((eventType) => {
+      process.on(eventType, () => {
+        appendFileSync(logFile, `[pi](${eventType}) stopping proxay\n`);
+        getProxayState()?.proxay.kill();
+      });
     });
-  });
+  }
 
   pi.registerCommand("rpc-input", {
     description: "Prompt for text input (ctx.ui.input)",
@@ -149,7 +194,7 @@ export default function (pi: ExtensionAPI) {
 
   pi.registerProvider("fixture", {
     api: "openai-completions",
-    baseUrl: "http://127.0.0.1:5544/v1",
+    baseUrl: `http://127.0.0.1:${port}/v1`,
     apiKey: "ollama",
     models: [
       {

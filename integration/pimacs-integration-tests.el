@@ -39,7 +39,7 @@
 (defconst pimacs-silenced-integration-message-patterns
   '("^(.*) Starting pimacs version .+\.\.\.$"
     "^(.*) pimacs agent started successfully\.$"
-    "^(.*) pimacs exits: killed\.$"
+    "^(.*) pimacs exits: killed\\(: [0-9]+\\)?\\.$"
     "^Copied last assistant message to clipboard\.$"))
 
 (defmacro pimacs-with-silenced-integration-messages (&rest body)
@@ -76,20 +76,24 @@
            (make-directory sessions-dir)))
        (pimacs-chat)
        (sleep-for 2)
-       ,@body
-       (pimacs-drain-process-output)
-       (pimacs--with-chat-buffer
-         (pimacs--force-update-header-line)
-         (pimacs-check-tape ,scenario ".txt"
-                            (buffer-substring (point-min) (point-max)))
-         (pimacs-check-tape
-          ,scenario "-header.txt"
-          (replace-regexp-in-string
-           "%%" "%"
-           (pimacs--format-state-line pimacs-header-line-format)
-           t t)))
-
-       (pimacs-quit-chat))))
+       ;; Always quit the chat, even when a check fails, so the agent
+       ;; process (and its proxay child) is torn down and the next test
+       ;; starts with a fresh proxy instead of reusing stale state.
+       (unwind-protect
+           (progn
+             ,@body
+             (pimacs-drain-process-output)
+             (pimacs--with-chat-buffer
+               (pimacs--force-update-header-line)
+               (pimacs-check-tape ,scenario ".txt"
+                                  (buffer-substring (point-min) (point-max)))
+               (pimacs-check-tape
+                ,scenario "-header.txt"
+                (replace-regexp-in-string
+                 "%%" "%"
+                 (pimacs--format-state-line pimacs-header-line-format)
+                 t t))))
+         (pimacs-quit-chat)))))
 
 (defvar pimacs-settle-time (if (getenv "CI") 1 0.1))
 (defvar pimacs-poll-interval (if (getenv "CI") 0.5 0.05))
