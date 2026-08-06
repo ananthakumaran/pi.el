@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- Incremental search now temporarily reveals collapsed images as well as text.
+
 ## v0.3.0 - 2026-08-06
 
 ### Added

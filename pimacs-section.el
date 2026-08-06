@@ -415,6 +415,22 @@ Return the first matching section, or nil if there is none."
       (setq parent (pimacs-section-parent section)))
     (pimacs-section--set-visibility section :show)))
 
+(defun pimacs-section--isearch-open-temporary (ov restore)
+  (if restore
+      (progn
+        (overlay-put ov 'invisible
+                     (overlay-get ov 'pimacs-section-isearch-invisible))
+        (overlay-put ov 'display
+                     (overlay-get ov 'pimacs-section-isearch-display))
+        (overlay-put ov 'pimacs-section-isearch-invisible nil)
+        (overlay-put ov 'pimacs-section-isearch-display nil))
+    (overlay-put ov 'pimacs-section-isearch-invisible
+                 (overlay-get ov 'invisible))
+    (overlay-put ov 'pimacs-section-isearch-display
+                 (overlay-get ov 'display))
+    (overlay-put ov 'invisible nil)
+    (overlay-put ov 'display nil)))
+
 (defun pimacs-section--visibility-indicator ()
   (and (display-graphic-p)
        pimacs-section-visibility-indicators))
@@ -477,7 +493,9 @@ VISIBILITY can be one of:
         (overlay-put ov 'invisible t)
         (overlay-put ov 'display "")
         (overlay-put ov 'isearch-open-invisible
-                     #'pimacs-section--isearch-open)))
+                     #'pimacs-section--isearch-open)
+        (overlay-put ov 'isearch-open-invisible-temporary
+                     #'pimacs-section--isearch-open-temporary)))
 
     (pimacs-section--update-visibility-indicator section))
 
