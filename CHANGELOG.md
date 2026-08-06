@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## v0.3.0 - 2026-08-06
+
+### Added
+
+- An opt-in Tree-sitter-based Markdown renderer with incremental streaming,
+  rich Markdown syntax support, formatted tables, and link widgets.
+- `pimacs-doctor` reports the status of Pi, Tree-sitter, and the Markdown
+  grammars, with actions to install missing dependencies.
+- Commands and keybindings to show section visibility at selected levels,
+  apply visibility levels globally, and cycle global visibility.
+- Batching and merging of streamed message updates to reduce redundant
+  renders.
+
+### Changed
+
+- Thinking-level selection now uses Pi's `get_available_thinking_levels`
+  command.
+- Message handling no longer depends on the removed `partial` and `message`
+  event fields, enabling compatibility with upcoming Pi versions.
+- The minimum supported Emacs version is now 29.1.
+
+### Fixed
+
+- Grep result highlighting now handles regular-expression patterns correctly.
+
 ## v0.2.0 - 2026-07-25
 
 ### Added

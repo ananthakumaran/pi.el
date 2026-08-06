@@ -20,7 +20,7 @@ END-INFO-DIR-ENTRY
 
 File: pimacs.info,  Node: Top,  Next: Introduction,  Up: (dir)
 
-Pimacs User Manual v0.2.1
+Pimacs User Manual v0.3.0
 *************************
 
 Pimacs is an Emacs client for Pi Coding Agent (https://pi.dev/).  For
@@ -72,7 +72,7 @@ Add the following to your Emacs configuration:
      (use-package pimacs
        :ensure t
        :vc (:url "git@github.com:ananthakumaran/pimacs.el.git"
-            :rev :newest))
+            :rev "v0.3.0"))
 
 
 File: pimacs.info,  Node: Doctor,  Next: Usage,  Prev: Setup,  Up: Top
@@ -707,19 +707,19 @@ Tag Table:
 Node: Top746
 Node: Introduction1113
 Node: Setup1370
-Node: Doctor2011
-Node: Usage2383
-Node: Slash Commands3234
-Node: File Name Completion5475
-Node: Bash5803
-Node: Sending Context6070
-Node: Images6878
-Node: State Lines7743
-Node: Managing Sessions9071
-Node: Sandbox9664
-Node: How It Works10046
-Node: Keybindings10496
-Node: Custom Variables13833
+Node: Doctor2012
+Node: Usage2384
+Node: Slash Commands3235
+Node: File Name Completion5476
+Node: Bash5804
+Node: Sending Context6071
+Node: Images6879
+Node: State Lines7744
+Node: Managing Sessions9072
+Node: Sandbox9665
+Node: How It Works10047
+Node: Keybindings10497
+Node: Custom Variables13834
 
 End Tag Table
 
