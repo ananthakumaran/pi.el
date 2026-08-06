@@ -243,10 +243,9 @@ PRED is called with KEY VALUE."
   (pcase operation
     (:create nil)
     (:stream
-     (list (list :append (propertize text 'face 'pimacs-thinking-face))))
+     (list (list :append text)))
     (:final
-     (list (list :append
-                 (propertize (pimacs--fill-string text) 'face 'pimacs-thinking-face))))
+     (list (list :append (pimacs--fill-string text))))
     (:destroy nil)))
 
 (defun pimacs--render-content (filename content &optional mode)

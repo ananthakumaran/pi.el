@@ -57,6 +57,114 @@ Set this to nil to disable fringe indicators."
 (defvar pimacs-section--visibility-default :autoshow)
 (defvar-local pimacs-section--root-section nil)
 
+(defface pimacs-section-root-face
+  '((t :inherit nil))
+  "Face applied to root sections."
+  :group 'pimacs)
+
+(defface pimacs-section-thinking-face
+  '((t :inherit pimacs-thinking-face))
+  "Face applied to thinking sections."
+  :group 'pimacs)
+
+(defface pimacs-section-assistant-face
+  '((t :inherit nil))
+  "Face applied to assistant sections."
+  :group 'pimacs)
+
+(defface pimacs-section-user-face
+  '((t :inherit nil))
+  "Face applied to user sections."
+  :group 'pimacs)
+
+(defface pimacs-section-tool-call-face
+  '((t :inherit nil))
+  "Face applied to tool call sections."
+  :group 'pimacs)
+
+(defface pimacs-section-tool-result-face
+  '((t :inherit nil))
+  "Face applied to tool result sections."
+  :group 'pimacs)
+
+(defface pimacs-section-error-face
+  '((t :inherit pimacs-error-face))
+  "Face applied to error sections."
+  :group 'pimacs)
+
+(defface pimacs-section-model-face
+  '((t :inherit shadow))
+  "Face applied to model sections."
+  :group 'pimacs)
+
+(defface pimacs-section-compact-face
+  '((t :inherit shadow))
+  "Face applied to compaction sections."
+  :group 'pimacs)
+
+(defface pimacs-section-info-face
+  '((t :inherit shadow))
+  "Face applied to information sections."
+  :group 'pimacs)
+
+(defface pimacs-section-custom-face
+  '((t :inherit nil))
+  "Face applied to custom sections."
+  :group 'pimacs)
+
+(defface pimacs-section-queue-face
+  '((t :inherit shadow))
+  "Face applied to queue sections."
+  :group 'pimacs)
+
+(defface pimacs-section-notify-face
+  '((t :inherit nil))
+  "Face applied to notification sections."
+  :group 'pimacs)
+
+(defface pimacs-section-select-face
+  '((t :inherit shadow))
+  "Face applied to selection sections."
+  :group 'pimacs)
+
+(defface pimacs-section-confirm-face
+  '((t :inherit shadow))
+  "Face applied to confirmation sections."
+  :group 'pimacs)
+
+(defface pimacs-section-input-face
+  '((t :inherit shadow))
+  "Face applied to input sections."
+  :group 'pimacs)
+
+(defface pimacs-section-session-face
+  '((t :inherit shadow))
+  "Face applied to session sections."
+  :group 'pimacs)
+
+(defcustom pimacs-section-type-faces
+  '((root . pimacs-section-root-face)
+    (thinking . pimacs-section-thinking-face)
+    (assistant . pimacs-section-assistant-face)
+    (user . pimacs-section-user-face)
+    (tool-call . pimacs-section-tool-call-face)
+    (tool-result . pimacs-section-tool-result-face)
+    (error . pimacs-section-error-face)
+    (model . pimacs-section-model-face)
+    (compact . pimacs-section-compact-face)
+    (info . pimacs-section-info-face)
+    (custom . pimacs-section-custom-face)
+    (queue . pimacs-section-queue-face)
+    (notify . pimacs-section-notify-face)
+    (select . pimacs-section-select-face)
+    (confirm . pimacs-section-confirm-face)
+    (input . pimacs-section-input-face)
+    (session . pimacs-section-session-face))
+  "Faces prepended to content in sections of each type."
+  :type '(repeat (cons (symbol :tag "Section type")
+                       (symbol :tag "Face")))
+  :group 'pimacs)
+
 (define-fringe-bitmap 'pimacs-section-fringe-bitmap>
   [#b01100000
    #b00110000
@@ -102,7 +210,7 @@ is a sublist of LIST (as if '* matched zero or more arbitrary elements of LIST)"
              (pimacs-section--prefix-p (cdr prefix) (cdr list))))))
 
 (cl-defstruct pimacs-section
-  parent children beginning end type visibility info padding)
+  parent children beginning end type visibility info padding face)
 
 (cl-defstruct pimacs-section-tool-call-info
   tool-name args header)
@@ -119,6 +227,29 @@ is a sublist of LIST (as if '* matched zero or more arbitrary elements of LIST)"
 (defun pimacs-section--set-info (section info)
   (setf (pimacs-section-info section) info))
 
+(defun pimacs-section--insert-chrome (text face)
+  (insert (propertize text
+                      'face face
+                      'pimacs-section-face-order 'append)))
+
+(defun pimacs-section--next-face-change (position end)
+  (min (next-single-property-change
+        position 'pimacs-section-face-order nil end)
+       (next-single-property-change position 'pimacs-section nil end)))
+
+(defun pimacs-section--apply-face (section beginning end)
+  (when-let ((face (pimacs-section-face section)))
+    (let ((position beginning))
+      (while (< position end)
+        (let* ((next (pimacs-section--next-face-change position end))
+               (owner (get-text-property position 'pimacs-section))
+               (appendp (eq (get-text-property
+                             position 'pimacs-section-face-order)
+                            'append)))
+          (unless (and owner (not (eq owner section)))
+            (add-face-text-property position next face appendp))
+          (setq position next))))))
+
 (defun pimacs-section--advance-pointer-maker (marker)
   (let ((m (copy-marker marker)))
     (set-marker-insertion-type m t)
@@ -126,8 +257,11 @@ is a sublist of LIST (as if '* matched zero or more arbitrary elements of LIST)"
 
 (defun pimacs-section--new-section (type parent &rest args)
   (let* ((padding (or (plist-get args :padding) pimacs-section-padding))
+         (face (or (plist-get args :face)
+                   (alist-get type pimacs-section-type-faces)))
          (s (make-pimacs-section :parent parent
                                  :type type
+                                 :face face
                                  :visibility pimacs-section--visibility-default
                                  :padding padding)))
     (when parent
@@ -148,12 +282,19 @@ is a sublist of LIST (as if '* matched zero or more arbitrary elements of LIST)"
 (defmacro pimacs-section--insert-section (section &rest body)
   (declare (indent 1)
            (debug (symbolp body)))
-  (let ((s (make-symbol "*section*")))
+  (let ((s (make-symbol "*section*"))
+        (body-beginning (make-symbol "*body-beginning*"))
+        (padding-beginning (make-symbol "*padding-beginning*")))
     `(let* ((,s ,section))
        (goto-char (pimacs-section-end (pimacs-section-parent ,s)))
        (setf (pimacs-section-beginning ,s) (point-marker))
-       ,@body
-       (insert (pimacs-section-padding ,s))
+       (let ((,body-beginning (point)))
+         ,@body
+         (let ((,padding-beginning (point)))
+           (insert (pimacs-section-padding ,s))
+           (remove-text-properties ,padding-beginning (point)
+                                   '(face nil pimacs-section-face-order nil)))
+         (pimacs-section--apply-face ,s ,body-beginning (point)))
        (setf (pimacs-section-beginning ,s) (pimacs-section--advance-pointer-maker (pimacs-section-beginning ,s)))
        (pimacs-section--update-section-end ,s (point-marker))
        (pimacs-section--propertize-section ,s)
@@ -172,12 +313,30 @@ is a sublist of LIST (as if '* matched zero or more arbitrary elements of LIST)"
 (defmacro pimacs-section--append-section (section &rest body)
   (declare (indent 1)
            (debug (symbolp body)))
-  (let ((s (make-symbol "*section*")))
+  (let ((s (make-symbol "*section*"))
+        (body-beginning (make-symbol "*body-beginning*"))
+        (changed-beginning (make-symbol "*changed-beginning*"))
+        (change-hook (make-symbol "*change-hook*")))
     `(let* ((,s ,section))
        (goto-char (pimacs-section-beginning ,s))
        (setf (pimacs-section-beginning ,s) (point-marker))
        (goto-char (- (pimacs-section-end ,s) (length (pimacs-section-padding ,s))))
-       ,@body
+       (let ((,body-beginning (point))
+             (,changed-beginning nil)
+             (,change-hook nil))
+         (setq ,change-hook
+               (lambda (beginning _end _old-length)
+                 (setq ,changed-beginning
+                       (if ,changed-beginning
+                           (min beginning ,changed-beginning)
+                         beginning))))
+         (add-hook 'after-change-functions ,change-hook nil t)
+         (unwind-protect
+             (progn ,@body)
+           (remove-hook 'after-change-functions ,change-hook t))
+         (pimacs-section--apply-face ,s
+                                     (or ,changed-beginning ,body-beginning)
+                                     (point)))
        (forward-char (length (pimacs-section-padding ,s)))
        (setf (pimacs-section-beginning ,s) (pimacs-section--advance-pointer-maker (pimacs-section-beginning ,s)))
        (pimacs-section--update-section-end ,s (point-marker))
@@ -188,14 +347,21 @@ is a sublist of LIST (as if '* matched zero or more arbitrary elements of LIST)"
 (defmacro pimacs-section--replace-section (section &rest body)
   (declare (indent 1)
            (debug (symbolp body)))
-  (let ((s (make-symbol "*section*")))
+  (let ((s (make-symbol "*section*"))
+        (body-beginning (make-symbol "*body-beginning*"))
+        (padding-beginning (make-symbol "*padding-beginning*")))
     `(let* ((,s ,section))
        (delete-region (pimacs-section-beginning ,s) (pimacs-section-end ,s))
        (setf (pimacs-section-children ,s) nil)
        (goto-char (pimacs-section-beginning ,s))
        (setf (pimacs-section-beginning ,s) (point-marker))
-       ,@body
-       (insert (pimacs-section-padding ,s))
+       (let ((,body-beginning (point)))
+         ,@body
+         (let ((,padding-beginning (point)))
+           (insert (pimacs-section-padding ,s))
+           (remove-text-properties ,padding-beginning (point)
+                                   '(face nil pimacs-section-face-order nil)))
+         (pimacs-section--apply-face ,s ,body-beginning (point)))
        (setf (pimacs-section-beginning ,s) (pimacs-section--advance-pointer-maker (pimacs-section-beginning ,s)))
        (pimacs-section--update-section-end ,s (point-marker))
        (pimacs-section--propertize-section ,s)

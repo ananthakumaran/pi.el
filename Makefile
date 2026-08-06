@@ -5,7 +5,7 @@ CASK_EMACS := PIMACS_TREESIT_EXTRA_LOAD_PATH="$(CASK_TREESIT_EXTRA_LOAD_PATH)" c
 
 MATCH ?=
 PIMACS_VERSION := $(shell awk '/^;; Version:/ { print $$3; exit }' pimacs.el)
-PIMACS_DOC_SOURCES := pimacs-section.el pimacs-utils.el pimacs-markdown-table.el pimacs-markdown.el \
+PIMACS_DOC_SOURCES := pimacs-section.el pimacs-edit.el pimacs-utils.el pimacs-markdown-table.el pimacs-markdown.el \
 	pimacs-state-line.el pimacs-core.el pimacs-agent.el pimacs-doctor.el pimacs-session.el pimacs.el
 
 $(CASK_DIR): Cask
@@ -83,96 +83,19 @@ sandbox:
                 --eval "(when (eq system-type 'darwin) (setq mac-option-key-is-meta nil mac-command-key-is-meta t mac-command-modifier 'meta mac-option-modifier 'none))"
 
 
-define ESCRIPT
-(with-temp-buffer
-  (require 'subr-x)
-  (insert-file-contents "pimacs-section.el")
-  (insert-file-contents "pimacs-utils.el")
-  (insert-file-contents "pimacs-markdown-table.el")
-  (insert-file-contents "pimacs-markdown.el")
-  (insert-file-contents "pimacs-state-line.el")
-  (insert-file-contents "pimacs-core.el")
-  (insert-file-contents "pimacs-agent.el")
-  (insert-file-contents "pimacs-doctor.el")
-  (insert-file-contents "pimacs-session.el")
-  (insert-file-contents "pimacs.el")
-  (while
-      (ignore-errors
-        (let* ((sexp (read (current-buffer)))
-               (form-start (save-excursion
-                             (backward-sexp 1)
-                             (point))))
-          (when sexp
-            (when (eq (car sexp) 'defcustom)
-              (unless (cadr (cddr sexp))
-                (princ (format "Documentation missing for defcustom %S\n" (cadr sexp)))
-                (kill-emacs 1))
-              (let* ((name (cadr sexp))
-                     (default-raw
-                      (save-excursion
-                        (goto-char form-start)
-                        (forward-comment (point-max))
-                        (forward-char 1)
-                        (forward-sexp 1)
-                        (forward-comment (point-max))
-                        (forward-sexp 1)
-                        (forward-comment (point-max))
-                        (let ((default-start (point)))
-                          (forward-sexp 1)
-                          (buffer-substring-no-properties default-start (point)))))
-                     (default-str
-                      (with-temp-buffer
-                        (emacs-lisp-mode)
-                        (insert default-raw)
-                        (let ((inhibit-message t))
-                          (indent-region (point-min) (point-max)))
-                        (string-trim (buffer-string))))
-                     (raw-doc (cadr (cddr sexp)))
-                     (doc (replace-regexp-in-string "`\\([^']*\\)'" "@code{\\1}" raw-doc))
-                     (doc
-                      (replace-regexp-in-string
-                       "^@code{[^}\n]+}[ \t][ \t]+[^\n]*\n\\(?:@code{[^}\n]+}[ \t][ \t]+[^\n]*\n\\)+"
-                       (lambda (block)
-                         (save-match-data
-                           (with-temp-buffer
-                             (insert block)
-                             (goto-char (point-min))
-                             (while (re-search-forward "^@code{\\([^}\n]+\\)}[ \t][ \t]+\\([^\n]*\\)" nil t)
-                               (replace-match (format "@item %s\n%s"
-                                                      (match-string 1)
-                                                      (match-string 2))
-                                              t t))
-                             (concat "@table @code\n" (buffer-string) "@end table\n"))))
-                       doc)))
-                (if (string-match-p "\n" default-str)
-                    (princ (format "@defopt %s\n\n@lisp\n%s\n@end lisp\n\n%s\n@end defopt\n\n" name default-str doc))
-                  (princ (format "@defopt %s @code{%s}\n\n%s\n@end defopt\n\n" name default-str doc)))))
-            t)))))
-endef
-export ESCRIPT
 
 
 .PHONY: docs-lint
 docs-lint:
-	@$(CASK_EMACS) -L . \
-	  --eval "(require 'checkdoc)" \
-	  --eval "(checkdoc-file \"pimacs.el\")" \
-	  --eval "(checkdoc-file \"pimacs-doctor.el\")" \
-	  --eval "(checkdoc-file \"pimacs-section.el\")" \
-	  --eval "(checkdoc-file \"pimacs-utils.el\")" \
-	  --eval "(checkdoc-file \"pimacs-markdown-table.el\")" \
-	  --eval "(checkdoc-file \"pimacs-markdown.el\")" \
-	  --eval "(checkdoc-file \"pimacs-state-line.el\")" \
-	  --eval "(checkdoc-file \"pimacs-edit.el\")" \
-	  --eval "(checkdoc-file \"pimacs-agent.el\")" \
-	  --eval "(checkdoc-file \"pimacs-core.el\")" \
-	  --eval "(checkdoc-file \"pimacs-session.el\")" 2>&1 | grep '^pimacs[.-]' | grep -v 'All variables and subroutines might as well have a documentation string' || true
+	@PIMACS_DOC_ACTION=lint PIMACS_DOC_SOURCES="$(PIMACS_DOC_SOURCES)" \
+	  $(CASK_EMACS) -L . -l docs/build.el 2>&1 | \
+	  grep '^pimacs[.-]' | grep -v 'All variables and subroutines might as well have a documentation string' || true
 
 .PHONY: docs
 docs: docs/index.html docs/changelog.html
 
-pimacs.info: Makefile pimacs.texi $(PIMACS_DOC_SOURCES)
-	@ruby -e 'txt = IO.read("pimacs.texi").split("@c custom-variables-start")[0] + "@c custom-variables-start\n\n" + `$(EMACS) -Q --batch --eval "$$ESCRIPT"` + "@c custom-variables-end" + IO.read("pimacs.texi").split("@c custom-variables-end")[1]; File.write("pimacs.texi", txt)'
+pimacs.info: Makefile pimacs.texi $(PIMACS_DOC_SOURCES) docs/build.el
+	@PIMACS_DOC_SOURCES="$(PIMACS_DOC_SOURCES)" $(EMACS) -Q --batch -l docs/build.el
 	@makeinfo -D 'VERSION $(PIMACS_VERSION)' -o pimacs.info pimacs.texi
 
 docs/index.html: pimacs.info

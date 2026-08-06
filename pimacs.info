@@ -20,7 +20,7 @@ END-INFO-DIR-ENTRY
 
 File: pimacs.info,  Node: Top,  Next: Introduction,  Up: (dir)
 
-Pimacs User Manual v0.3.0
+Pimacs User Manual v0.4.0
 *************************
 
 Pimacs is an Emacs client for Pi Coding Agent (https://pi.dev/).  For
@@ -32,10 +32,12 @@ release history, see the changelog (changelog.html).
 * Setup::
 * Doctor::
 * Usage::
+* UI Customization::
 * Sandbox::
 * How It Works::
 * Keybindings::
 * Custom Variables::
+* Custom Faces::
 
 
 File: pimacs.info,  Node: Introduction,  Next: Setup,  Prev: Top,  Up: Top
@@ -86,7 +88,7 @@ Tree-sitter and the Markdown grammars are installed.  When Pi or either
 grammar is missing, the report provides a button to install it.
 
 
-File: pimacs.info,  Node: Usage,  Next: Sandbox,  Prev: Doctor,  Up: Top
+File: pimacs.info,  Node: Usage,  Next: UI Customization,  Prev: Doctor,  Up: Top
 
 4 Usage
 *******
@@ -275,9 +277,99 @@ column header to sort by that column.
 ‘pimacs-list-sessions-table’ and ‘pimacs-list-sessions-sort-key’.
 
 
-File: pimacs.info,  Node: Sandbox,  Next: How It Works,  Prev: Usage,  Up: Top
+File: pimacs.info,  Node: UI Customization,  Next: Sandbox,  Prev: Usage,  Up: Top
 
-5 Sandbox
+5 UI Customization
+******************
+
+Pimacs renders the chat as a sequence of sections.  Each section type
+has a face, so the chat can be styled without changing the Markdown
+renderer.  Customize ‘pimacs-section-type-faces’ to select the face for
+a section type, and customize the selected face with ‘M-x
+customize-face’.
+
+   The built-in section faces are listed in *note Custom Faces::.
+
+5.1 Common Styling Effects
+==========================
+
+A section face supplies the base appearance for one kind of chat
+content.  Only the attributes that you set take effect; leave an
+attribute unspecified when the Markdown or role styling should continue
+to provide it.
+
+   For a coloured assistant card that preserves Markdown colours, set
+only a background and ‘:extend t’:
+
+     (set-face-attribute 'pimacs-section-assistant-face nil
+                         :background "#18212b"
+                         :extend t)
+
+   Set ‘:foreground’ when every part of a section should use one colour.
+Otherwise, leave it as ‘unspecified’ to retain Markdown heading, link,
+and syntax colours.  Likewise, set ‘:height’ or ‘:slant’ to make a
+section compact or italic, and leave ‘:weight’ unspecified when Markdown
+bold text should remain bold.
+
+   Role labels such as ‘assistant>’ and tool names retain their own
+recognizable colours by default.  Configure their faces separately when
+you want to change them.
+
+5.2 Cards and Padding
+=====================
+
+Section faces are also applied to ‘pimacs-section-padding’.  Specify
+both ‘:background’ and ‘:extend t’ for a full-width card background; the
+background then also covers empty padding lines.
+
+   Thinking defaults to ‘shadow’.  A compact, more subdued thinking card
+can be configured as follows:
+
+     (set-face-attribute 'pimacs-section-thinking-face nil
+                         :foreground "#64707c"
+                         :background "#131a21"
+                         :height 0.9
+                         :extend t)
+
+5.3 Choosing Section Faces
+==========================
+
+The type-to-face mapping is evaluated when a section is created.  Change
+one entry without replacing the other defaults with ‘alist-get’:
+
+     (setf (alist-get 'tool-result pimacs-section-type-faces)
+           'my-pimacs-tool-result-face)
+
+   Define a named face when several attributes belong together:
+
+     (defface my-pimacs-tool-result-face
+       '((t :inherit fixed-pitch
+            :foreground "#c2cbd5"
+            :background "#1a2027"
+            :extend t))
+       "My Pimacs tool result face.")
+
+   Changing a face updates already-displayed text immediately.  Changing
+‘pimacs-section-type-faces’ affects newly created sections; recreate the
+chat contents to apply a new mapping to existing sections.
+
+5.4 Prompt Face
+===============
+
+The editable portion of the prompt uses ‘pimacs-prompt-face’ and can be
+customized independently:
+
+     (set-face-attribute 'pimacs-prompt-face nil
+                         :foreground "#d7e0e8"
+                         :background "#202936"
+                         :extend t)
+
+   The ‘user>’ prompt label uses ‘pimacs-chat-user-role-face’.
+
+
+File: pimacs.info,  Node: Sandbox,  Next: How It Works,  Prev: UI Customization,  Up: Top
+
+6 Sandbox
 *********
 
 To run Pi inside a sandbox, customize ‘pimacs-executable’ and
@@ -290,7 +382,7 @@ To run Pi inside a sandbox, customize ‘pimacs-executable’ and
 
 File: pimacs.info,  Node: How It Works,  Next: Keybindings,  Prev: Sandbox,  Up: Top
 
-6 How It Works
+7 How It Works
 **************
 
 Emacs starts Pi in RPC mode (https://pi.dev/docs/latest/rpc).  In this
@@ -302,10 +394,10 @@ are not currently exposed through the RPC API.
 
 File: pimacs.info,  Node: Keybindings,  Next: Custom Variables,  Prev: How It Works,  Up: Top
 
-7 Keybindings
+8 Keybindings
 *************
 
-7.1 Chat Buffer Keybindings
+8.1 Chat Buffer Keybindings
 ===========================
 
 Key            Command                Description
@@ -339,7 +431,7 @@ Key            Command                Description
 ‘i’            ‘pimacs-focus-prompt’  Focus the prompt input field
 ‘q’            ‘pimacs-quit-chat’     Quit the chat buffer
 
-7.2 Prompt Input Keybindings
+8.2 Prompt Input Keybindings
 ============================
 
 Key            Command                Description
@@ -357,9 +449,9 @@ Key            Command                Description
 ‘S-TAB’        ‘pimacs-section-cycle-global’Cycle global section visibility
 
 
-File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
+File: pimacs.info,  Node: Custom Variables,  Next: Custom Faces,  Prev: Keybindings,  Up: Top
 
-8 Custom Variables
+9 Custom Variables
 ******************
 
  -- User Option: pimacs-status-widget-hidden-keys nil
@@ -702,24 +794,252 @@ File: pimacs.info,  Node: Custom Variables,  Prev: Keybindings,  Up: Top
      The car is used for hidden sections and the cdr for visible
      sections.  Set this to nil to disable fringe indicators.
 
+ -- User Option: pimacs-section-type-faces
+
+          '((root . pimacs-section-root-face)
+            (thinking . pimacs-section-thinking-face)
+            (assistant . pimacs-section-assistant-face)
+            (user . pimacs-section-user-face)
+            (tool-call . pimacs-section-tool-call-face)
+            (tool-result . pimacs-section-tool-result-face)
+            (error . pimacs-section-error-face)
+            (model . pimacs-section-model-face)
+            (compact . pimacs-section-compact-face)
+            (info . pimacs-section-info-face)
+            (custom . pimacs-section-custom-face)
+            (queue . pimacs-section-queue-face)
+            (notify . pimacs-section-notify-face)
+            (select . pimacs-section-select-face)
+            (confirm . pimacs-section-confirm-face)
+            (input . pimacs-section-input-face)
+            (session . pimacs-section-session-face))
+
+     Faces prepended to content in sections of each type.
+
+
+File: pimacs.info,  Node: Custom Faces,  Prev: Custom Variables,  Up: Top
+
+10 Custom Faces
+***************
+
+ -- Face: pimacs-chat-role-face '((t :inherit font-lock-builtin-face))
+
+     Face used for generic chat role labels.
+
+ -- Face: pimacs-chat-user-role-face '((t :inherit
+          font-lock-keyword-face))
+
+     Face used for user chat message role labels.
+
+ -- Face: pimacs-chat-assistant-role-face '((t :inherit
+          font-lock-constant-face))
+
+     Face used for assistant chat message role labels.
+
+ -- Face: pimacs-chat-title-face '((t :inherit font-lock-builtin-face))
+
+     Face used for titles.
+
+ -- Face: pimacs-prompt-face '((t :inherit widget-field))
+
+     Face used for the Pimacs prompt input field.
+
+ -- Face: pimacs-error-face '((t :inherit error))
+
+     Face used for Pimacs widget error messages.
+
+ -- Face: pimacs-thinking-face '((t :inherit shadow))
+
+     Face used for assistant thinking content.
+
+ -- Face: pimacs-tool-name-face '((t :inherit
+          font-lock-function-name-face))
+
+     Face used for tool names in tool execution events.
+
+ -- Face: pimacs-grep-match-face '((t :inherit match))
+
+     Face used to highlight matching text in grep tool results.
+
+ -- Face: pimacs-notify-info-face '((t :inherit font-lock-comment-face))
+
+     Face used for info notification messages.
+
+ -- Face: pimacs-notify-warning-face '((t :inherit warning))
+
+     Face used for warning notification messages.
+
+ -- Face: pimacs-notify-error-face '((t :inherit error))
+
+     Face used for error notification messages.
+
+ -- Face: pimacs-widget-face '((t :inherit shadow))
+
+     Face used for extension widgets.
+
+ -- Face: pimacs-status-face '((t :inherit shadow))
+
+     Face used for extension status.
+
+ -- Face: pimacs-markdown-heading-face '((t :inherit
+          font-lock-function-name-face :weight bold))
+
+     Face used for Markdown headings.
+
+ -- Face: pimacs-markdown-inline-code-face '((t :inherit (fixed-pitch
+          font-lock-constant-face)))
+
+     Face used for inline code.
+
+ -- Face: pimacs-markdown-equation-face '((t :inherit (fixed-pitch
+          font-lock-constant-face)))
+
+     Face used for Markdown equations.
+
+ -- Face: pimacs-markdown-bold-face '((t :inherit bold))
+
+     Face used for bold text.
+
+ -- Face: pimacs-markdown-italic-face '((t :inherit italic))
+
+     Face used for italic text.
+
+ -- Face: pimacs-markdown-strike-through-face '((t :strike-through t))
+
+     Face used for Markdown strike-through text.
+
+ -- Face: pimacs-markdown-superscript-face '((t :height 0.8 :raise 0.3))
+
+     Face used for Markdown superscript text.
+
+ -- Face: pimacs-markdown-subscript-face '((t :height 0.8 :raise -0.2))
+
+     Face used for Markdown subscript text.
+
+ -- Face: pimacs-markdown-link-face '((t :inherit link))
+
+     Face used for provisional Markdown links.
+
+ -- Face: pimacs-markdown-list-marker-face '((t :inherit shadow :slant
+          normal :weight normal))
+
+     Face used for Markdown list markers.
+
+ -- Face: pimacs-markdown-checkbox-face '((t :inherit
+          font-lock-builtin-face))
+
+     Face used for Markdown task-list checkboxes.
+
+ -- Face: pimacs-markdown-blockquote-face '((t :inherit
+          font-lock-comment-face))
+
+     Face used for Markdown blockquotes.
+
+ -- Face: pimacs-markdown-horizontal-rule-face '((t :inherit shadow))
+
+     Face used for Markdown horizontal rules.
+
+ -- Face: pimacs-markdown-code-block-face '((t :inherit fixed-pitch))
+
+     Face used as the base face of Markdown code blocks.
+
+ -- Face: pimacs-markdown-table-header-face '((t :inherit fixed-pitch))
+
+     Face used for Markdown table headers.
+
+ -- Face: pimacs-markdown-table-border-face '((t :inherit fixed-pitch))
+
+     Face used for Markdown table borders.
+
+ -- Face: pimacs-section-root-face '((t :inherit nil))
+
+     Face applied to root sections.
+
+ -- Face: pimacs-section-thinking-face '((t :inherit
+          pimacs-thinking-face))
+
+     Face applied to thinking sections.
+
+ -- Face: pimacs-section-assistant-face '((t :inherit nil))
+
+     Face applied to assistant sections.
+
+ -- Face: pimacs-section-user-face '((t :inherit nil))
+
+     Face applied to user sections.
+
+ -- Face: pimacs-section-tool-call-face '((t :inherit nil))
+
+     Face applied to tool call sections.
+
+ -- Face: pimacs-section-tool-result-face '((t :inherit nil))
+
+     Face applied to tool result sections.
+
+ -- Face: pimacs-section-error-face '((t :inherit pimacs-error-face))
+
+     Face applied to error sections.
+
+ -- Face: pimacs-section-model-face '((t :inherit shadow))
+
+     Face applied to model sections.
+
+ -- Face: pimacs-section-compact-face '((t :inherit shadow))
+
+     Face applied to compaction sections.
+
+ -- Face: pimacs-section-info-face '((t :inherit shadow))
+
+     Face applied to information sections.
+
+ -- Face: pimacs-section-custom-face '((t :inherit nil))
+
+     Face applied to custom sections.
+
+ -- Face: pimacs-section-queue-face '((t :inherit shadow))
+
+     Face applied to queue sections.
+
+ -- Face: pimacs-section-notify-face '((t :inherit nil))
+
+     Face applied to notification sections.
+
+ -- Face: pimacs-section-select-face '((t :inherit shadow))
+
+     Face applied to selection sections.
+
+ -- Face: pimacs-section-confirm-face '((t :inherit shadow))
+
+     Face applied to confirmation sections.
+
+ -- Face: pimacs-section-input-face '((t :inherit shadow))
+
+     Face applied to input sections.
+
+ -- Face: pimacs-section-session-face '((t :inherit shadow))
+
+     Face applied to session sections.
+
 
 Tag Table:
 Node: Top746
-Node: Introduction1113
-Node: Setup1370
-Node: Doctor2012
-Node: Usage2384
-Node: Slash Commands3235
-Node: File Name Completion5476
-Node: Bash5804
-Node: Sending Context6071
-Node: Images6879
-Node: State Lines7744
-Node: Managing Sessions9072
-Node: Sandbox9665
-Node: How It Works10047
-Node: Keybindings10497
-Node: Custom Variables13834
+Node: Introduction1151
+Node: Setup1408
+Node: Doctor2050
+Node: Usage2422
+Node: Slash Commands3282
+Node: File Name Completion5523
+Node: Bash5851
+Node: Sending Context6118
+Node: Images6926
+Node: State Lines7791
+Node: Managing Sessions9119
+Node: UI Customization9712
+Node: Sandbox12983
+Node: How It Works13376
+Node: Keybindings13826
+Node: Custom Variables17163
+Node: Custom Faces30943
 
 End Tag Table
 

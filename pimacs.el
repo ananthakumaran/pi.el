@@ -4,7 +4,7 @@
 
 ;; Author: Anantha kumaran <ananthakumaran@gmail.com>
 ;; URL: https://github.com/ananthakumaran/pimacs.el
-;; Version: 0.3.0
+;; Version: 0.4.0
 ;; Keywords: convenience processes
 ;; Package-Requires: ((emacs "29.1") (compat "31.0") (markdown-mode "2.8") (timeout "2.1.7") (pcre2el "1.12") (spinner "1.7") (transient "0.3.7"))
 
@@ -80,13 +80,18 @@
   "Face used for titles."
   :group 'pimacs)
 
+(defface pimacs-prompt-face
+  '((t :inherit widget-field))
+  "Face used for the Pimacs prompt input field."
+  :group 'pimacs)
+
 (defface pimacs-error-face
   '((t :inherit error))
   "Face used for Pimacs widget error messages."
   :group 'pimacs)
 
 (defface pimacs-thinking-face
-  '((t :inherit font-lock-comment-face))
+  '((t :inherit shadow))
   "Face used for assistant thinking content."
   :group 'pimacs)
 
@@ -737,10 +742,12 @@ with the message plist to insert the custom message content."
     (_ 'pimacs-chat-role-face)))
 
 (defun pimacs--insert-role-prefix (role)
-  (insert (propertize (format "%s> " role) 'face (pimacs--role-face role))))
+  (pimacs-section--insert-chrome (format "%s> " role)
+                                 (pimacs--role-face role)))
 
 (defun pimacs--insert-tool-name (tool-name)
-  (insert (propertize (format "%s " tool-name) 'face 'pimacs-tool-name-face)))
+  (pimacs-section--insert-chrome (format "%s " tool-name)
+                                 'pimacs-tool-name-face))
 
 (defun pimacs--extract-truncation-notice (result-text)
   (if (string-match "\n\\(\\[[^]]* Use \\(?:offset=[^]]* to [Cc]ontinue\\|bash: [^]]*\\)\\.?\\]\\)$" result-text)
@@ -2620,6 +2627,7 @@ With a prefix argument OTHER-WINDOW, visit in other window."
                        :keymap pimacs-chat-widget-field-keymap
                        :help-echo ""
                        :format "%[user>%] %v"
+                       :value-face 'pimacs-prompt-face
                        :button-face 'pimacs-chat-user-role-face
                        :action (lambda (widget &optional _event)
                                  (pimacs-send-prompt (widget-value widget)))))

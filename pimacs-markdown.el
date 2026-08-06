@@ -1380,56 +1380,9 @@ When non-nil, diagnostics are appended to the temporary buffer
                                    :help-echo url)))
         (setq position next)))))
 
-(defun pimacs--thinking-markdown-face (face)
-  (let ((faces (if (listp face) face (list face)))
-        attributes)
-    (when (cl-intersection faces '(pimacs-markdown-heading-face
-                                   pimacs-markdown-bold-face))
-      (setq attributes (plist-put attributes :weight 'bold)))
-    (when (memq 'pimacs-markdown-italic-face faces)
-      (setq attributes (plist-put attributes :slant 'italic)))
-    (when (memq 'pimacs-markdown-strike-through-face faces)
-      (setq attributes (plist-put attributes :strike-through t)))
-    (when (cl-intersection faces '(pimacs-markdown-inline-code-face
-                                   pimacs-markdown-equation-face
-                                   pimacs-markdown-code-block-face
-                                   pimacs-markdown-table-header-face
-                                   pimacs-markdown-table-border-face))
-      (setq attributes (plist-put attributes :inherit 'fixed-pitch)))
-    (when (memq 'pimacs-markdown-link-face faces)
-      (setq attributes (plist-put attributes :underline t)))
-    (if attributes
-        (list attributes 'pimacs-thinking-face)
-      'pimacs-thinking-face)))
-
-(defun pimacs--thinking-markdown-string (text)
-  (let ((result (copy-sequence text))
-        (start 0)
-        (end (length text)))
-    (while (< start end)
-      (let ((next (next-single-property-change start 'face text end)))
-        (put-text-property start next 'face
-                           (pimacs--thinking-markdown-face
-                            (get-text-property start 'face text))
-                           result)
-        (setq start next)))
-    result))
-
 (defun pimacs--render-thinking-markdown (operation &optional state text)
   (if (pimacs--markdown-available-p)
-      (if (memq operation '(:stream :final))
-          (mapcar
-           (lambda (render-operation)
-             (pcase render-operation
-               (`(:append ,rendered . ,rest)
-                (cons :append
-                      (cons (pimacs--thinking-markdown-string rendered) rest)))
-               (`(:replace-suffix ,count ,rendered)
-                (list :replace-suffix count
-                      (pimacs--thinking-markdown-string rendered)))
-               (_ render-operation)))
-           (pimacs--render-markdown operation state text))
-        (pimacs--render-markdown operation state text))
+      (pimacs--render-markdown operation state text)
     (pimacs--render-thinking-default operation state text)))
 
 (defun pimacs--render-markdown (operation &optional state text)

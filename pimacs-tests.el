@@ -473,52 +473,91 @@
       (should (equal (nreverse operations)
                      '(:create :stream :stream :final :destroy))))))
 
-(ert-deftest pimacs--thinking-renderer-default-preserves-legacy-rendering ()
+(ert-deftest pimacs-section-applies-configured-face ()
   (with-temp-buffer
-    (let ((text "# Heading\n**bold**"))
-      (pimacs--thinking-insert text nil)
+    (let ((pimacs-section-type-faces '((info . bold))))
+      (pimacs-section--create-root-section)
+      (pimacs-section--create-section 'info pimacs-section--root-section
+        (pimacs-section--insert-chrome "chrome " 'italic)
+        (insert (propertize "content" 'face 'underline)))
       (should (equal (buffer-substring-no-properties (point-min) (point-max))
-                     (pimacs--fill-string text)))
-      (should (eq (get-text-property (point-min) 'face)
-                  'pimacs-thinking-face)))
-    (erase-buffer)
-    (let* ((content (pimacs--render-create-content pimacs-thinking-renderer))
-           (context (pimacs--rendered-content-context content)))
-      (unwind-protect
-          (progn
-            (pimacs--render-apply-operations
-             context (pimacs--render-content-update content "**bold**" t))
-            (should (equal (buffer-substring-no-properties (point-min) (point-max))
-                           "**bold**"))
-            (should (eq (get-text-property (point-min) 'face)
-                        'pimacs-thinking-face)))
-        (pimacs--render-clear-content content)))))
+                     (concat "chrome content" pimacs-section-padding)))
+      (should (equal (get-text-property (point-min) 'face)
+                     '(italic bold)))
+      (should (equal (get-text-property (+ (point-min) (length "chrome ")) 'face)
+                     '(bold underline)))
+      (let ((face (get-text-property (1- (point-max)) 'face)))
+        (should (eq (if (listp face) (car face) face) 'bold))))))
 
-(ert-deftest pimacs--thinking-markdown-renderer-uses-only-dimmed-non-color-faces ()
+(ert-deftest pimacs-section-styles-appended-and-replaced-content ()
   (with-temp-buffer
+    (let ((pimacs-section-type-faces '((info . bold))))
+      (pimacs-section--create-root-section)
+      (let ((section (pimacs-section--create-section 'info pimacs-section--root-section
+                       (insert "one"))))
+        (pimacs-section--append-section section
+          (insert (propertize " two" 'face 'italic)))
+        (save-excursion
+          (goto-char (point-min))
+          (search-forward "two")
+          (should (equal (get-text-property (- (point) 3) 'face)
+                         '(bold italic))))
+        (pimacs-section--append-section section
+          (delete-region (- (point) 2) (point))
+          (insert (propertize "wo" 'face 'underline)))
+        (save-excursion
+          (goto-char (point-min))
+          (search-forward "wo")
+          (should (equal (get-text-property (- (point) 2) 'face)
+                         '(bold underline))))
+        (pimacs-section--replace-section section
+          (insert (propertize "three" 'face 'underline)))
+        (should (equal (get-text-property (point-min) 'face)
+                       '(bold underline)))))))
+
+(ert-deftest pimacs-section-child-face-does-not-inherit-parent-face ()
+  (with-temp-buffer
+    (let ((pimacs-section-type-faces
+           '((assistant . bold) (tool-result . italic))))
+      (pimacs-section--create-root-section)
+      (let ((parent (pimacs-section--create-section 'assistant pimacs-section--root-section
+                      (insert "parent"))))
+        (pimacs-section--create-section 'tool-result parent
+          (insert (propertize "child" 'face 'underline)))
+        (save-excursion
+          (goto-char (point-min))
+          (search-forward "child")
+          (should (equal (get-text-property (- (point) 5) 'face)
+                         '(italic underline))))))))
+
+(ert-deftest pimacs--thinking-markdown-renderer-applies-section-face ()
+  (with-temp-buffer
+    (pimacs-section--create-root-section)
     (let ((pimacs-thinking-renderer #'pimacs--render-thinking-markdown))
-      (pimacs--thinking-insert
-       "# Heading\n**bold** and *italic* ~~strike~~ `code` [link](https://example.com)" nil)
+      (pimacs-section--create-section 'thinking pimacs-section--root-section
+        (pimacs--thinking-insert
+         "# Heading\n**bold** and *italic* ~~strike~~ `code` [link](https://example.com)" nil))
       (cl-labels ((property-at (text property)
                     (save-excursion
                       (goto-char (point-min))
                       (search-forward text)
                       (get-text-property (- (point) (length text)) property))))
         (should (equal (buffer-substring-no-properties (point-min) (point-max))
-                       "Heading\nbold and italic strike code link"))
+                       (concat "Heading\nbold and italic strike code link"
+                               pimacs-section-padding)))
         (should (equal (property-at "Heading" 'face)
-                       '((:weight bold) pimacs-thinking-face)))
+                       '(pimacs-section-thinking-face pimacs-markdown-heading-face)))
         (should (equal (property-at "bold" 'face)
-                       '((:weight bold) pimacs-thinking-face)))
-        (should (eq (property-at "and" 'face) 'pimacs-thinking-face))
+                       '(pimacs-section-thinking-face pimacs-markdown-bold-face)))
+        (should (eq (property-at "and" 'face) 'pimacs-section-thinking-face))
         (should (equal (property-at "italic" 'face)
-                       '((:slant italic) pimacs-thinking-face)))
+                       '(pimacs-section-thinking-face pimacs-markdown-italic-face)))
         (should (equal (property-at "strike" 'face)
-                       '((:strike-through t) pimacs-thinking-face)))
+                       '(pimacs-section-thinking-face pimacs-markdown-strike-through-face)))
         (should (equal (property-at "code" 'face)
-                       '((:inherit fixed-pitch) pimacs-thinking-face)))
+                       '(pimacs-section-thinking-face pimacs-markdown-inline-code-face)))
         (should (equal (property-at "link" 'face)
-                       '((:underline t) pimacs-thinking-face)))
+                       '(pimacs-section-thinking-face pimacs-markdown-link-face)))
         (should (equal (property-at "link" 'help-echo) "https://example.com"))))))
 
 (ert-deftest pimacs-clear-ui-keeps-sections-before-prompt-widgets ()
