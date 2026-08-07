@@ -127,5 +127,6 @@ assistant> Hello, and thanks for reaching out - that's very sweet of you to ask 
 
 Actually, I'd be happy to help with your session-related questions since our conversation window at least contained some relevant prior information in the format provided by earlier requests!
 
-  user> 
+
+ user> 
   

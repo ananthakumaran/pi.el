@@ -23,5 +23,6 @@ assistant> Hello! It's great to see you again. 😊
 
 How can I assist you today?
 
-  user> hello again
+
+ user> hello again
   

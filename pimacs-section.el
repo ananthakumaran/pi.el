@@ -63,7 +63,7 @@ Set this to nil to disable fringe indicators."
   :group 'pimacs)
 
 (defface pimacs-section-thinking-face
-  '((t :inherit pimacs-thinking-face))
+  '((t :inherit shadow))
   "Face applied to thinking sections."
   :group 'pimacs)
 
@@ -73,7 +73,7 @@ Set this to nil to disable fringe indicators."
   :group 'pimacs)
 
 (defface pimacs-section-user-face
-  '((t :inherit nil))
+  '((t :inherit highlight :extend t))
   "Face applied to user sections."
   :group 'pimacs)
 

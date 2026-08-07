@@ -90,11 +90,6 @@
   "Face used for Pimacs widget error messages."
   :group 'pimacs)
 
-(defface pimacs-thinking-face
-  '((t :inherit shadow))
-  "Face used for assistant thinking content."
-  :group 'pimacs)
-
 (defface pimacs-tool-name-face
   '((t :inherit font-lock-function-name-face))
   "Face used for tool names in tool execution events."
@@ -1357,8 +1352,7 @@ with the message plist to insert the custom message content."
         (pimacs-section--create-section 'error pimacs-section--root-section
           (pimacs--insert-error (format "Error: %s\n\n" error-message))
           (insert
-           (propertize (format "Retrying %d/%d (waiting %ds)…" attempt max-attempts (/ delay-ms 1000))
-                       'face 'pimacs-thinking-face)))))))
+           (format "Retrying %d/%d (waiting %ds)…" attempt max-attempts (/ delay-ms 1000))))))))
 
 (defun pimacs--handle-auto-retry-end (event)
   (setq pimacs--retry-in-progress nil)
@@ -1380,9 +1374,9 @@ with the message plist to insert the custom message content."
         (pimacs-section--create-section 'queue pimacs-section--root-section
           (insert (propertize "queue" 'face 'bold))
           (dolist (item steering)
-            (insert (propertize (format "\n Steering: %s" item) 'face 'pimacs-thinking-face)))
+            (insert (format "\n Steering: %s" item)))
           (dolist (item follow-up)
-            (insert (propertize (format "\n Follow-up: %s" item) 'face 'pimacs-thinking-face))))))))
+            (insert (format "\n Follow-up: %s" item))))))))
 
 (defun pimacs--handle-compaction-end (event)
   (let* ((result (plist-get event :result))
@@ -1422,16 +1416,18 @@ with the message plist to insert the custom message content."
   (+ (pimacs--widget-lines pimacs--prompt-after-widget)
      (pimacs--widget-lines pimacs--status-widget)))
 
-(defun pimacs--widget-ensure-trailing-newline (text)
+(defun pimacs--widget-ensure-trailing-newline (text &optional empty-text)
   (if (string-empty-p text)
-      pimacs--empty-widget-text
+      (or empty-text pimacs--empty-widget-text)
     (if (= (aref text (1- (length text))) ?\n)
         text
       (concat text "\n"))))
 
-(defun pimacs--update-widget-by-entries (widget entries)
+(defun pimacs--update-widget-by-entries (widget entries &optional empty-text)
   (widget-value-set widget
-                    (pimacs--widget-ensure-trailing-newline (pimacs--join (pimacs--sort-entries-by-key entries)))))
+                    (pimacs--widget-ensure-trailing-newline
+                     (pimacs--join (pimacs--sort-entries-by-key entries))
+                     empty-text)))
 
 (defun pimacs--update-prompt-widgets ()
   (let ((above '())
@@ -1446,7 +1442,7 @@ with the message plist to insert the custom message content."
                      ("belowEditor"
                       (push (cons key lines) below)))))
                pimacs--prompt-widget-lines))
-    (pimacs--update-widget-by-entries pimacs--prompt-before-widget above)
+    (pimacs--update-widget-by-entries pimacs--prompt-before-widget above "\n")
     (pimacs--update-widget-by-entries pimacs--prompt-after-widget below)))
 
 (defun pimacs--handle-set-widget (event)
@@ -2620,7 +2616,7 @@ With a prefix argument OTHER-WINDOW, visit in other window."
                             #'pimacs--completion-at-point-file)
                       completion-at-point-functions))
   (setq pimacs--spinner (spinner-create 'progress-bar))
-  (setq pimacs--prompt-before-widget (widget-create 'pimacs-item :face 'pimacs-widget-face pimacs--empty-widget-text))
+  (setq pimacs--prompt-before-widget (widget-create 'pimacs-item :face 'pimacs-widget-face "\n"))
   (setq pimacs--attached-images-widget (widget-create 'pimacs-item :face 'pimacs-widget-face pimacs--empty-widget-text))
   (setq pimacs--prompt-widget
         (widget-create 'editable-field

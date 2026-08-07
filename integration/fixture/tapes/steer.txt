@@ -42,5 +42,6 @@ friendly way. I should respond warmly and offer my assistance.
 
 assistant> Hello again! It's great to hear from you. How can I help out today?
 
-  user> 
+
+ user> 
   

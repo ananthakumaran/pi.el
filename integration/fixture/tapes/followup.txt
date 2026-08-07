@@ -46,5 +46,6 @@ should respond warmly and ask how I can help them today.
 
 assistant> Hello! It's great to hear from you again. How is everything going? Is there something specific I can help you with today?
 
-  user> 
+
+ user> 
   

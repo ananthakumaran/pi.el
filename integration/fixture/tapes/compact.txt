@@ -93,5 +93,6 @@ message, I'll keep it simple and friendly.
 
 assistant> Hello! How can I help you today?
 
-  user> 
+
+ user> 
   

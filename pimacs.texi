@@ -966,11 +966,6 @@ Face used for the Pimacs prompt input field.
 Face used for Pimacs widget error messages.
 @end deffn
 
-@deffn Face pimacs-thinking-face @code{'((t :inherit shadow))}
-
-Face used for assistant thinking content.
-@end deffn
-
 @deffn Face pimacs-tool-name-face @code{'((t :inherit font-lock-function-name-face))}
 
 Face used for tool names in tool execution events.
@@ -1091,7 +1086,7 @@ Face used for Markdown table borders.
 Face applied to root sections.
 @end deffn
 
-@deffn Face pimacs-section-thinking-face @code{'((t :inherit pimacs-thinking-face))}
+@deffn Face pimacs-section-thinking-face @code{'((t :inherit shadow))}
 
 Face applied to thinking sections.
 @end deffn
@@ -1101,7 +1096,7 @@ Face applied to thinking sections.
 Face applied to assistant sections.
 @end deffn
 
-@deffn Face pimacs-section-user-face @code{'((t :inherit nil))}
+@deffn Face pimacs-section-user-face @code{'((t :inherit highlight :extend t))}
 
 Face applied to user sections.
 @end deffn

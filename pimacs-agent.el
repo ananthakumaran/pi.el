@@ -214,13 +214,22 @@
       (while (pimacs--enough-response-p)
         (search-forward "{")
         (backward-char 1)
-        (let* ((raw-start (point))
-               (response (pimacs--json-read-object)))
-          (when pimacs-log-rpc
-            (pimacs--maybe-log-rpc "output" (buffer-substring-no-properties raw-start (point))))
-          (delete-region (point-min) (point))
-          (when response
-            (push response responses))))
+        (let ((raw-start (point)))
+          (condition-case err
+              (let ((response (pimacs--json-read-object)))
+                (when pimacs-log-rpc
+                  (pimacs--maybe-log-rpc "output" (buffer-substring-no-properties raw-start (point))))
+                (delete-region (point-min) (point))
+                (when response
+                  (push response responses)))
+            (json-parse-error
+             (goto-char raw-start)
+             (message "pimacs JSON parse error: %s\n  %s"
+                      (error-message-string err)
+                      (buffer-substring-no-properties
+                       (line-beginning-position) (point-max)))
+             (forward-line 1)
+             (delete-region (point-min) (point))))))
       (ignore-error quit
         (pimacs--dispatch-responses process (nreverse responses))))))
 

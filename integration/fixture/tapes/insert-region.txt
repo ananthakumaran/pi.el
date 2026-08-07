@@ -14,5 +14,6 @@ tools.
 
 assistant> Hello again! Is there something you'd like to do today?
 
-  user> 
+
+ user> 
   

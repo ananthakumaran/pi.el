@@ -848,10 +848,6 @@ File: pimacs.info,  Node: Custom Faces,  Prev: Custom Variables,  Up: Top
 
      Face used for Pimacs widget error messages.
 
- -- Face: pimacs-thinking-face '((t :inherit shadow))
-
-     Face used for assistant thinking content.
-
  -- Face: pimacs-tool-name-face '((t :inherit
           font-lock-function-name-face))
 
@@ -955,8 +951,7 @@ File: pimacs.info,  Node: Custom Faces,  Prev: Custom Variables,  Up: Top
 
      Face applied to root sections.
 
- -- Face: pimacs-section-thinking-face '((t :inherit
-          pimacs-thinking-face))
+ -- Face: pimacs-section-thinking-face '((t :inherit shadow))
 
      Face applied to thinking sections.
 
@@ -964,7 +959,7 @@ File: pimacs.info,  Node: Custom Faces,  Prev: Custom Variables,  Up: Top
 
      Face applied to assistant sections.
 
- -- Face: pimacs-section-user-face '((t :inherit nil))
+ -- Face: pimacs-section-user-face '((t :inherit highlight :extend t))
 
      Face applied to user sections.
 
