@@ -1,0 +1,6 @@
+│ Parameter │ Description │ Default   │ Required │ Example    │
+│           │             │ value     │          │            │
+├───────────┼─────────────┼───────────┼──────────┼────────────┤
+│ Mode      │ Rendering   │ automatic │ Yes      │ production │
+│           │ mode        │           │          │            │
+@ 9         | 11          | 9         | 8        | 10         |

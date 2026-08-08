@@ -1,0 +1,11 @@
+│ Change         │ Details       │     State │
+├────────────────┼───────────────┼───────────┤
+│ Authentication │ Use the token │  ✅ Ready │
+│                │ for every     │           │
+│                │ request       │           │
+│ render-table   │ Keeps         │        In │
+│                │ formatted     │  progress │
+│                │ content       │           │
+│                │ aligned while │           │
+│                │ wrapping      │           │
+@ 14             | 13            | 9         |

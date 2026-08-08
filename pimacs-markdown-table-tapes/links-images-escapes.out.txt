@@ -1,0 +1,6 @@
+│ Resource      │ Destination     │ Notes                  │
+├───────────────┼─────────────────┼────────────────────────┤
+│ Documentation │ README.md       │ Open the guide         │
+│ Project logo  │ assets/logo.png │ Image alternative text │
+│ Escaped pipe  │ alpha|beta      │ Kept inside one cell   │
+@ 13            | 15              | 22                     |

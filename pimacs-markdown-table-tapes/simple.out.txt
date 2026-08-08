@@ -1,0 +1,5 @@
+│ Name  │ Description          │
+├───────┼──────────────────────┤
+│ Alpha │ Short                │
+│ Beta  │ A longer description │
+@ 5     | 20                   |

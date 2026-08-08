@@ -1,0 +1,4 @@
+│ Alpha │ Bravo  │ Charlie │
+├───────┼────────┼─────────┤
+│ first │ second │ third   │
+@ 5     | 6      | 7       |

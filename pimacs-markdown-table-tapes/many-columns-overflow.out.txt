@@ -1,0 +1,4 @@
+│ Alpha │ Bravo  │ Charlie │ Delta  │ Echo  │ Foxtrot │ Golf    │ Hotel  │
+├───────┼────────┼─────────┼────────┼───────┼─────────┼─────────┼────────┤
+│ first │ second │ third   │ fourth │ fifth │ sixth   │ seventh │ eighth │
+@ 5     | 6      | 7       | 6      | 5     | 7       | 7       | 6      |

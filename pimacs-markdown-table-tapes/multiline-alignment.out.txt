@@ -1,0 +1,7 @@
+│ Package      │ Version │ Health │
+├──────────────┼─────────┼────────┤
+│ core         │   2.4.0 │   ✅   │
+│ stable       │         │        │
+│ widget       │   0.9.0 │   ⚠️   │
+│ experimental │         │        │
+@ 12           | 7       | 6      |

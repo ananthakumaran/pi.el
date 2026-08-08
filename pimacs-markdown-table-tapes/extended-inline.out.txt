@@ -1,0 +1,7 @@
+│ Syntax    │ Example             │ Notes                     │
+├───────────┼─────────────────────┼───────────────────────────┤
+│ Autolink  │ https://example.com │ Direct URL                │
+│ Reference │ guide               │ Shared definition         │
+│ Scripts   │ H2O and x2           │ Subscript and superscript │
+│ Equation  │ x + y               │ Inline math               │
+@ 9         | 19                  | 25                        |

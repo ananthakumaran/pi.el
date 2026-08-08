@@ -1,0 +1,7 @@
+│ Component │ Description             │ Status │
+├───────────┼─────────────────────────┼────────┤
+│ Renderer  │ Formats incremental     │ Active │
+│           │ Markdown responses      │        │
+│ Tables    │ Balances readable       │ Ready  │
+│           │ column widths           │        │
+@ 9         | 23                      | 6      |
