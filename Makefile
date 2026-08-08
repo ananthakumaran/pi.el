@@ -4,6 +4,8 @@ CASK_TREESIT_EXTRA_LOAD_PATH := $(shell $(EMACS) --batch --eval "(princ (mapconc
 CASK_EMACS := PIMACS_TREESIT_EXTRA_LOAD_PATH="$(CASK_TREESIT_EXTRA_LOAD_PATH)" cask emacs --batch --eval '(setq treesit-extra-load-path (split-string (getenv "PIMACS_TREESIT_EXTRA_LOAD_PATH") path-separator t))'
 
 MATCH ?=
+SESSION_FILE ?=
+SESSION_PATH ?= $(SESSION_FILE)
 PIMACS_VERSION := $(shell awk '/^;; Version:/ { print $$3; exit }' pimacs.el)
 PIMACS_DOC_SOURCES := pimacs-section.el pimacs-edit.el pimacs-utils.el pimacs-markdown-table.el pimacs-markdown.el \
 	pimacs-state-line.el pimacs-core.el pimacs-agent.el pimacs-doctor.el pimacs-session.el pimacs.el
@@ -48,6 +50,13 @@ integration: compile
 .PHONY: markdown-profile
 markdown-profile: compile
 	@$(CASK_EMACS) -L . -L test -l pimacs-markdown-tests.el -f pimacs-markdown-profile-run
+
+.PHONY: profile-session-render
+profile-session-render: compile
+	@test -n "$(SESSION_PATH)" || (echo "SESSION_PATH is required" >&2; exit 1)
+	@PIMACS_RENDER_PROFILE_SESSION_FILE="$(SESSION_PATH)" \
+	  $(CASK_EMACS) -L . -l scripts/profile-session-render.el \
+	  -f pimacs-render-profile--command-line
 
 .PHONY: coverage
 coverage: export UNDERCOVER_FORCE=true

@@ -1,0 +1,4 @@
+#!/bin/sh
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec "$script_dir/node_modules/.bin/tsx" "$script_dir/get_entries.ts" "$@"

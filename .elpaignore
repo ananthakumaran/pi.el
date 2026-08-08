@@ -2,4 +2,5 @@
 .github
 integration
 Makefile
+scripts
 *-tests.el

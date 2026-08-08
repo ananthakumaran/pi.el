@@ -2243,6 +2243,29 @@ FIELDS is a list of (LABEL . KEY) where KEY is a plist key."
   (pimacs--update-prompt-widgets)
   (pimacs--update-status-widget))
 
+(defun pimacs--render-session-entry (entry)
+  (pcase (plist-get entry :type)
+    ("message"
+     (pimacs--insert-message (plist-get entry :message)))
+    ("compaction"
+     (pimacs--insert-compaction (plist-get entry :summary)
+                                (plist-get entry :tokensBefore)))
+    ("model_change"
+     (pimacs--insert-model-change (plist-get entry :provider)
+                                  (plist-get entry :modelId)))
+    ("thinking_level_change"
+     (pimacs--insert-thinking-level-change (plist-get entry :thinkingLevel)))
+    ("custom_message"
+     (pimacs--insert-custom-message entry))
+    ("session_info"
+     (when-let ((name (plist-get entry :name)))
+       (pimacs--insert-session-info name)))
+    (_ nil)))
+
+(defun pimacs--render-session-entries (entries)
+  (dolist (entry entries)
+    (pimacs--render-session-entry entry)))
+
 (defun pimacs-refresh-session (&optional callback)
   "Refresh the current session state.
 CALLBACK is called after a successful refresh."
@@ -2254,24 +2277,7 @@ CALLBACK is called after a successful refresh."
        (let ((entries (plist-get (plist-get resp :data) :entries)))
          (pimacs--widget-save-excursion
            (pimacs--clear-sections)
-           (dolist (entry entries)
-             (pcase (plist-get entry :type)
-               ("message"
-                (pimacs--insert-message (plist-get entry :message)))
-               ("compaction"
-                (pimacs--insert-compaction (plist-get entry :summary)
-                                           (plist-get entry :tokensBefore)))
-               ("model_change"
-                (pimacs--insert-model-change (plist-get entry :provider)
-                                             (plist-get entry :modelId)))
-               ("thinking_level_change"
-                (pimacs--insert-thinking-level-change (plist-get entry :thinkingLevel)))
-               ("custom_message"
-                (pimacs--insert-custom-message entry))
-               ("session_info"
-                (when-let ((name (plist-get entry :name)))
-                  (pimacs--insert-session-info name)))
-               (_ nil)))))
+           (pimacs--render-session-entries entries)))
        (pimacs-section-autohide)
        (when callback
          (funcall callback))))))
