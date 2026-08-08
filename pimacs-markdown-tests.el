@@ -13,6 +13,7 @@
 (undercover)
 
 (require 'pimacs)
+(require 'pimacs-markdown)
 
 (defvar pimacs-markdown-tests--directory
   (expand-file-name "pimacs-markdown-tapes"
@@ -127,7 +128,7 @@
 
 (defun pimacs-markdown-tests--ast (input)
   (with-temp-buffer
-    (insert input)
+    (insert (pimacs--markdown-normalize-source input))
     (concat "markdown:\n"
             (pimacs-markdown-tests--ast-node
              (treesit-parser-root-node (treesit-parser-create 'markdown)) 0))))
@@ -202,23 +203,31 @@
       (dolist (tape (pimacs-markdown-tests--tapes))
         (pcase-let ((`(,input-file ,source . ,_) tape))
           (ert-info ((format "Markdown streaming fuzz: %s" input-file))
-            (let ((state (pimacs--render-markdown :create))
+            (let ((stream-source (pimacs--markdown-normalize-source source))
+                  (state (pimacs--render-markdown :create))
                   (position 0)
                   (output ""))
               (unwind-protect
                   (progn
-                    (while (< position (length source))
-                      (let ((end (min (length source)
+                    (while (< position (length stream-source))
+                      (let ((end (min (length stream-source)
                                       (+ position (next-chunk-size)))))
                         (dolist (operation
                                  (pimacs--render-markdown
-                                  :stream state (substring source position end)))
+                                  :stream state
+                                  (substring stream-source position end)))
                           (pcase operation
                             (`(:replace-suffix ,count ,text)
                              (setq output
                                    (concat (substring output 0 (- count)) text)))))
                         (setq position end)))
-                    (should (equal output (pimacs--markdown-render-source source))))
+                    (should (equal output
+                                   (pimacs--markdown-render-source source)))
+                    (let ((final
+                           (car (pimacs--render-markdown :final state source))))
+                      (should
+                       (equal (plist-get final :append)
+                              (pimacs--markdown-render-source source)))))
                 (pimacs--render-markdown :destroy state)))))))))
 
 (ert-deftest pimacs-markdown-streaming-renders-source ()

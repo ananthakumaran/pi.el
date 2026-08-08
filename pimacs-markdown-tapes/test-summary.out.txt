@@ -1,0 +1,7 @@
+│ Renamed the helper to:
+│
+│ pimacs-markdown-table-tests--call-with-mapped-widths
+│
+│ Updated all references. Tests pass:
+│
+│ 11 tests, 11 passed

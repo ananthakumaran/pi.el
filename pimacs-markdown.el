@@ -1357,8 +1357,16 @@ When non-nil, diagnostics are appended to the temporary buffer
     (_
      (pimacs--markdown-node-text node))))
 
+(defun pimacs--markdown-normalize-source (text)
+  (if (and (not (string-suffix-p "\n" text))
+           (string-match-p "\\(?:\\`\\|\n\\)[ \\t]*```+[ \\t]*\\'" text))
+      (concat text "\n")
+    text))
+
 (defun pimacs--markdown-render-source (text)
-  (pimacs--markdown-parse-source text #'pimacs--markdown-render-block-node))
+  (pimacs--markdown-parse-source
+   (pimacs--markdown-normalize-source text)
+   #'pimacs--markdown-render-block-node))
 
 (defun pimacs--markdown-relative-link-p (url)
   (and (not (string-match-p "\\`[[:alpha:]][[:alnum:]+.-]*:" url))

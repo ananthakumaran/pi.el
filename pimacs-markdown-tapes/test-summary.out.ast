@@ -1,0 +1,31 @@
+markdown:
+document
+ section
+  paragraph
+   inline "Renamed the helper to:"
+    text "Renamed the helper to:"
+  fenced_code_block
+   fenced_code_block_delimiter "```"
+   info_string
+    language "elisp"
+   block_continuation
+   code_fence_content [
+   │ pimacs-markdown-table-tests--call-with-mapped-widths
+   │
+   ]
+    block_continuation
+   fenced_code_block_delimiter "```"
+  paragraph
+   inline "Updated all references. Tests pass:"
+    text "Updated all references. Tests pass:"
+  fenced_code_block
+   fenced_code_block_delimiter "```"
+   info_string
+    language "text"
+   block_continuation
+   code_fence_content [
+   │ 11 tests, 11 passed
+   │
+   ]
+    block_continuation
+   fenced_code_block_delimiter "```"
