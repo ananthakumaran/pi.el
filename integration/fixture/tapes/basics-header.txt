@@ -1,1 +1,1 @@
-3.2k/200.0k (auto)                                  (fixture) qwen3.5:0.8b • low
+3.2k/200.0k (auto)                                    (fixture) gemma4:12b • low

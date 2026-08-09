@@ -1,0 +1,31 @@
+user> use the cowsay tool to say hello
+
+assistant> The user wants to use the `cowsay` tool to say "hello". I should call
+the `cowsay` tool with the argument `message="hello"`.
+
+cowsay (:message "hello")
+ ______
+< hello >
+ ------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
+
+assistant> The `cowsay` tool was called, and it successfully output the cow
+saying "hello". I've fulfilled the user's request.
+
+assistant> ______
+< hello >
+ ------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                |   | ----w |
+                |   |       |   |
+
+
+
+ user> 
+  

@@ -1265,7 +1265,8 @@ with the message plist to insert the custom message content."
     (if-let ((inserter (alist-get tool-name pimacs-insert-tool-args-functions nil nil #'equal)))
         (funcall inserter args)
       (when args
-        (insert (format "%S" args))))
+        (insert (pimacs--render-content nil (format "%S" args)
+                                        #'emacs-lisp-mode))))
     (buffer-string)))
 
 (defun pimacs--insert-tool-call (section tool-name args)

@@ -69,7 +69,7 @@
                                          (concat "FIXTURE_SCENARIO=" ,scenario)
                                          (concat "PI_CODING_AGENT_DIR=" pimacs-project-agent-directory)
                                          (concat "FIXTURE_MODE=" (pimacs-fixture-mode))))
-            (pimacs-flags (list "--tools" "read,bash,edit,write,grep,find,ls" "--extension" (expand-file-name "fixture" pimacs-integration-directory))))
+            (pimacs-flags (list "--tools" "read,bash,edit,write,grep,find,ls,cowsay" "--extension" (expand-file-name "fixture" pimacs-integration-directory))))
        (let ((sessions-dir (expand-file-name "sessions" pimacs-project-agent-directory)))
          (when (file-exists-p sessions-dir)
            (delete-directory sessions-dir t)
@@ -181,6 +181,10 @@
                   unread-command-events)))
      ,@body))
 
+(ert-deftest pimacs-custom-tool ()
+  (pimacs-with-integration-project "custom-tool"
+    (pimacs-send-prompt-and-wait "use the cowsay tool to say hello")))
+
 (ert-deftest pimacs-basics ()
   (pimacs-with-integration-project "basics"
     (pimacs-send-prompt-and-wait "list files")
@@ -211,7 +215,7 @@
       (pimacs-send-prompt-and-wait "/set-auto-compaction"))
     (pimacs-with-minibuffer-input "y"
       (pimacs-send-prompt-and-wait "/set-auto-compaction"))
-    (pimacs-with-minibuffer-input "(fixture) qwen3.5:0.8b"
+    (pimacs-with-minibuffer-input "(fixture) gemma4:12b"
       (pimacs-send-prompt-and-wait "/model"))
     (pimacs-with-minibuffer-input "minimal (Very brief reasoning ~1k tokens)"
       (pimacs-send-prompt-and-wait "/set-thinking-level"))

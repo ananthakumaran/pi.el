@@ -7,7 +7,7 @@
     "reserveTokens": 500
   },
   "defaultProvider": "fixture",
-  "defaultModel": "qwen3.5:0.8b",
+  "defaultModel": "gemma4:12b",
   "retry": {
     "enabled": true
   },

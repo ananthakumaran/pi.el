@@ -6,6 +6,9 @@
   "main": "src/index.ts",
   "scripts": {
     "check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format-check": "prettier --check .",
+    "lint": "prettier --check . && eslint .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Anantha Kumaran <ananthakumaran@gmail.com>",
@@ -26,9 +29,13 @@
     "@earendil-works/pi-tui": "*"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/node": "^25.9.2",
+    "eslint": "^9.39.5",
+    "globals": "^16.5.0",
     "prettier": "3.8.3",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.66.0"
   },
   "dependencies": {
     "proxay": "^1.9.0"

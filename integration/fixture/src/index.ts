@@ -5,6 +5,7 @@ import type { AddressInfo } from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -108,6 +109,31 @@ export default async function (pi: ExtensionAPI) {
     });
   }
 
+  pi.registerTool({
+    name: "cowsay",
+    label: "cowsay",
+    description: "Say a message using a cow.",
+    parameters: Type.Object({
+      message: Type.String({ description: "The message for the cow to say." }),
+    }),
+    execute: async (_toolCallId, params) => ({
+      content: [
+        {
+          type: "text",
+          text: ` ______
+< ${params.message} >
+ ------
+        \\   ^__^
+         \\  (oo)\\_______
+            (__)\\       )\\/\\
+                ||----w |
+                ||     ||`,
+        },
+      ],
+      details: {},
+    }),
+  });
+
   pi.registerCommand("rpc-input", {
     description: "Prompt for text input (ctx.ui.input)",
     handler: async (_args, ctx) => {
@@ -198,8 +224,8 @@ export default async function (pi: ExtensionAPI) {
     apiKey: "ollama",
     models: [
       {
-        id: "qwen3.5:0.8b",
-        name: "Qwen 3.5:0.8b",
+        id: "gemma4:12b",
+        name: "gemma4:12b",
         reasoning: true,
         input: ["text"],
         cost: {

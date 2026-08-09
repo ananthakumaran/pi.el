@@ -1,1 +1,1 @@
-tokens=18969 model=qwen3.5:0.8b
+tokens=18969 model=gemma4:12b

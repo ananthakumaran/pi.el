@@ -1,1 +1,1 @@
-cost=0                                                        model=qwen3.5:0.8b
+cost=0                                                          model=gemma4:12b

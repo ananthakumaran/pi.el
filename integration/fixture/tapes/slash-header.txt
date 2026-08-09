@@ -1,1 +1,1 @@
-model=qwen3.5:0.8b tools=0                                      provider=fixture
+model=gemma4:12b tools=0                                        provider=fixture
