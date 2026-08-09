@@ -189,7 +189,7 @@ PRED is called with KEY VALUE."
                                 (complete-with-action action items string pred)))
                             nil t nil nil default-display)))
     (when selected-display
-      (let ((selected-keyword (alist-get selected-display items nil nil #'equal)))
+      (let ((selected-keyword (pimacs--alist-get-equal selected-display items)))
         (cons (pimacs--keyword-name selected-keyword)
               (cdr (assoc selected-keyword options)))))))
 

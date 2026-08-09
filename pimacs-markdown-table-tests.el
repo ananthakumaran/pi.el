@@ -125,12 +125,10 @@
     (read (current-buffer))))
 
 (defun pimacs-markdown-table-tests--mapped-pixel-width (text)
-  (or (alist-get (substring-no-properties text)
-                 pimacs-markdown-table-tests--pixel-widths
-                 nil nil #'equal)
+  (or (pimacs--alist-get-equal (substring-no-properties text)
+                               pimacs-markdown-table-tests--pixel-widths)
       (* (string-width text)
-         (or (alist-get " " pimacs-markdown-table-tests--pixel-widths
-                        nil nil #'equal)
+         (or (pimacs--alist-get-equal " " pimacs-markdown-table-tests--pixel-widths)
              1))))
 
 (defun pimacs-markdown-table-tests--call-with-mapped-widths

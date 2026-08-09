@@ -168,6 +168,32 @@
   (pimacs-send-prompt prompt)
   (pimacs-drain-process-output))
 
+(defun pimacs-wait-until (predicate &optional timeout)
+  (let ((timeout (or timeout 120))
+        (start (current-time)))
+    (while (and (not (funcall predicate))
+                (< (time-to-seconds (time-subtract (current-time) start)) timeout))
+      (accept-process-output nil pimacs-poll-interval))
+    (should (funcall predicate))))
+
+(defmacro pimacs-send-prompt-when-agent-starts (prompt &rest body)
+  (declare (indent 1))
+  `(let ((started nil))
+     (unwind-protect
+         (progn
+           (pimacs--with-chat-buffer
+             (pimacs--set-event-listener
+              t 'pimacs-integration-tests
+              (lambda (event)
+                (when (and (not started)
+                           (equal (plist-get event :type) "agent_start"))
+                  (setq started t)
+                  ,@body))))
+           (pimacs-send-prompt ,prompt)
+           (pimacs-wait-until (lambda () started)))
+       (pimacs--with-chat-buffer
+         (pimacs--remove-event-listener t 'pimacs-integration-tests)))))
+
 (defun pimacs-assert-prompt (buffer expected)
   (with-current-buffer buffer
     (should (equal (widget-value pimacs--prompt-widget) expected))))
@@ -303,9 +329,9 @@
                 '(:spacer
                   "agent=" :agent_state
                   " thinking=" :thinking_level))
-    (pimacs-send-prompt "hello")
-    (pimacs-send-prompt "follow up 1")
-    (pimacs-send-prompt "follow up 2")
+    (pimacs-send-prompt-when-agent-starts "hello"
+      (pimacs-send-prompt "follow up 1")
+      (pimacs-send-prompt "follow up 2"))
     (pimacs-drain-process-output)
     (pimacs-send-prompt-and-wait "hello again")))
 
@@ -315,9 +341,9 @@
                 '("provider=" :provider
                   :spacer
                   "thinking=" :thinking_level))
-    (pimacs-send-prompt "hello")
-    (pimacs-send-prompt-alternate "hello 1")
-    (pimacs-send-prompt-alternate "hello 2")
+    (pimacs-send-prompt-when-agent-starts "hello"
+      (pimacs-send-prompt-alternate "hello 1")
+      (pimacs-send-prompt-alternate "hello 2"))
     (pimacs-drain-process-output)
     (pimacs-send-prompt-and-wait "hello again")))
 

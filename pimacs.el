@@ -774,7 +774,7 @@ with the message plist to insert the custom message content."
   (let ((display (plist-get message :display))
         (custom-type (plist-get message :customType)))
     (unless (eq display 'json-false)
-      (if-let ((inserter (alist-get custom-type pimacs-insert-custom-message-functions nil nil #'equal)))
+      (if-let ((inserter (pimacs--alist-get-equal custom-type pimacs-insert-custom-message-functions)))
           (funcall inserter message)
         ;; Default rendering: use customType as role, render content
         (pimacs--widget-save-excursion
@@ -1263,7 +1263,7 @@ with the message plist to insert the custom message content."
 
 (defun pimacs--format-tool-args (tool-name args)
   (with-temp-buffer
-    (if-let ((inserter (alist-get tool-name pimacs-insert-tool-args-functions nil nil #'equal)))
+    (if-let ((inserter (pimacs--alist-get-equal tool-name pimacs-insert-tool-args-functions)))
         (funcall inserter args)
       (when args
         (insert (pimacs--render-content nil (format "%S" args)
@@ -1287,7 +1287,7 @@ with the message plist to insert the custom message content."
       (let ((text (pimacs--content-text content)))
         (when (not (string-empty-p text))
           (pimacs--insert-error (format "%s" text))))
-    (if-let ((inserter (alist-get tool-name pimacs-insert-tool-result-functions nil nil #'equal)))
+    (if-let ((inserter (pimacs--alist-get-equal tool-name pimacs-insert-tool-result-functions)))
         (funcall inserter content details args)
       (pimacs--insert-content content))))
 
@@ -1585,20 +1585,20 @@ with the message plist to insert the custom message content."
     ("setTitle" (pimacs--handle-set-title event))))
 
 (defun pimacs--register-event-listeners ()
-  (pimacs--set-event-batch-listener "message_update" #'pimacs--handle-message-update-batch)
-  (pimacs--set-event-listener "message_end" #'pimacs--handle-message-end)
-  (pimacs--set-event-listener "bash_execution_update" #'pimacs--handle-bash-execution-update)
+  (pimacs--set-event-batch-listener "message_update" 'pimacs #'pimacs--handle-message-update-batch)
+  (pimacs--set-event-listener "message_end" 'pimacs #'pimacs--handle-message-end)
+  (pimacs--set-event-listener "bash_execution_update" 'pimacs #'pimacs--handle-bash-execution-update)
 
-  (pimacs--set-event-listener "tool_execution_update" #'pimacs--handle-tool-execution-update)
-  (pimacs--set-event-listener "tool_execution_end" #'pimacs--handle-tool-execution-end)
+  (pimacs--set-event-listener "tool_execution_update" 'pimacs #'pimacs--handle-tool-execution-update)
+  (pimacs--set-event-listener "tool_execution_end" 'pimacs #'pimacs--handle-tool-execution-end)
 
-  (pimacs--set-event-listener "auto_retry_start" #'pimacs--handle-auto-retry-start)
-  (pimacs--set-event-listener "auto_retry_end" #'pimacs--handle-auto-retry-end)
+  (pimacs--set-event-listener "auto_retry_start" 'pimacs #'pimacs--handle-auto-retry-start)
+  (pimacs--set-event-listener "auto_retry_end" 'pimacs #'pimacs--handle-auto-retry-end)
 
-  (pimacs--set-event-listener "queue_update" #'pimacs--handle-queue-update)
-  (pimacs--set-event-listener "compaction_end" #'pimacs--handle-compaction-end)
-  (pimacs--set-event-listener "extension_ui_request" #'pimacs--handle-extension-ui-request)
-  (pimacs--set-event-listener t #'pimacs--handle-agent-state))
+  (pimacs--set-event-listener "queue_update" 'pimacs #'pimacs--handle-queue-update)
+  (pimacs--set-event-listener "compaction_end" 'pimacs #'pimacs--handle-compaction-end)
+  (pimacs--set-event-listener "extension_ui_request" 'pimacs #'pimacs--handle-extension-ui-request)
+  (pimacs--set-event-listener t 'pimacs #'pimacs--handle-agent-state))
 
 (defun pimacs--register-agent-cleanup ()
   "Register a cleanup callback on the agent to kill the chat buffer on exit."
@@ -2015,7 +2015,7 @@ FIELDS is a list of (LABEL . KEY) where KEY is a plist key."
          (if (null items)
              (message "No models available.")
            (let* ((selected (completing-read "Select model: " items nil t))
-                  (model (alist-get selected items nil nil #'equal))
+                  (model (pimacs--alist-get-equal selected items))
                   (provider (plist-get model :provider))
                   (model-id (plist-get model :id)))
              (pimacs--send-command
@@ -2230,7 +2230,7 @@ FIELDS is a list of (LABEL . KEY) where KEY is a plist key."
                                 s)))
                       sessions))
                     (selected (pimacs--completing-read "Resume session: " candidates))
-                    (choice (alist-get selected candidates nil nil #'equal))
+                    (choice (pimacs--alist-get-equal selected candidates))
                     (session-path (pimacs-session-choice-path choice)))
                (pimacs--switch-session session-path "Resumed session")))))))))
 
@@ -2382,7 +2382,7 @@ CALLBACK is called after a successful refresh."
          (if (null items)
              (message "No fork points available.")
            (let* ((selected (pimacs--completing-read "Fork at message: " (reverse items)))
-                  (message (alist-get selected items nil nil #'equal))
+                  (message (pimacs--alist-get-equal selected items))
                   (entry-id (plist-get message :entryId))
                   (message-text (plist-get message :text)))
              (pimacs--widget-save-excursion
@@ -2513,7 +2513,7 @@ With a prefix argument OTHER-WINDOW, visit in other window."
       ((tool-result)
        (if-let* ((info (pimacs-section-info (pimacs-section--current-section)))
                  (tool-name (pimacs-section-tool-result-info-tool-name info))
-                 (visitor (alist-get tool-name pimacs-visit-tool-result-functions nil nil #'equal)))
+                 (visitor (pimacs--alist-get-equal tool-name pimacs-visit-tool-result-functions)))
            (let* ((details (pimacs-section-tool-result-info-details info))
                   (args (pimacs-section-tool-result-info-args info)))
              (pimacs--visit-file (funcall visitor details args) other-window))
@@ -2521,7 +2521,7 @@ With a prefix argument OTHER-WINDOW, visit in other window."
     ((tool-call)
      (if-let* ((info (pimacs-section-info (pimacs-section--current-section)))
                (tool-name (pimacs-section-tool-call-info-tool-name info))
-               (visitor (alist-get tool-name pimacs-visit-tool-call-functions nil nil #'equal)))
+               (visitor (pimacs--alist-get-equal tool-name pimacs-visit-tool-call-functions)))
          (let ((args (pimacs-section-tool-call-info-args info)))
            (pimacs--visit-file (funcall visitor args) other-window))
        (pimacs--visit-file-at-point other-window)))

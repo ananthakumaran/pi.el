@@ -103,36 +103,62 @@
       (remhash request-id pimacs--response-callbacks))))
 
 (defun pimacs--dispatch-event-listener (listener event)
-  (with-current-buffer (car listener)
-    (funcall (cdr listener) event)))
+  (when (buffer-live-p (car listener))
+    (with-current-buffer (car listener)
+      (funcall (cdr listener) event))))
+
+(defun pimacs--dispatch-event-listeners (listeners event)
+  (dolist (listener (mapcar #'cdr listeners))
+    (pimacs--dispatch-event-listener listener event)))
 
 (defun pimacs--dispatch-event (event)
   (let ((key pimacs--project-key))
-    (when-let (all-listener (gethash (cons key t) pimacs--event-listeners))
-      (pimacs--dispatch-event-listener all-listener event))
-    (when-let (listener (gethash (cons key (plist-get event :type)) pimacs--event-listeners))
-      (pimacs--dispatch-event-listener listener event))))
+    (pimacs--dispatch-event-listeners
+     (gethash (cons key t) pimacs--event-listeners) event)
+    (pimacs--dispatch-event-listeners
+     (gethash (cons key (plist-get event :type)) pimacs--event-listeners) event)))
 
 (defun pimacs--dispatch-event-batch (events)
   (let* ((key pimacs--project-key)
          (type (plist-get (car events) :type))
-         (listener (gethash (cons key type) pimacs--event-batch-listeners)))
-    (if listener
+         (listeners (gethash (cons key type) pimacs--event-batch-listeners)))
+    (if listeners
         (progn
-          (when-let (all-listener (gethash (cons key t) pimacs--event-listeners))
-            (dolist (event events)
-              (pimacs--dispatch-event-listener all-listener event)))
-          (with-current-buffer (car listener)
-            (funcall (cdr listener) events)))
+          (dolist (event events)
+            (pimacs--dispatch-event-listeners
+             (gethash (cons key t) pimacs--event-listeners) event))
+          (pimacs--dispatch-event-listeners listeners events))
       (dolist (event events)
         (pimacs--dispatch-event event)))))
 
-(defun pimacs--set-event-listener (name listener)
-  "Set event listener NAME for all events.  LISTENER is the callback."
-  (puthash (cons pimacs--project-key name) (cons (current-buffer) listener) pimacs--event-listeners))
+(defun pimacs--set-event-subscriber (table name id listener)
+  (let* ((key (cons pimacs--project-key name))
+         (subscribers (gethash key table))
+         (entry (cons (current-buffer) listener)))
+    (if (assoc id subscribers)
+        (setf (alist-get id subscribers nil nil #'equal) entry)
+      (setq subscribers (append subscribers (list (cons id entry)))))
+    (puthash key subscribers table)))
 
-(defun pimacs--set-event-batch-listener (name listener)
-  (puthash (cons pimacs--project-key name) (cons (current-buffer) listener) pimacs--event-batch-listeners))
+(defun pimacs--remove-event-subscriber (table name id)
+  (let* ((key (cons pimacs--project-key name))
+         (subscribers (gethash key table)))
+    (setf (alist-get id subscribers nil t #'equal) nil)
+    (if subscribers
+        (puthash key subscribers table)
+      (remhash key table))))
+
+(defun pimacs--set-event-listener (name id listener)
+  (pimacs--set-event-subscriber pimacs--event-listeners name id listener))
+
+(defun pimacs--remove-event-listener (name id)
+  (pimacs--remove-event-subscriber pimacs--event-listeners name id))
+
+(defun pimacs--set-event-batch-listener (name id listener)
+  (pimacs--set-event-subscriber pimacs--event-batch-listeners name id listener))
+
+(defun pimacs--remove-event-batch-listener (name id)
+  (pimacs--remove-event-subscriber pimacs--event-batch-listeners name id))
 
 (defun pimacs--batchable-event-p (event)
   (member (plist-get event :type) pimacs--batchable-event-types))
