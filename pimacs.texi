@@ -536,7 +536,8 @@ in another window
 Status keys to hide from the default status widget.
 
 Hidden statuses remain available to @code{(:status STATUS-KEY ...)} components
-in @code{pimacs-header-line-format} and @code{pimacs-mode-line-format}.
+in @code{pimacs-header-line-format} and @code{pimacs-mode-line-format}.  Hover over a
+status in the default widget to see its key.
 @end defopt
 
 @defopt pimacs-file-completion-backend @code{'project}

@@ -129,7 +129,8 @@
   "Status keys to hide from the default status widget.
 
 Hidden statuses remain available to `(:status STATUS-KEY ...)' components
-in `pimacs-header-line-format' and `pimacs-mode-line-format'."
+in `pimacs-header-line-format' and `pimacs-mode-line-format'.  Hover over a
+status in the default widget to see its key."
   :type '(repeat string)
   :group 'pimacs)
 
@@ -1461,7 +1462,11 @@ with the message plist to insert the custom message content."
     (when pimacs--status-texts
       (maphash (lambda (key text)
                  (unless (member key pimacs-status-widget-hidden-keys)
-                   (push (cons key text) entries)))
+                   (push (cons key
+                               (propertize text
+                                           'help-echo
+                                           key))
+                         entries)))
                pimacs--status-texts))
     (widget-value-set pimacs--status-widget
                       (pimacs--widget-ensure-trailing-newline

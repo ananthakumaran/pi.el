@@ -262,6 +262,8 @@
     (pimacs--handle-set-status '(:statusKey "status-a" :statusText "Status\nA"))
 
     (should (equal (widget-value pimacs--status-widget) "Status\nA Status B\n"))
+    (should (equal (get-text-property 0 'help-echo (widget-value pimacs--status-widget))
+                   "status-a"))
 
     (let ((pimacs-status-widget-hidden-keys '("status-a")))
       (pimacs--update-status-widget)

@@ -460,7 +460,8 @@ File: pimacs.info,  Node: Custom Variables,  Next: Custom Faces,  Prev: Keybindi
 
      Hidden statuses remain available to ‘(:status STATUS-KEY ...)’
      components in ‘pimacs-header-line-format’ and
-     ‘pimacs-mode-line-format’.
+     ‘pimacs-mode-line-format’.  Hover over a status in the default
+     widget to see its key.
 
  -- User Option: pimacs-file-completion-backend 'project
 
@@ -1034,7 +1035,7 @@ Node: Sandbox12983
 Node: How It Works13376
 Node: Keybindings13826
 Node: Custom Variables17163
-Node: Custom Faces30943
+Node: Custom Faces31007
 
 End Tag Table
 
