@@ -67,6 +67,11 @@ Set this to nil to disable fringe indicators."
   "Face applied to thinking sections."
   :group 'pimacs)
 
+(defface pimacs-section-thinking-level-face
+  '((t :inherit shadow))
+  "Face applied to thinking-level sections."
+  :group 'pimacs)
+
 (defface pimacs-section-assistant-face
   '((t :inherit nil))
   "Face applied to assistant sections."
@@ -145,6 +150,7 @@ Set this to nil to disable fringe indicators."
 (defcustom pimacs-section-type-faces
   '((root . pimacs-section-root-face)
     (thinking . pimacs-section-thinking-face)
+    (thinking-level . pimacs-section-thinking-level-face)
     (assistant . pimacs-section-assistant-face)
     (user . pimacs-section-user-face)
     (tool-call . pimacs-section-tool-call-face)

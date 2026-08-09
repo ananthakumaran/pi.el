@@ -391,6 +391,22 @@ interface.  Some features, such as ‘/login’ and ‘/logout’, are not
 supported (https://github.com/earendil-works/pi/issues/885) because they
 are not currently exposed through the RPC API.
 
+7.1 Extension UI
+================
+
+Pimacs supports the RPC-compatible extension UI methods: notifications,
+selection, confirmation, text input, editing text in an Emacs buffer,
+setting the prompt text and chat title, prompt widgets, and status text.
+Extension commands, tools, hooks, and custom messages are also
+supported.
+
+   Pimacs does not support terminal-specific extension UI features,
+including ‘ctx.ui.custom()’ components, component factories, extension
+keyboard shortcuts, or custom TUI rendering callbacks.  Extensions
+should use the supported UI methods when running in RPC mode.  See the
+Pi extension documentation (https://pi.dev/docs/latest/extensions) for
+the full extension API.
+
 
 File: pimacs.info,  Node: Keybindings,  Next: Custom Variables,  Prev: How It Works,  Up: Top
 
@@ -799,6 +815,7 @@ File: pimacs.info,  Node: Custom Variables,  Next: Custom Faces,  Prev: Keybindi
 
           '((root . pimacs-section-root-face)
             (thinking . pimacs-section-thinking-face)
+            (thinking-level . pimacs-section-thinking-level-face)
             (assistant . pimacs-section-assistant-face)
             (user . pimacs-section-user-face)
             (tool-call . pimacs-section-tool-call-face)
@@ -956,6 +973,10 @@ File: pimacs.info,  Node: Custom Faces,  Prev: Custom Variables,  Up: Top
 
      Face applied to thinking sections.
 
+ -- Face: pimacs-section-thinking-level-face '((t :inherit shadow))
+
+     Face applied to thinking-level sections.
+
  -- Face: pimacs-section-assistant-face '((t :inherit nil))
 
      Face applied to assistant sections.
@@ -1033,9 +1054,9 @@ Node: Managing Sessions9119
 Node: UI Customization9712
 Node: Sandbox12983
 Node: How It Works13376
-Node: Keybindings13826
-Node: Custom Variables17163
-Node: Custom Faces31007
+Node: Keybindings14528
+Node: Custom Variables17865
+Node: Custom Faces31775
 
 End Tag Table
 

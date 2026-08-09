@@ -756,7 +756,7 @@ with the message plist to insert the custom message content."
     (insert (format "Switched to model: (%s) %s" provider model-id))))
 
 (defun pimacs--insert-thinking-level-change (level)
-  (pimacs-section--create-section 'thinking pimacs-section--root-section
+  (pimacs-section--create-section 'thinking-level pimacs-section--root-section
     (insert (format "Thinking level set to: %s" level))))
 
 (defun pimacs--insert-compaction (summary tokens-before)

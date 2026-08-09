@@ -435,6 +435,20 @@ user interface. Some features, such as @code{/login} and
 @uref{https://github.com/earendil-works/pi/issues/885, supported}
 because they are not currently exposed through the RPC API.
 
+@section Extension UI
+
+Pimacs supports the RPC-compatible extension UI methods: notifications,
+selection, confirmation, text input, editing text in an Emacs buffer, setting
+the prompt text and chat title, prompt widgets, and status text.  Extension
+commands, tools, hooks, and custom messages are also supported.
+
+Pimacs does not support terminal-specific extension UI features, including
+@code{ctx.ui.custom()} components, component factories, extension keyboard
+shortcuts, or custom TUI rendering callbacks.  Extensions should use the
+supported UI methods when running in RPC mode.  See the
+@uref{https://pi.dev/docs/latest/extensions, Pi extension documentation} for
+the full extension API.
+
 @node Keybindings
 @chapter Keybindings
 
@@ -910,6 +924,7 @@ Set this to nil to disable fringe indicators.
 @lisp
 '((root . pimacs-section-root-face)
   (thinking . pimacs-section-thinking-face)
+  (thinking-level . pimacs-section-thinking-level-face)
   (assistant . pimacs-section-assistant-face)
   (user . pimacs-section-user-face)
   (tool-call . pimacs-section-tool-call-face)
@@ -1090,6 +1105,11 @@ Face applied to root sections.
 @deffn Face pimacs-section-thinking-face @code{'((t :inherit shadow))}
 
 Face applied to thinking sections.
+@end deffn
+
+@deffn Face pimacs-section-thinking-level-face @code{'((t :inherit shadow))}
+
+Face applied to thinking-level sections.
 @end deffn
 
 @deffn Face pimacs-section-assistant-face @code{'((t :inherit nil))}
