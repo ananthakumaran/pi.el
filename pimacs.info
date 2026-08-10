@@ -968,7 +968,7 @@ File: pimacs.info,  Node: Custom Faces,  Prev: Custom Variables,  Up: Top
 
      Face used for Markdown table borders.
 
- -- Face: pimacs-section-root-face '((t :inherit nil))
+ -- Face: pimacs-section-root-face '((t))
 
      Face applied to root sections.
 
@@ -980,7 +980,7 @@ File: pimacs.info,  Node: Custom Faces,  Prev: Custom Variables,  Up: Top
 
      Face applied to thinking-level sections.
 
- -- Face: pimacs-section-assistant-face '((t :inherit nil))
+ -- Face: pimacs-section-assistant-face '((t))
 
      Face applied to assistant sections.
 
@@ -988,11 +988,11 @@ File: pimacs.info,  Node: Custom Faces,  Prev: Custom Variables,  Up: Top
 
      Face applied to user sections.
 
- -- Face: pimacs-section-tool-call-face '((t :inherit nil))
+ -- Face: pimacs-section-tool-call-face '((t))
 
      Face applied to tool call sections.
 
- -- Face: pimacs-section-tool-result-face '((t :inherit nil))
+ -- Face: pimacs-section-tool-result-face '((t))
 
      Face applied to tool result sections.
 
@@ -1012,7 +1012,7 @@ File: pimacs.info,  Node: Custom Faces,  Prev: Custom Variables,  Up: Top
 
      Face applied to information sections.
 
- -- Face: pimacs-section-custom-face '((t :inherit nil))
+ -- Face: pimacs-section-custom-face '((t))
 
      Face applied to custom sections.
 
@@ -1020,7 +1020,7 @@ File: pimacs.info,  Node: Custom Faces,  Prev: Custom Variables,  Up: Top
 
      Face applied to queue sections.
 
- -- Face: pimacs-section-notify-face '((t :inherit nil))
+ -- Face: pimacs-section-notify-face '((t))
 
      Face applied to notification sections.
 

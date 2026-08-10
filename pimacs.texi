@@ -1100,7 +1100,7 @@ Face used for Markdown table headers.
 Face used for Markdown table borders.
 @end deffn
 
-@deffn Face pimacs-section-root-face @code{'((t :inherit nil))}
+@deffn Face pimacs-section-root-face @code{'((t))}
 
 Face applied to root sections.
 @end deffn
@@ -1115,7 +1115,7 @@ Face applied to thinking sections.
 Face applied to thinking-level sections.
 @end deffn
 
-@deffn Face pimacs-section-assistant-face @code{'((t :inherit nil))}
+@deffn Face pimacs-section-assistant-face @code{'((t))}
 
 Face applied to assistant sections.
 @end deffn
@@ -1125,12 +1125,12 @@ Face applied to assistant sections.
 Face applied to user sections.
 @end deffn
 
-@deffn Face pimacs-section-tool-call-face @code{'((t :inherit nil))}
+@deffn Face pimacs-section-tool-call-face @code{'((t))}
 
 Face applied to tool call sections.
 @end deffn
 
-@deffn Face pimacs-section-tool-result-face @code{'((t :inherit nil))}
+@deffn Face pimacs-section-tool-result-face @code{'((t))}
 
 Face applied to tool result sections.
 @end deffn
@@ -1155,7 +1155,7 @@ Face applied to compaction sections.
 Face applied to information sections.
 @end deffn
 
-@deffn Face pimacs-section-custom-face @code{'((t :inherit nil))}
+@deffn Face pimacs-section-custom-face @code{'((t))}
 
 Face applied to custom sections.
 @end deffn
@@ -1165,7 +1165,7 @@ Face applied to custom sections.
 Face applied to queue sections.
 @end deffn
 
-@deffn Face pimacs-section-notify-face @code{'((t :inherit nil))}
+@deffn Face pimacs-section-notify-face @code{'((t))}
 
 Face applied to notification sections.
 @end deffn

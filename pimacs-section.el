@@ -58,7 +58,7 @@ Set this to nil to disable fringe indicators."
 (defvar-local pimacs-section--root-section nil)
 
 (defface pimacs-section-root-face
-  '((t :inherit nil))
+  '((t))
   "Face applied to root sections."
   :group 'pimacs)
 
@@ -73,7 +73,7 @@ Set this to nil to disable fringe indicators."
   :group 'pimacs)
 
 (defface pimacs-section-assistant-face
-  '((t :inherit nil))
+  '((t))
   "Face applied to assistant sections."
   :group 'pimacs)
 
@@ -83,12 +83,12 @@ Set this to nil to disable fringe indicators."
   :group 'pimacs)
 
 (defface pimacs-section-tool-call-face
-  '((t :inherit nil))
+  '((t))
   "Face applied to tool call sections."
   :group 'pimacs)
 
 (defface pimacs-section-tool-result-face
-  '((t :inherit nil))
+  '((t))
   "Face applied to tool result sections."
   :group 'pimacs)
 
@@ -113,7 +113,7 @@ Set this to nil to disable fringe indicators."
   :group 'pimacs)
 
 (defface pimacs-section-custom-face
-  '((t :inherit nil))
+  '((t))
   "Face applied to custom sections."
   :group 'pimacs)
 
@@ -123,7 +123,7 @@ Set this to nil to disable fringe indicators."
   :group 'pimacs)
 
 (defface pimacs-section-notify-face
-  '((t :inherit nil))
+  '((t))
   "Face applied to notification sections."
   :group 'pimacs)
 
