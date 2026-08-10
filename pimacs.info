@@ -69,12 +69,15 @@ Pi.
 2.2 Install ‘pimacs.el’
 =======================
 
-Add the following to your Emacs configuration:
+Pimacs is available from MELPA Stable (https://stable.melpa.org/), which
+is recommended for installation.  Add it to your package archives, then
+install with ‘use-package’:
+
+     (add-to-list 'package-archives
+                  '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 
      (use-package pimacs
-       :ensure t
-       :vc (:url "git@github.com:ananthakumaran/pimacs.el.git"
-            :rev "v0.3.0"))
+       :ensure t)
 
 
 File: pimacs.info,  Node: Doctor,  Next: Usage,  Prev: Setup,  Up: Top
@@ -1042,21 +1045,21 @@ Tag Table:
 Node: Top746
 Node: Introduction1151
 Node: Setup1408
-Node: Doctor2050
-Node: Usage2422
-Node: Slash Commands3282
-Node: File Name Completion5523
-Node: Bash5851
-Node: Sending Context6118
-Node: Images6926
-Node: State Lines7791
-Node: Managing Sessions9119
-Node: UI Customization9712
-Node: Sandbox12983
-Node: How It Works13376
-Node: Keybindings14528
-Node: Custom Variables17865
-Node: Custom Faces31775
+Node: Doctor2205
+Node: Usage2577
+Node: Slash Commands3437
+Node: File Name Completion5678
+Node: Bash6006
+Node: Sending Context6273
+Node: Images7081
+Node: State Lines7946
+Node: Managing Sessions9274
+Node: UI Customization9867
+Node: Sandbox13138
+Node: How It Works13531
+Node: Keybindings14683
+Node: Custom Variables18020
+Node: Custom Faces31930
 
 End Tag Table
 

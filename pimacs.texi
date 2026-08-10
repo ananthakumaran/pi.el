@@ -96,13 +96,16 @@ Pimacs does not yet support authentication configuration.  To configure your pro
 
 @section Install @code{pimacs.el}
 
-Add the following to your Emacs configuration:
+Pimacs is available from @uref{https://stable.melpa.org/, MELPA Stable}, which
+is recommended for installation.  Add it to your package archives, then install
+with @code{use-package}:
 
 @lisp
+(add-to-list 'package-archives
+             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+
 (use-package pimacs
-  :ensure t
-  :vc (:url "git@@github.com:ananthakumaran/pimacs.el.git"
-       :rev "v0.3.0"))
+  :ensure t)
 @end lisp
 
 @node Doctor
