@@ -295,14 +295,15 @@ PRED is called with KEY VALUE."
 (defun pimacs--render-diff (diff)
   (with-temp-buffer
     (insert diff)
-    (delay-mode-hooks
-      (diff-mode)
-      (font-lock-ensure)
-      (goto-char (point-min))
-      (while (not (eobp))
-        (diff-hunk-next)
-        (diff-refine-hunk))
-      (pimacs--diff-overlay-to-text-properties))
+    (ignore-errors
+      (delay-mode-hooks
+        (diff-mode)
+        (font-lock-ensure)
+        (goto-char (point-min))
+        (while (not (eobp))
+          (diff-hunk-next)
+          (diff-refine-hunk))
+        (pimacs--diff-overlay-to-text-properties)))
     (set-buffer-modified-p nil)
     (buffer-string)))
 

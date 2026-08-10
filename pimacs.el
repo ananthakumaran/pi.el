@@ -1093,7 +1093,8 @@ with the message plist to insert the custom message content."
     (pimacs--insert-file-link (expand-file-name path (pimacs--project-root)))))
 
 (defun pimacs--insert-edit-result (content details _args)
-  (when-let ((patch (plist-get details :patch)))
+  (when-let ((patch (or (plist-get details :patch)
+                        (plist-get details :diff))))
     (insert (pimacs--render-diff patch)))
   (let ((text (pimacs--content-text content)))
     (when (not (string-empty-p text))
