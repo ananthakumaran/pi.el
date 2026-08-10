@@ -6,7 +6,6 @@ CASK_EMACS := PIMACS_TREESIT_EXTRA_LOAD_PATH="$(CASK_TREESIT_EXTRA_LOAD_PATH)" c
 MATCH ?=
 SESSION_FILE ?=
 SESSION_PATH ?= $(SESSION_FILE)
-PIMACS_VERSION := $(shell awk '/^;; Version:/ { print $$3; exit }' pimacs.el)
 PIMACS_DOC_SOURCES := pimacs-section.el pimacs-edit.el pimacs-utils.el pimacs-markdown-table.el pimacs-markdown.el \
 	pimacs-state-line.el pimacs-core.el pimacs-agent.el pimacs-doctor.el pimacs-session.el pimacs.el
 
@@ -102,10 +101,10 @@ docs: docs/index.html docs/changelog.html
 
 pimacs.info: Makefile pimacs.texi $(PIMACS_DOC_SOURCES) docs/build.el
 	@PIMACS_DOC_SOURCES="$(PIMACS_DOC_SOURCES)" $(EMACS) -Q --batch -l docs/build.el
-	@makeinfo -D 'VERSION $(PIMACS_VERSION)' -o pimacs.info pimacs.texi
+	@makeinfo -o pimacs.info pimacs.texi
 
 docs/index.html: pimacs.info
-	@makeinfo -D 'VERSION $(PIMACS_VERSION)' --no-number-sections --html --no-split -o $@ pimacs.texi
+	@makeinfo --no-number-sections --html --no-split -o $@ pimacs.texi
 
 docs/changelog.html: CHANGELOG.md docs/changelog-head.html docs/changelog-template.html docs/global.css
 	@pandoc --from=gfm --to=html5 --standalone \

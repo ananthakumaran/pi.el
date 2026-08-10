@@ -20,8 +20,8 @@ END-INFO-DIR-ENTRY
 
 File: pimacs.info,  Node: Top,  Next: Introduction,  Up: (dir)
 
-Pimacs User Manual v0.4.0
-*************************
+Pimacs User Manual v0.4.0-pre
+*****************************
 
 Pimacs is an Emacs client for Pi Coding Agent (https://pi.dev/).  For
 release history, see the changelog (changelog.html).
@@ -1043,23 +1043,23 @@ File: pimacs.info,  Node: Custom Faces,  Prev: Custom Variables,  Up: Top
 
 Tag Table:
 Node: Top746
-Node: Introduction1151
-Node: Setup1408
-Node: Doctor2205
-Node: Usage2577
-Node: Slash Commands3437
-Node: File Name Completion5678
-Node: Bash6006
-Node: Sending Context6273
-Node: Images7081
-Node: State Lines7946
-Node: Managing Sessions9274
-Node: UI Customization9867
-Node: Sandbox13138
-Node: How It Works13531
-Node: Keybindings14683
-Node: Custom Variables18020
-Node: Custom Faces31930
+Node: Introduction1159
+Node: Setup1416
+Node: Doctor2213
+Node: Usage2585
+Node: Slash Commands3445
+Node: File Name Completion5686
+Node: Bash6014
+Node: Sending Context6281
+Node: Images7089
+Node: State Lines7954
+Node: Managing Sessions9282
+Node: UI Customization9875
+Node: Sandbox13146
+Node: How It Works13539
+Node: Keybindings14691
+Node: Custom Variables18028
+Node: Custom Faces31938
 
 End Tag Table
 
