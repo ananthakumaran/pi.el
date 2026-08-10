@@ -88,11 +88,8 @@ sandbox:
 	        --eval "(add-to-list 'package-archives '(\"melpa\" . \"https://melpa.org/packages/\") t)" \
 	        --eval "(package-refresh-contents)" \
 	        --eval "(package-initialize)" \
-	        --eval "(use-package pimacs :ensure t :vc (:url \"git@github.com:ananthakumaran/pimacs.el.git\" :rev :newest) :commands (pimacs-chat))" \
+	        --eval "(use-package pimacs :ensure t)" \
                 --eval "(when (eq system-type 'darwin) (setq mac-option-key-is-meta nil mac-command-key-is-meta t mac-command-modifier 'meta mac-option-modifier 'none))"
-
-
-
 
 .PHONY: docs-lint
 docs-lint:
