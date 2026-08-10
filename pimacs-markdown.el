@@ -861,19 +861,43 @@ When non-nil, diagnostics are appended to the temporary buffer
     ("dot" . fundamental-mode)
     ("sqlite" . sql-mode)
     ("calc" . fundamental-mode)
-    ("C" . c-mode)
     ("cpp" . c++-mode)
-    ("C++" . c++-mode)
     ("screen" . shell-script-mode)
     ("shell" . sh-mode)
     ("bash" . sh-mode))
   "Alist mapping Markdown fence language names to major modes.")
 
+(defun pimacs--markdown-language-mode-p (mode)
+  (and mode
+       (fboundp mode)
+       (or
+        (not (string-match-p "ts-mode\\'" (symbol-name mode)))
+        ;; Only use Tree-sitter modes when they are configured as modes.
+        (cl-loop for pair in (bound-and-true-p major-mode-remap-alist)
+                 for function = (cdr pair)
+                 thereis (and (atom function) (eq mode function)))
+        (cl-loop for pair in auto-mode-alist
+                 for function = (cdr pair)
+                 thereis (and (atom function) (eq mode function))))))
+
 (defun pimacs--markdown-resolve-language-mode (language)
-  (let ((mode (or (cdr (assoc-string (downcase (or language ""))
-                                     pimacs-markdown-language-aliases t))
-                  (intern-soft (concat (downcase (or language "")) "-mode")))))
-    (and mode (fboundp mode) mode)))
+  (let* ((language (or language ""))
+         (downcased (downcase language))
+         (aliases (list (cdr (assoc language pimacs-markdown-language-aliases))
+                        (cdr (assoc downcased pimacs-markdown-language-aliases))))
+         (tree-sitter-modes
+          (when (and (fboundp 'treesit-language-available-p)
+                     (not (string-empty-p downcased)))
+            (delq nil
+                  (list
+                   (and (treesit-language-available-p (intern language))
+                        (intern (concat language "-ts-mode")))
+                   (and (treesit-language-available-p (intern downcased))
+                        (intern (concat downcased "-ts-mode")))))))
+         (regular-modes (list (intern (concat language "-mode"))
+                              (intern (concat downcased "-mode")))))
+    (cl-find-if #'pimacs--markdown-language-mode-p
+                (append tree-sitter-modes aliases regular-modes))))
 
 (defun pimacs--markdown-fontify-code (code language)
   (if-let ((mode (pimacs--markdown-resolve-language-mode language)))
