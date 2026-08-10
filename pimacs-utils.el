@@ -216,7 +216,8 @@ PRED is called with KEY VALUE."
 (defun pimacs--render-markdown-with-markdown-mode (text)
   (with-temp-buffer
     (insert text)
-    (let ((inhibit-message t))
+    (let ((inhibit-message t)
+          (message-log-max nil))
       (ignore-errors
         (delay-mode-hooks
           (gfm-view-mode))
@@ -262,7 +263,8 @@ PRED is called with KEY VALUE."
 
     (insert content)
 
-    (let ((inhibit-message t))
+    (let ((inhibit-message t)
+          (message-log-max nil))
       (ignore-errors
         (delay-mode-hooks
           (let ((enable-local-variables nil)
