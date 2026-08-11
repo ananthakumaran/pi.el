@@ -128,9 +128,6 @@
   "Return the name of KEYWORD as a string without the leading colon."
   (substring (symbol-name keyword) 1))
 
-(defun pimacs--current-column-1-based ()
-  "Return the current column as a 1-based number."
-  (1+ (current-column)))
 
 (defun pimacs--seconds-elapsed-since (time)
   (time-to-seconds (time-subtract (current-time) time)))

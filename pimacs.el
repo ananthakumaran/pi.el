@@ -1051,11 +1051,10 @@ with the message plist to insert the custom message content."
 
 (defun pimacs--visit-read-result (_details args)
   (when-let ((path (plist-get args :path)))
-    (let* ((section-line (pimacs-section--section-line))
-           (file (expand-file-name path (pimacs--project-root)))
-           (line (+ (or (plist-get args :offset) 1) section-line))
-           (column (pimacs--current-column-1-based)))
-      (list :file file :line line :column column))))
+    (let ((section-line (pimacs-section--section-line)))
+      (list :file (expand-file-name path (pimacs--project-root))
+            :line (+ (or (plist-get args :offset) 1) section-line)
+            :column (- (point) (line-beginning-position))))))
 
 (defun pimacs--visit-read-call (args)
   (when-let ((path (plist-get args :path)))
@@ -1084,8 +1083,8 @@ with the message plist to insert the custom message content."
       (list :file (expand-file-name path (pimacs--project-root))
             :line (max 1 section-line)
             :column (if (zerop section-line)
-                        1
-                      (pimacs--current-column-1-based))))))
+                        0
+                      (- (point) (line-beginning-position)))))))
 
 ;; edit
 (defun pimacs--insert-edit-args (args)
@@ -1120,7 +1119,7 @@ with the message plist to insert the custom message content."
                         (save-excursion
                           (goto-char visit-pos)
                           (list :line (line-number-at-pos)
-                                :column (pimacs--current-column-1-based))))))
+                                :column (- visit-pos (line-beginning-position)))))))
                 (error nil)))))
       (list :file (expand-file-name path (pimacs--project-root))
             :line (or (plist-get location :line) 1)
@@ -1169,49 +1168,67 @@ with the message plist to insert the custom message content."
     (when limit
       (insert (format " limit %d" limit)))))
 
-(defun pimacs--insert-grep-highlighted (text pattern &optional ignore-case literal)
-  (let* ((regexp (if literal
-                     (regexp-quote pattern)
-                   (condition-case nil
-                       (rxt-pcre-to-elisp pattern)
-                     (error nil))))
-         (case-fold-search (if ignore-case t nil)))
-    (if (null regexp)
-        (insert text)
-      (insert (replace-regexp-in-string
-               regexp
-               (lambda (match)
-                 (propertize match 'face 'pimacs-grep-match-face))
-               text nil t)))))
+(defun pimacs--grep-pattern-regexp (pattern literal)
+  (if literal
+      (regexp-quote pattern)
+    (condition-case nil
+        (rxt-pcre-to-elisp pattern)
+      (error nil))))
+
+(defun pimacs--fontify-grep-matches (begin end regexp ignore-case)
+  (when regexp
+    (let ((case-fold-search (if ignore-case t nil))
+          (searching t))
+      (save-restriction
+        (narrow-to-region begin end)
+        (goto-char (point-min))
+        (while (and searching (re-search-forward regexp nil t))
+          (if (= (match-beginning 0) (match-end 0))
+              (if (< (point) (point-max))
+                  (forward-char 1)
+                (setq searching nil))
+            (add-text-properties (match-beginning 0) (match-end 0)
+                                 '(face pimacs-grep-match-face))))))))
 
 (defconst pimacs--grep-line-regexp "^\\(.*\\):\\([0-9]+\\): \\(.*\\)$")
 (defconst pimacs--grep-line-alt-regexp "^\\(.*\\)\\([-:]\\)\\([0-9]+\\)\\([-:] ?\\)\\(.*\\)$")
 
+(defun pimacs--fontify-grep-line (regexp ignore-case)
+  (cond
+   ((looking-at pimacs--grep-line-regexp)
+    (let ((file-begin (match-beginning 1))
+          (file-end (match-end 1))
+          (line-begin (match-beginning 2))
+          (line-end (match-end 2))
+          (content-begin (match-beginning 3))
+          (content-end (match-end 3)))
+      (add-text-properties file-begin file-end '(face compilation-info))
+      (add-text-properties line-begin line-end '(face compilation-line-number))
+      (pimacs--fontify-grep-matches content-begin content-end regexp ignore-case)))
+   ((looking-at pimacs--grep-line-alt-regexp)
+    (let ((file-begin (match-beginning 1))
+          (file-end (match-end 1))
+          (line-begin (match-beginning 3))
+          (line-end (match-end 3)))
+      (add-text-properties file-begin file-end '(face compilation-info))
+      (add-text-properties line-begin line-end '(face compilation-line-number))))))
+
 (defun pimacs--insert-grep-result (content _details args)
   (let* ((result-text (pimacs--content-text content))
          (pattern (plist-get args :pattern))
+         (literal (plist-get args :literal))
          (ignore-case (plist-get args :ignoreCase))
-         (literal (plist-get args :literal)))
-    (if (or (null pattern) (string-empty-p pattern))
-        (insert result-text)
-      (let ((lines (split-string result-text "\n")))
-        (dolist (line lines)
-          (cond
-           ((string-match pimacs--grep-line-regexp line)
-            (insert (propertize (match-string 1 line) 'face 'compilation-info) ":")
-            (insert (propertize (match-string 2 line) 'face 'compilation-line-number))
-            (insert ": ")
-            (pimacs--insert-grep-highlighted (match-string 3 line) pattern ignore-case literal))
-           ((string-match pimacs--grep-line-alt-regexp line)
-            (insert (propertize (match-string 1 line) 'face 'compilation-info))
-            (insert (match-string 2 line))
-            (insert (propertize (match-string 3 line) 'face 'compilation-line-number))
-            (insert (match-string 4 line))
-            (insert (match-string 5 line)))
-           (t
-            (insert line)))
-          (insert "\n"))
-        (delete-char -1)))))
+         (fontify (and pattern (not (string-empty-p pattern))))
+         (regexp (and fontify (pimacs--grep-pattern-regexp pattern literal)))
+         (begin (point)))
+    (insert result-text)
+    (when fontify
+      (let ((end (point)))
+        (save-excursion
+          (goto-char begin)
+          (while (< (point) end)
+            (pimacs--fontify-grep-line regexp ignore-case)
+            (forward-line 1)))))))
 
 (defun pimacs--normalize-grep-file (file args)
   (if-let ((path (plist-get args :path)))
@@ -1220,23 +1237,26 @@ with the message plist to insert the custom message content."
         path)
     file))
 
-(defun pimacs--visit-grep-match (args cursor-column file-group line-group content-group)
-  (let ((content-column (save-excursion
-                          (goto-char (match-beginning content-group))
-                          (current-column))))
-    (list :file (pimacs--normalize-grep-file (match-string file-group) args)
-          :line (string-to-number (match-string line-group))
-          :column (max 1 (1+ (- cursor-column content-column))))))
+(defun pimacs--visit-grep-match (args cursor-position file-group line-group content-group)
+  (let* ((file (match-string file-group))
+         (line (string-to-number (match-string line-group)))
+         (content-begin (match-beginning content-group))
+         (content-end (match-end content-group))
+         (column (max 0 (min (- cursor-position content-begin)
+                             (- content-end content-begin)))))
+    (list :file (pimacs--normalize-grep-file file args)
+          :line line
+          :column column)))
 
 (defun pimacs--visit-grep-result (_details args)
-  (let ((cursor-column (current-column)))
+  (let ((cursor-position (point)))
     (save-excursion
       (beginning-of-line)
       (cond
        ((looking-at pimacs--grep-line-regexp)
-        (pimacs--visit-grep-match args cursor-column 1 2 3))
+        (pimacs--visit-grep-match args cursor-position 1 2 3))
        ((looking-at pimacs--grep-line-alt-regexp)
-        (pimacs--visit-grep-match args cursor-column 1 3 5))))))
+        (pimacs--visit-grep-match args cursor-position 1 3 5))))))
 
 ;; find
 (defun pimacs--insert-find-args (args)
@@ -2500,7 +2520,7 @@ summarization."
         (goto-char (point-min))
         (forward-line (1- line)))
       (when column
-        (move-to-column (max 0 (1- column)))))))
+        (forward-char (min column (- (line-end-position) (point))))))))
 
 (defun pimacs--visit-file-at-point (other-window)
   (when-let (file (pimacs--file-at-point))

@@ -354,6 +354,123 @@
       (should (eq (get-text-property (- (point) (length "\\*literal")) 'face)
                   'pimacs-grep-match-face)))))
 
+(ert-deftest pimacs--insert-grep-result-fontifies-primary-and-context-lines ()
+  (let ((content "dir:name.el:12: foo BAR\ndir:name.el-13-foo BAR"))
+    (with-temp-buffer
+      (pimacs--insert-grep-result
+       (list (list :type "text" :text content)) nil '(:pattern "foo"))
+      (should (equal (buffer-string) content))
+      (should (eq (get-text-property (point-min) 'face) 'compilation-info))
+      (goto-char (point-min))
+      (search-forward "12")
+      (should (eq (get-text-property (1- (point)) 'face) 'compilation-line-number))
+      (search-forward "foo")
+      (should (eq (get-text-property (- (point) 3) 'face) 'pimacs-grep-match-face))
+      (search-forward "BAR")
+      (should-not (get-text-property (- (point) 3) 'face))
+      (forward-line 1)
+      (should (eq (get-text-property (point) 'face) 'compilation-info))
+      (search-forward "13")
+      (should (eq (get-text-property (1- (point)) 'face) 'compilation-line-number))
+      (search-forward "foo")
+      (should-not (get-text-property (- (point) 3) 'face)))))
+
+(ert-deftest pimacs--insert-grep-result-honors-literal-and-ignore-case ()
+  (with-temp-buffer
+    (pimacs--insert-grep-result
+     '((:type "text" :text "a:1: A.B axb"))
+     nil '(:pattern "a.b" :literal t :ignoreCase t))
+    (goto-char (point-min))
+    (search-forward "A.B")
+    (should (eq (get-text-property (- (point) 3) 'face) 'pimacs-grep-match-face))
+    (search-forward "axb")
+    (should-not (get-text-property (- (point) 3) 'face)))
+  (with-temp-buffer
+    (pimacs--insert-grep-result
+     '((:type "text" :text "a:1: FOO foo")) nil '(:pattern "foo"))
+    (goto-char (point-min))
+    (search-forward "FOO")
+    (should-not (get-text-property (- (point) 3) 'face))
+    (search-forward "foo")
+    (should (eq (get-text-property (- (point) 3) 'face) 'pimacs-grep-match-face))))
+
+(ert-deftest pimacs--insert-grep-result-narrows-match-to-content ()
+  (with-temp-buffer
+    (pimacs--insert-grep-result
+     '((:type "text" :text "a:1: foo bar")) nil '(:pattern "^foo bar$"))
+    (goto-char (point-min))
+    (search-forward "foo bar")
+    (should (eq (get-text-property (- (point) 7) 'face) 'pimacs-grep-match-face))
+    (should (eq (get-text-property (1- (point)) 'face) 'pimacs-grep-match-face))
+    (should (eq (get-text-property (point-min) 'face) 'compilation-info))))
+
+(ert-deftest pimacs--insert-grep-result-handles-invalid-and-zero-width-patterns ()
+  (with-temp-buffer
+    (pimacs--insert-grep-result
+     '((:type "text" :text "a:1: foo")) nil '(:pattern "["))
+    (should (equal (buffer-string) "a:1: foo"))
+    (should (eq (get-text-property (point-min) 'face) 'compilation-info))
+    (goto-char (point-min))
+    (search-forward "foo")
+    (should-not (get-text-property (- (point) 3) 'face)))
+  (with-temp-buffer
+    (insert "foo")
+    (pimacs--fontify-grep-matches (point-min) (point-max) "\\_<" nil)
+    (should-not (get-text-property (point-min) 'face))))
+
+(ert-deftest pimacs--insert-grep-result-preserves-newlines-and-translates-once ()
+  (dolist (content '("" "a:1: foo" "a:1: foo\n" "a:1: foo\n\n"))
+    (with-temp-buffer
+      (pimacs--insert-grep-result
+       (list (list :type "text" :text content)) nil '(:pattern "foo"))
+      (should (equal (buffer-string) content))))
+  (let ((translations 0)
+        (original (symbol-function 'rxt-pcre-to-elisp)))
+    (cl-letf (((symbol-function 'rxt-pcre-to-elisp)
+               (lambda (pattern)
+                 (cl-incf translations)
+                 (funcall original pattern))))
+      (with-temp-buffer
+        (pimacs--insert-grep-result
+         '((:type "text" :text "a:1: foo\nb:2: foo")) nil '(:pattern "foo"))))
+    (should (= translations 1))))
+
+(ert-deftest pimacs--text-visitors-report-character-offsets-as-columns ()
+  (let ((source-line "\tfoo")
+        (expected-column (length "\tf")))
+    (with-temp-buffer
+      (insert source-line)
+      (goto-char (point-min))
+      (search-forward "f")
+      (cl-letf (((symbol-function 'pimacs-section--section-line) (lambda () 1))
+                ((symbol-function 'pimacs--project-root) (lambda () "/project/")))
+        (let ((read-result (pimacs--visit-read-result nil '(:path "file")))
+              (write-result (pimacs--visit-write-call '(:path "file"))))
+          (should (= (plist-get read-result :column) expected-column))
+          (should (= (plist-get write-result :column) expected-column)))))))
+
+(ert-deftest pimacs--visit-grep-result-reports-character-offset-after-tab ()
+  (with-temp-buffer
+    (insert "example.el:7: \tfoo")
+    (goto-char (point-min))
+    (search-forward "f")
+    (should (equal (pimacs--visit-grep-result nil nil)
+                   '(:file "example.el" :line 7 :column 2)))))
+
+(ert-deftest pimacs--visit-file-treats-column-as-character-offset ()
+  (let ((target (generate-new-buffer " *pimacs-visit-target*")))
+    (unwind-protect
+        (progn
+          (with-current-buffer target
+            (insert "\tfoo"))
+          (cl-letf (((symbol-function 'find-file)
+                     (lambda (_file) (set-buffer target))))
+            (pimacs--visit-file '(:file "unused" :line 1 :column 2))
+            (should (equal (buffer-substring (line-beginning-position) (point))
+                           "\tf"))
+            (should (looking-at "oo"))))
+      (kill-buffer target))))
+
 (ert-deftest pimacs--handle-agent-state-formats-parallel-tools ()
   (with-temp-buffer
     (setq pimacs--spinner (spinner-create 'progress-bar))
