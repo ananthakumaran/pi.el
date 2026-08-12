@@ -56,6 +56,15 @@ Set this to nil to disable fringe indicators."
 
 (defvar pimacs-section--visibility-default :autoshow)
 (defvar-local pimacs-section--root-section nil)
+(defvar pimacs-section--insertion-parent nil)
+(defvar pimacs-section--insertion-before nil)
+
+(defmacro pimacs-section--with-insertion-before (parent boundary &rest body)
+  (declare (indent 2)
+           (debug (form form body)))
+  `(let ((pimacs-section--insertion-parent ,parent)
+         (pimacs-section--insertion-before ,boundary))
+     ,@body))
 
 (defface pimacs-section-root-face
   '((t))
@@ -261,6 +270,31 @@ is a sublist of LIST (as if '* matched zero or more arbitrary elements of LIST)"
     (set-marker-insertion-type m t)
     m))
 
+(defun pimacs-section--add-child (parent child)
+  (let ((children (pimacs-section-children parent)))
+    (if (or (null pimacs-section--insertion-before)
+            (not (eq parent pimacs-section--insertion-parent)))
+        (setf (pimacs-section-children parent)
+              (nconc children (list child)))
+      (if (eq (car children) pimacs-section--insertion-before)
+          (setf (pimacs-section-children parent) (cons child children))
+        (let ((previous children))
+          (while (and (cdr previous)
+                      (not (eq (cadr previous)
+                               pimacs-section--insertion-before)))
+            (setq previous (cdr previous)))
+          (if (cdr previous)
+              (setcdr previous (cons child (cdr previous)))
+            (setf (pimacs-section-children parent)
+                  (nconc children (list child)))))))))
+
+(defun pimacs-section--insertion-position (parent)
+  (if (and (eq parent pimacs-section--insertion-parent)
+           (memq pimacs-section--insertion-before
+                 (pimacs-section-children parent)))
+      (pimacs-section-beginning pimacs-section--insertion-before)
+    (pimacs-section-end parent)))
+
 (defun pimacs-section--new-section (type parent &rest args)
   (let* ((padding (or (plist-get args :padding) pimacs-section-padding))
          (face (or (plist-get args :face)
@@ -271,9 +305,7 @@ is a sublist of LIST (as if '* matched zero or more arbitrary elements of LIST)"
                                  :visibility pimacs-section--visibility-default
                                  :padding padding)))
     (when parent
-      (setf (pimacs-section-children parent)
-            (nconc (pimacs-section-children parent)
-                   (list s))))
+      (pimacs-section--add-child parent s))
     s))
 
 (defun pimacs-section--create-root-section ()
@@ -292,7 +324,7 @@ is a sublist of LIST (as if '* matched zero or more arbitrary elements of LIST)"
         (body-beginning (make-symbol "*body-beginning*"))
         (padding-beginning (make-symbol "*padding-beginning*")))
     `(let* ((,s ,section))
-       (goto-char (pimacs-section-end (pimacs-section-parent ,s)))
+       (goto-char (pimacs-section--insertion-position (pimacs-section-parent ,s)))
        (setf (pimacs-section-beginning ,s) (point-marker))
        (let ((,body-beginning (point)))
          ,@body

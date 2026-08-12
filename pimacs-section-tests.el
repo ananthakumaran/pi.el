@@ -771,3 +771,22 @@
       (should (pimacs-section--visible-p build))
       (should (pimacs-section--hidden-p compile))
       (should (pimacs-section--visible-p logs)))))
+
+(ert-deftest pimacs-section-inserts-before-existing-child ()
+  (pimacs-with-root-section
+    (let ((pimacs-section-padding "|"))
+      (let* ((loading (pimacs-section--create-section 'history pimacs-section--root-section
+                        (insert "loading")))
+             (boundary (pimacs-section--create-section 'user pimacs-section--root-section
+                         (insert "boundary")))
+             (last (pimacs-section--create-section 'user pimacs-section--root-section
+                     (insert "last")))
+             first second)
+        (pimacs-section--with-insertion-before pimacs-section--root-section boundary
+          (setq first (pimacs-section--create-section 'user pimacs-section--root-section
+                        (insert "first")))
+          (setq second (pimacs-section--create-section 'user pimacs-section--root-section
+                         (insert "second"))))
+        (should (equal (pimacs-section-children pimacs-section--root-section)
+                       (list loading first second boundary last)))
+        (should (equal (buffer-string) "loading|first|second|boundary|last|"))))))

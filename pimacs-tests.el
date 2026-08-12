@@ -729,5 +729,64 @@
                    (marker-position (widget-get pimacs--prompt-widget :from))
                    (marker-position (widget-get pimacs--prompt-after-widget :from))))))))
 
+(ert-deftest pimacs--history-split-entries-keeps-tool-call-with-result ()
+  (let* ((prefix (cl-loop for index below 9
+                          collect (list :type "session_info"
+                                        :name (format "name-%d" index))))
+         (call '(:type "message"
+                       :message (:role "assistant"
+                                       :content ((:type "toolCall" :id "call-1"
+                                                        :name "read" :arguments (:path "README.md"))))))
+         (result '(:type "message"
+                         :message (:role "toolResult" :toolCallId "call-1"
+                                         :toolName "read"
+                                         :content ((:type "text" :text "result")))))
+         (last '(:type "message" :message (:role "user" :content "last")))
+         (chunks (pimacs--history-split-entries
+                  (append prefix (list call result last)))))
+    (should (equal (mapcar #'length chunks) '(11 1)))
+    (should (eq (nth 9 (car chunks)) call))
+    (should (eq (nth 10 (car chunks)) result))))
+
+(ert-deftest pimacs--render-session-history-progressively-inserts-history ()
+  (with-temp-buffer
+    (pimacs-section--create-root-section)
+    (setq pimacs--tool-calls (make-hash-table :test 'equal)
+          pimacs--bash-executions (make-hash-table :test 'equal)
+          pimacs--content-sections (make-hash-table :test 'eql)
+          pimacs--history-render-generation 0)
+    (setq pimacs--prompt-widget
+          (widget-create 'editable-field :format "%v" :value ""))
+    (widget-setup)
+    (let ((entries (cl-loop for index below 12
+                            collect (list :type "message"
+                                          :message (list :role "user"
+                                                         :content (format "message-%d" index)))))
+          (pimacs-section-padding "|")
+          scheduled)
+      (cl-letf (((symbol-function 'pimacs--history-schedule-idle-render)
+                 (lambda (buffer generation)
+                   (setq scheduled (list buffer generation)))))
+        (pimacs--widget-save-excursion
+          (pimacs--render-session-history entries))
+        (should (= (length (pimacs-section-children pimacs-section--root-section)) 3))
+        (should (= (pimacs--history-pending-entry-count) 10))
+        (should (string-match-p "Loading history: 10 entries pending"
+                                (buffer-string)))
+        (pimacs--history-render-idle (current-buffer) pimacs--history-render-generation))
+      (let ((roots (pimacs-section-children pimacs-section--root-section)))
+        (should (= (length roots) 12))
+        (should-not pimacs--history-loading-section)
+        (should-not pimacs--history-render-pending)
+        (should (cl-every #'pimacs-section--hidden-p (seq-take roots 10)))
+        (should (equal (buffer-string)
+                       (concat "user> message-0|user> message-1|user> message-2|"
+                               "user> message-3|user> message-4|user> message-5|"
+                               "user> message-6|user> message-7|user> message-8|"
+                               "user> message-9|user> message-10|user> message-11|\n")))
+        (should (equal scheduled
+                       (list (current-buffer) pimacs--history-render-generation)))))))
+
+
 ;;; pimacs-tests.el ends here
 

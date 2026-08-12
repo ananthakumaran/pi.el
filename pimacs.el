@@ -369,6 +369,9 @@ with the message plist to insert the custom message content."
   context
   renderer-session)
 
+(defconst pimacs--history-chunk-size 10)
+(defconst pimacs--history-idle-delay 0.5)
+
 (cl-defstruct pimacs-render-context
   content-begin
   content-end
@@ -514,6 +517,12 @@ with the message plist to insert the custom message content."
 (pimacs--def-permanent-buffer-local pimacs--cleanup-callback-fn nil)
 (pimacs--def-permanent-buffer-local pimacs--retry-in-progress nil)
 (pimacs--def-permanent-buffer-local pimacs--commands nil)
+
+(pimacs--def-permanent-buffer-local pimacs--history-render-pending nil)
+(pimacs--def-permanent-buffer-local pimacs--history-render-timer nil)
+(pimacs--def-permanent-buffer-local pimacs--history-render-generation 0)
+(pimacs--def-permanent-buffer-local pimacs--history-loading-section nil)
+(pimacs--def-permanent-buffer-local pimacs--history-render-boundary nil)
 
 ;;; History
 
@@ -2256,6 +2265,7 @@ FIELDS is a list of (LABEL . KEY) where KEY is a plist key."
                (pimacs--switch-session session-path "Resumed session")))))))))
 
 (defun pimacs--clear-sections ()
+  (pimacs--history-render-reset)
   (dolist (child (copy-sequence (pimacs-section-children pimacs-section--root-section)))
     (pimacs-section--delete-section child))
   (clrhash pimacs--content-sections)
@@ -2293,6 +2303,128 @@ FIELDS is a list of (LABEL . KEY) where KEY is a plist key."
   (dolist (entry entries)
     (pimacs--render-session-entry entry)))
 
+(defun pimacs--history-track-tool-calls (entry pending)
+  (when (equal (plist-get entry :type) "message")
+    (let ((message (plist-get entry :message)))
+      (pcase (pimacs--message-role message)
+        ("assistant"
+         (dolist (item (pimacs--content-normalize (plist-get message :content)))
+           (when (equal (plist-get item :type) "toolCall")
+             (when-let ((id (plist-get item :id)))
+               (puthash id t pending)))))
+        ("toolResult"
+         (when-let ((id (plist-get message :toolCallId)))
+           (remhash id pending)))))))
+
+(defun pimacs--history-split-entries (entries)
+  (let ((pending (make-hash-table :test 'equal))
+        current
+        chunks)
+    (dolist (entry entries)
+      (push entry current)
+      (pimacs--history-track-tool-calls entry pending)
+      (when (and (>= (length current) pimacs--history-chunk-size)
+                 (zerop (hash-table-count pending)))
+        (push (nreverse current) chunks)
+        (setq current nil)))
+    (when current
+      (push (nreverse current) chunks))
+    (nreverse chunks)))
+
+(defun pimacs--history-pending-entry-count (&optional chunks)
+  (apply #'+ (mapcar #'length (or chunks pimacs--history-render-pending))))
+
+(defun pimacs--history-create-loading-section (count)
+  (let ((section (pimacs-section--new-section
+                  'history pimacs-section--root-section :face nil)))
+    (pimacs-section--insert-section section
+      (insert (format "Loading history: %d entries pending" count)))
+    (setq pimacs--history-loading-section section)
+    section))
+
+(defun pimacs--history-update-loading-section ()
+  (let ((count (pimacs--history-pending-entry-count)))
+    (if (> count 0)
+        (when pimacs--history-loading-section
+          (pimacs--widget-save-excursion
+            (pimacs-section--replace-section pimacs--history-loading-section
+              (insert (format "Loading history: %d entries pending" count)))))
+      (when pimacs--history-loading-section
+        (pimacs--widget-save-excursion
+          (pimacs-section--delete-section pimacs--history-loading-section)))
+      (setq pimacs--history-loading-section nil
+            pimacs--history-render-boundary nil))))
+
+(defun pimacs--history-new-sections (boundary)
+  (let ((sections (cdr (memq pimacs--history-loading-section
+                             (pimacs-section-children pimacs-section--root-section))))
+        result)
+    (while (and sections (not (eq (car sections) boundary)))
+      (push (car sections) result)
+      (setq sections (cdr sections)))
+    (nreverse result)))
+
+(defun pimacs--history-render-chunk (chunk)
+  (let ((boundary pimacs--history-render-boundary)
+        (pimacs--tool-calls (make-hash-table :test 'equal)))
+    (pimacs-section--with-insertion-before
+        pimacs-section--root-section pimacs--history-render-boundary
+      (pimacs--widget-save-excursion
+        (pimacs--render-session-entries chunk)))
+    (dolist (section (pimacs--history-new-sections boundary))
+      (pimacs-section--set-visibility section :autohide))
+    (setq pimacs--history-render-boundary
+          (cadr (pimacs-section-children pimacs-section--root-section)))
+    (pimacs--history-update-loading-section)))
+
+(defun pimacs--history-render-reset ()
+  (when (timerp pimacs--history-render-timer)
+    (cancel-timer pimacs--history-render-timer))
+  (setq pimacs--history-render-timer nil
+        pimacs--history-render-pending nil
+        pimacs--history-loading-section nil
+        pimacs--history-render-boundary nil)
+  (cl-incf pimacs--history-render-generation))
+
+(defun pimacs--history-schedule-idle-render (buffer generation)
+  (when pimacs--history-render-pending
+    (setq pimacs--history-render-timer
+          (run-with-idle-timer
+           pimacs--history-idle-delay nil
+           #'pimacs--history-render-idle buffer generation))))
+
+(defun pimacs--history-render-idle (buffer generation)
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (when (= generation pimacs--history-render-generation)
+        (setq pimacs--history-render-timer nil)
+        (if-let ((chunk (pop pimacs--history-render-pending)))
+            (progn
+              (pimacs--history-render-chunk chunk)
+              (pimacs--history-schedule-idle-render buffer generation))
+          (pimacs--history-update-loading-section))))))
+
+(defun pimacs--history-start-idle-render (chunks)
+  (setq pimacs--history-render-pending (reverse (copy-sequence chunks)))
+  (pimacs--history-update-loading-section)
+  (pimacs--history-schedule-idle-render
+   (current-buffer) pimacs--history-render-generation))
+
+(defun pimacs--render-session-history (entries)
+  (pimacs--history-render-reset)
+  (let* ((chunks (pimacs--history-split-entries entries))
+         (eager (car (last chunks)))
+         (pending (butlast chunks)))
+    (if (null pending)
+        (pimacs--render-session-entries entries)
+      (pimacs--history-create-loading-section
+       (pimacs--history-pending-entry-count pending))
+      (pimacs--render-session-entries eager)
+      (setq pimacs--history-render-boundary
+            (cadr (pimacs-section-children pimacs-section--root-section)))
+      (pimacs--history-start-idle-render pending))))
+
+
 (defun pimacs-refresh-session (&optional callback)
   "Refresh the current session state.
 CALLBACK is called after a successful refresh."
@@ -2304,7 +2436,7 @@ CALLBACK is called after a successful refresh."
        (let ((entries (plist-get (plist-get resp :data) :entries)))
          (pimacs--widget-save-excursion
            (pimacs--clear-sections)
-           (pimacs--render-session-entries entries)))
+           (pimacs--render-session-history entries)))
        (pimacs-section-autohide)
        (when callback
          (funcall callback))))))
@@ -2667,6 +2799,7 @@ With a prefix argument OTHER-WINDOW, visit in other window."
   (setq-local dnd-protocol-alist
               (cons '("^file:" . pimacs--dnd-handler)
                     dnd-protocol-alist))
+  (add-hook 'kill-buffer-hook #'pimacs--history-render-reset nil t)
   (when (fboundp 'yank-media-handler)
     (yank-media-handler (mapcar (lambda (pair) (intern (car pair))) pimacs--image-type-alist)
                         #'pimacs--yank-media-handler))
