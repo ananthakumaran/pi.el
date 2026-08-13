@@ -344,7 +344,7 @@
        (list (list :type "text" :text content))
        nil
        '(:pattern "reference|autolink|link title|\\\\\\*literal|site\\]"
-                  :path "pimacs-markdown-tapes"
+                  :path "test/pimacs-markdown-tapes"
                   :glob "*"
                   :ignoreCase t
                   :limit 100))

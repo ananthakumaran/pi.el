@@ -3,4 +3,4 @@
 integration
 Makefile
 scripts
-*-tests.el
+test
