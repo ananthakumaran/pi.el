@@ -4,7 +4,11 @@
 
 An Emacs client for [Pi Coding Agent](https://pi.dev/)
 
-![screenshot](docs/screenshot.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/screenshot-light.png">
+  <img alt="Pimacs screenshot" src="docs/screenshot-light.png">
+</picture>
 
 ## Setup
 
