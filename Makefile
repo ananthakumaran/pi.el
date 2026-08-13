@@ -9,6 +9,16 @@ SESSION_PATH ?= $(SESSION_FILE)
 PIMACS_DOC_SOURCES := pimacs-section.el pimacs-edit.el pimacs-utils.el pimacs-markdown-table.el pimacs-markdown.el \
 	pimacs-state-line.el pimacs-core.el pimacs-agent.el pimacs-doctor.el pimacs-session.el pimacs.el
 
+VERSION ?=
+
+.PHONY: bump-version
+bump-version:
+	@test -n "$(VERSION)" || (echo "Usage: make bump-version VERSION=x.y.z" >&2; exit 1)
+	@printf '%s\n' "$(VERSION)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-pre)?$$' || (echo "Invalid version: $(VERSION)" >&2; exit 1)
+	@sed -i.bak -E 's/^(;; Version:).*/\1 $(VERSION)/' pimacs.el
+	@sed -i.bak -E 's/^(@set VERSION).*/\1 $(VERSION)/' pimacs.texi
+	@rm -f pimacs.el.bak pimacs.texi.bak
+
 $(CASK_DIR): Cask
 	cask install
 	@touch $(CASK_DIR)
