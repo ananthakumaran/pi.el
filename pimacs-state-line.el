@@ -197,7 +197,7 @@ See `pimacs-header-line-format' for available components."
    (pimacs--plist-get state :sessionStats :contextUsage :contextWindow)))
 
 (defun pimacs--format-state-line-compaction-mode (state)
-  (if (plist-get state :autoCompactionEnabled) "auto" "manual"))
+  (if (eq (plist-get state :autoCompactionEnabled) t) "auto" "manual"))
 
 (defun pimacs--format-state-line-user-messages (state)
   (pimacs--format-state-line-value (pimacs--plist-get state :sessionStats :userMessages)))

@@ -52,6 +52,14 @@
                   '(:sessionStats (:cost 0)))
                  "0")))
 
+(ert-deftest pimacs--format-state-line-compaction-mode-respects-json-false ()
+  (should (equal (pimacs--format-state-line-compaction-mode
+                  '(:autoCompactionEnabled t))
+                 "auto"))
+  (should (equal (pimacs--format-state-line-compaction-mode
+                  '(:autoCompactionEnabled json-false))
+                 "manual")))
+
 (ert-deftest pimacs--format-state-line-spinner ()
   (cl-letf (((symbol-function 'spinner-print) (lambda (_spinner) "spinner")))
     (should (equal (pimacs--format-state-line-spinner

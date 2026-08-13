@@ -354,6 +354,36 @@
       (should (eq (get-text-property (- (point) (length "\\*literal")) 'face)
                   'pimacs-grep-match-face)))))
 
+(ert-deftest pimacs--insert-grep-result-does-not-fontify-adjacent-tool-call ()
+  (with-temp-buffer
+    (pimacs-section--create-root-section)
+    (setq pimacs--prompt-widget
+          (widget-create 'editable-field :format "%v" :value ""))
+    (setq pimacs--tool-calls (make-hash-table :test 'equal))
+    (widget-setup)
+    (let ((pimacs-section-padding "\n"))
+      (cl-letf (((symbol-function 'pimacs--project-root)
+                 (lambda () default-directory)))
+        (pimacs--insert-message
+         '(:role "assistant"
+                 :content ((:type "toolCall" :id "grep" :name "grep"
+                                  :arguments (:pattern "foo" :path "src"))
+                           (:type "toolCall" :id "read" :name "read"
+                                  :arguments (:path "pimacs-agent.el" :offset 296 :limit 90)))))
+        (pimacs--insert-message
+         '(:role "toolResult" :toolCallId "grep" :toolName "grep"
+                 :content ((:type "text" :text "reload.md-195- "))))
+        (goto-char (point-min))
+        (search-forward "read ")
+        (should (equal (get-text-property (- (point) (length "read ")) 'face)
+                       '(pimacs-tool-name-face pimacs-section-tool-call-face)))))))
+
+(ert-deftest pimacs--insert-grep-args-treats-json-false-as-false ()
+  (with-temp-buffer
+    (pimacs--insert-grep-args
+     '(:pattern "foo" :ignoreCase json-false :literal json-false))
+    (should (equal (buffer-string) "/foo/"))))
+
 (ert-deftest pimacs--insert-grep-result-fontifies-primary-and-context-lines ()
   (let ((content "dir:name.el:12: foo BAR\ndir:name.el-13-foo BAR"))
     (with-temp-buffer
