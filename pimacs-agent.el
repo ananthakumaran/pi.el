@@ -303,12 +303,17 @@
     (message "(%s) Starting pimacs version %s..." (pimacs--project-name) version)
     (let* ((process-environment (append pimacs-process-environment process-environment))
            (buf (generate-new-buffer (pimacs--agent-buffer-name)))
-           ;; Use a pipe to communicate with the subprocess. This fixes a hang
-           ;; when a >1k message is sent on macOS.
-           (process-connection-type nil)
            (process-arguments (append pimacs-flags '("--mode" "rpc")))
            (process
-            (apply #'start-file-process "pi" buf pimacs-executable process-arguments)))
+            (make-process :name "pi"
+                          :buffer buf
+                          :command (cons pimacs-executable process-arguments)
+                          ;; Use a pipe to communicate with the subprocess. This fixes a hang
+                          ;; when a >1k message is sent on macOS.
+                          :connection-type 'pipe
+                          :coding 'utf-8-unix
+                          :stderr (get-buffer-create "*pimacs-stderr*")
+                          :file-handler t)))
       (set-process-coding-system process 'utf-8-unix 'utf-8-unix)
       (set-process-filter process #'pimacs--net-filter)
       (set-process-sentinel process #'pimacs--net-sentinel)
