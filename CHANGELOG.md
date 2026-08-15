@@ -2,9 +2,28 @@
 
 ## Unreleased
 
+## v0.4.0 - 2026-08-15
+
+### Added
+
+- Customizable faces for chat sections, including separate faces for thinking
+  levels and user messages.
+- Syntax highlighting for arguments in custom tool calls.
+
+### Changed
+
+- Session history is rendered incrementally in chunks to keep large sessions
+  responsive.
+- Grep results are fontified in place for better performance and more accurate
+  navigation.
+- Tree-sitter Markdown rendering uses `ts-mode` when it is available.
+
 ### Fixed
 
-- Incremental search now temporarily reveals collapsed images as well as text.
+- Incremental search now temporarily reveals collapsed text.
+- Markdown code fences without a trailing newline are rendered correctly.
+- Partial or incomplete diffs no longer prevent edit results from rendering.
+- Grep result fontification now remains within the result region.
 
 ## v0.3.0 - 2026-08-06
 
