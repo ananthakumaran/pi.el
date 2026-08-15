@@ -570,7 +570,10 @@ with the message plist to insert the custom message content."
   (when-let ((window (and pimacs-chat-keep-input-at-bottom
                           (get-buffer-window (current-buffer) t))))
     (with-selected-window window
-      (recenter (- -1 scroll-margin (pimacs--widget-lines pimacs--prompt-widget) (pimacs--extra-widget-lines))))))
+      (recenter (min -2
+                     (- -1 scroll-margin
+                        (pimacs--widget-lines pimacs--prompt-widget)
+                        (pimacs--extra-widget-lines)))))))
 
 (defun pimacs--point-in-prompt-p ()
   (when-let (window (get-buffer-window (current-buffer) t))
