@@ -318,6 +318,8 @@
       (set-process-filter process #'pimacs--net-filter)
       (set-process-sentinel process #'pimacs--net-sentinel)
       (set-process-query-on-exit-flag process nil)
+      (when-let ((stderr-process (get-process (concat (process-name process) " stderr"))))
+        (set-process-query-on-exit-flag stderr-process nil))
       (with-current-buffer (process-buffer process)
         (buffer-disable-undo)
         (setq-local pimacs--project-key key))
