@@ -305,10 +305,11 @@ with the message plist to insert the custom message content."
 (defconst pimacs--empty-widget-text (propertize " " 'invisible t))
 
 (defun pimacs--widget-item-value-create (widget)
-  (let ((value (widget-get widget :value)))
+  (let* ((raw-value (widget-get widget :value))
+         (value (pimacs--apply-ansi-colors raw-value)))
     (if pimacs-use-ansi-colors
-        (insert (ansi-color-apply value))
-      (insert (propertize (ansi-color-filter-apply value)
+        (insert value)
+      (insert (propertize value
                           'face
                           (widget-get widget :face))))))
 
@@ -1146,7 +1147,7 @@ with the message plist to insert the custom message content."
   (let* ((exit-code (plist-get details :exitCode))
          (cancelled (plist-get details :cancelled))
          (full-output-path (plist-get details :fullOutputPath))
-         (text (pimacs--content-text content)))
+         (text (pimacs--apply-ansi-colors (pimacs--content-text content))))
     (when (not (string-empty-p text))
       (insert (format "%s" text)))
     (when (eq cancelled t)

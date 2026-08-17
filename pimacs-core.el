@@ -28,11 +28,17 @@
 
 (require 'pimacs-utils)
 (require 'project)
+(require 'ansi-color)
 
 (defcustom pimacs-use-ansi-colors t
   "Whether to render ANSI colors in widget and status output."
   :type 'boolean
   :group 'pimacs)
+
+(defun pimacs--apply-ansi-colors (text)
+  (if pimacs-use-ansi-colors
+      (ansi-color-apply text)
+    (ansi-color-filter-apply text)))
 
 (pimacs--def-permanent-buffer-local pimacs--project-root nil)
 (pimacs--def-permanent-buffer-local pimacs--project-key nil)

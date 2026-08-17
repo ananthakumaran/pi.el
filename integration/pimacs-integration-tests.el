@@ -515,4 +515,12 @@
 
     (pimacs-send-prompt-and-wait "/rpc-set-title")))
 
+(ert-deftest pimacs-bash-ansi-colors ()
+  (pimacs-with-integration-project "bash-ansi-colors"
+    (pimacs-send-prompt-and-wait
+     "!printf '\\033[31mred\\033[0m\\n'")
+    (pimacs-send-prompt-and-wait
+     "!!printf '\\033[31mred\\033[0m\\n'")
+    (pimacs-send-prompt-and-wait
+     "Run exactly this bash command: printf '\\033[31mred\\033[0m\\n'")))
 ;;; pimacs-tests.el ends here

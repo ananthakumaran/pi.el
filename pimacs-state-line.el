@@ -265,9 +265,7 @@ See `pimacs-header-line-format' for available components."
               ((stringp status-key))
               (text (gethash status-key status-texts)))
     (let ((text (replace-regexp-in-string "[\n\r]+" " " text)))
-      (if pimacs-use-ansi-colors
-          (ansi-color-apply text)
-        (ansi-color-filter-apply text)))))
+      (pimacs--apply-ansi-colors text))))
 
 (defconst pimacs--state-line-formatters
   '((:model . pimacs--format-state-line-model)
