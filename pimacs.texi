@@ -1,7 +1,7 @@
 \input texinfo   @c -*-texinfo-*-
 @c %**start of header
 @setfilename pimacs.info
-@set VERSION 0.4.0
+@set VERSION 0.5.0-pre
 @settitle Pimacs User Manual v@value{VERSION}
 @c %**end of header
 
@@ -24,6 +24,7 @@ General Public License for more details.
 
 @ifhtml
 @html
+<link rel="alternate" type="text/markdown" href="index.md">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
 

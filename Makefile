@@ -107,7 +107,7 @@ docs-lint:
 	  grep '^pimacs[.-]' | grep -v 'All variables and subroutines might as well have a documentation string' || true
 
 .PHONY: docs
-docs: docs/index.html docs/changelog.html
+docs: docs/index.html docs/index.md docs/changelog.html docs/changelog.md
 
 pimacs.info: Makefile pimacs.texi $(PIMACS_DOC_SOURCES) docs/build.el
 	@PIMACS_DOC_SOURCES="$(PIMACS_DOC_SOURCES)" $(EMACS) -Q --batch -l docs/build.el
@@ -116,12 +116,21 @@ pimacs.info: Makefile pimacs.texi $(PIMACS_DOC_SOURCES) docs/build.el
 docs/index.html: pimacs.info
 	@makeinfo --no-number-sections --html --no-split -o $@ pimacs.texi
 
+docs/index.md: pimacs.info
+	@tmp=$$(mktemp); \
+	trap 'rm -f "$$tmp"' EXIT; \
+	makeinfo --no-number-sections --docbook -o "$$tmp" pimacs.texi && \
+	pandoc --from=docbook --to=gfm --standalone --output=$@ "$$tmp"
+
 docs/changelog.html: CHANGELOG.md docs/changelog-head.html docs/changelog-template.html docs/global.css
 	@pandoc --from=gfm --to=html5 --standalone \
 	  --metadata title="Pimacs Changelog" \
 	  --template=docs/changelog-template.html \
 	  --include-in-header=docs/changelog-head.html --css=global.css \
 	  --output=$@ $<
+
+docs/changelog.md: CHANGELOG.md
+	@cp $< $@
 
 define run-verify-task
 	@printf '%s\n' 'make $(1)'
