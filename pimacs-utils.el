@@ -24,13 +24,7 @@
 (require 'subr-x)
 (require 'widget)
 (require 'ffap)
-(require 'markdown-mode)
 (require 'diff-mode)
-
-(defcustom pimacs-align-markdown-tables t
-  "Whether to align markdown tables while rendering assistant output."
-  :type 'boolean
-  :group 'pimacs)
 
 (defun pimacs--json-read-object ()
   (json-parse-buffer :object-type 'plist :null-object 'json-null :false-object 'json-false :array-type 'list))
@@ -201,40 +195,12 @@ PRED is called with KEY VALUE."
          (point)
          (line-end-position))))))
 
-(defun pimacs--align-markdown-tables ()
-  (save-excursion
-    (goto-char (point-min))
-    (while (re-search-forward "|" nil t)
-      (when (markdown-table-at-point-p)
-        (goto-char (markdown-table-begin))
-        (markdown-table-align)
-        (goto-char (markdown-table-end))))))
-
-(defun pimacs--render-markdown-with-markdown-mode (text)
-  (with-temp-buffer
-    (insert text)
-    (let ((inhibit-message t)
-          (message-log-max nil))
-      (ignore-errors
-        (delay-mode-hooks
-          (gfm-view-mode))
-        (when pimacs-align-markdown-tables
-          (condition-case nil
-              (let ((inhibit-read-only t))
-                (pimacs--align-markdown-tables))
-            (error nil)))
-        (font-lock-ensure)))
-    (buffer-string)))
 
 (defun pimacs--render-markdown-default (operation &optional _state text)
   (pcase operation
     (:create nil)
-    (:stream
-     (list (list :append
-                 (pimacs--render-markdown-with-markdown-mode text))))
-    (:final
-     (list (list :append
-                 (pimacs--render-markdown-with-markdown-mode text))))
+    (:stream (list (list :append text)))
+    (:final (list (list :append text)))
     (:destroy nil)))
 
 (defun pimacs--render-thinking-default (operation &optional _state text)

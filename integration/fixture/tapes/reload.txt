@@ -16,9 +16,9 @@ Let me offer helpful assistance while being friendly.
 assistant> Hello back! It seems like you're going through this conversation again with "hello" appearing twice, which could suggest there might have been a previous greeting or that's part of an exchange pattern we've been seeing in our chat. 😊
 
 How about I can help something today? Whether it's:
-- Exploring available tools for your specific task/interests
-- Looking at some resources related to my capabilities
-- Asking anything else you'd like  
+▪ Exploring available tools for your specific task/interests
+▪ Looking at some resources related to my capabilities
+▪ Asking anything else you'd like  
 Just let me know! 💪
 
 Reloaded extensions, skills and prompts.
@@ -37,9 +37,9 @@ Let me offer helpful assistance while being friendly.
 assistant> Hello back! It seems like you're going through this conversation again with "hello" appearing twice, which could suggest there might have been a previous greeting or that's part of an exchange pattern we've been seeing in our chat. 😊
 
 How about I can help something today? Whether it's:
-- Exploring available tools for your specific task/interests
-- Looking at some resources related to my capabilities
-- Asking anything else you'd like  
+▪ Exploring available tools for your specific task/interests
+▪ Looking at some resources related to my capabilities
+▪ Asking anything else you'd like  
 Just let me know! 💪
 
 

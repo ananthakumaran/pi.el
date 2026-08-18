@@ -6,7 +6,7 @@
 ;; URL: https://github.com/ananthakumaran/pimacs.el
 ;; Version: 0.5.0-pre
 ;; Keywords: convenience processes
-;; Package-Requires: ((emacs "29.1") (compat "31.0") (markdown-mode "2.8") (timeout "2.1.7") (pcre2el "1.12") (spinner "1.7") (transient "0.3.7"))
+;; Package-Requires: ((emacs "29.1") (compat "31.0") (timeout "2.1.7") (pcre2el "1.12") (spinner "1.7") (transient "0.3.7"))
 
 ;; This program is free software: you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by
@@ -165,7 +165,7 @@ when agent stops."
                  (const :tag "Steer" steer))
   :group 'pimacs)
 
-(defcustom pimacs-markdown-renderer #'pimacs--render-markdown-default
+(defcustom pimacs-markdown-renderer #'pimacs--render-markdown
   "Function used to render Markdown content.
 
 Pi calls it as `(RENDERER :create)', `(RENDERER :stream STATE TEXT)',
@@ -173,8 +173,8 @@ Pi calls it as `(RENDERER :create)', `(RENDERER :stream STATE TEXT)',
 returns opaque renderer state.  `:stream' and `:final' return `:append',
 `:delete', and `:replace-suffix' operations.  `:destroy' releases resources.
 
-The default preserves the existing `markdown-mode' renderer.  Set this to
-`pimacs--render-markdown' to opt into the tree-sitter renderer."
+The default uses the incremental Tree-sitter Markdown renderer.  It requires
+the Markdown and Markdown Inline Tree-sitter grammars."
   :type 'function
   :group 'pimacs)
 

@@ -588,7 +588,7 @@ before the next LLM call.
 when agent stops.
 @end defopt
 
-@defopt pimacs-markdown-renderer @code{#'pimacs--render-markdown-default}
+@defopt pimacs-markdown-renderer @code{#'pimacs--render-markdown}
 
 Function used to render Markdown content.
 
@@ -597,8 +597,8 @@ Pi calls it as @code{(RENDERER :create)}, @code{(RENDERER :stream STATE TEXT)},
 returns opaque renderer state.  @code{:stream} and @code{:final} return @code{:append},
 @code{:delete}, and @code{:replace-suffix} operations.  @code{:destroy} releases resources.
 
-The default preserves the existing @code{markdown-mode} renderer.  Set this to
-@code{pimacs--render-markdown} to opt into the tree-sitter renderer.
+The default uses the incremental Tree-sitter Markdown renderer.  It requires
+the Markdown and Markdown Inline Tree-sitter grammars.
 @end defopt
 
 @defopt pimacs-thinking-renderer @code{#'pimacs--render-thinking-default}
@@ -896,8 +896,8 @@ See @code{pimacs-header-line-format} for available components.
   "html_block")
 @end lisp
 
-Markdown block node types rendered on a fresh line when the renderer
-  starts mid-line.
+List of Markdown block node types.
+Render these on a fresh line when the renderer starts mid-line.
 @end defopt
 
 @defopt pimacs-markdown-incremental-render-debug @code{nil}
@@ -911,11 +911,6 @@ When non-nil, diagnostics are appended to the temporary buffer
 @defopt pimacs-markdown-use-unicode-tables @code{t}
 
 Whether to render Markdown tables with Unicode borders.
-@end defopt
-
-@defopt pimacs-align-markdown-tables @code{t}
-
-Whether to align markdown tables while rendering assistant output.
 @end defopt
 
 @defopt pimacs-section-autohide-count @code{2}

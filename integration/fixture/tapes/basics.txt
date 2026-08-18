@@ -17,14 +17,14 @@ me present this information clearly to the user.
 
 assistant> Here are the files and directories in the current directory:
 
-| Files/Directories | Type        |
-|-------------------|-------------|
-| `.project`        | Hidden file |
-| `agent/`          | Directory   |
-| `config.json`     | File        |
-| `notes.txt`       | File        |
-| `README.md`       | File        |
-| `utils.py`        | File        |
+│ Files/Directories  │ Type  │
+├─────────────────── ┼───────────── ┤
+│ .project  │ Hidden file  │
+│ agent/  │ Directory  │
+│ config.json  │ File  │
+│ notes.txt  │ File  │
+│ README.md  │ File  │
+│ utils.py  │ File  │
 
 Would you like me to explore any of these files or directories in more detail?
 
@@ -43,10 +43,11 @@ clearly to the user.
 
 assistant> Found 2 matches containing "sample":
 
-| File          | Line | Match                                                      |
-|---------------|------|------------------------------------------------------------|
-| `config.json` | 2    | `"name": "sample-project",`                                |
-| `README.md`   | 3    | This is a **sample project used for integration testing**. |
+│ File  │ Line  │ Match  │
+├───────────── ┼────── ┼───────────────────────────────────────────────── ┤
+│ config.json  │ 2  │ "name": "sample-project",  │
+│ README.md  │ 3  │ This is a sample project used for integration  │
+│   │   │ testing.  │
 
 Would you like more context around these matches or search for a different pattern?
 
@@ -63,7 +64,7 @@ Successfully wrote 19 bytes to test.txt
 assistant> The file has been created successfully. Let me confirm this to the
 user.
 
-assistant> File `test.txt` has been created successfully in the current directory.
+assistant> File test.txt has been created successfully in the current directory.
 
 user> delete test.txt
 
@@ -76,7 +77,7 @@ bash rm test.txt
 assistant> The file has been deleted successfully. Since there was no output, it
 likely succeeded. I should confirm this to the user.
 
-assistant> File `test.txt` has been deleted successfully.
+assistant> File test.txt has been deleted successfully.
 
 user> find files with json extension
 
@@ -91,13 +92,13 @@ config.json
 assistant> The find function returned 3 JSON files found in the project. I should
 present this information clearly to the user.
 
-assistant> Found 3 files with `.json` extension:
+assistant> Found 3 files with .json extension:
 
-| File                  |
-|-----------------------|
-| `agent/auth.json`     |
-| `agent/settings.json` |
-| `config.json`         |
+│ File  │
+├───────────────────── ┤
+│ agent/auth.json  │
+│ agent/settings.json  │
+│ config.json  │
 
 Would you like to read the contents of any of these files?
 
@@ -130,9 +131,8 @@ assistant> The file has been read successfully. I should present the contents in
 a formatted way and offer to do more actions like searching within it
 or modifying it.
 
-assistant> Here's the contents of `utils.py`:
+assistant> Here's the contents of utils.py:
 
-```python
 def greet(name):
     return f"Hello, {name}!"
 
@@ -149,12 +149,11 @@ class Counter:
 
     def reset(self):
         self.count = 0
-```
 
 This file contains three functions:
-- `greet()` - Prints a greeting message
-- `add()` - Returns the sum of two numbers
-- `Counter` class with `increment()` and `reset()` methods
+▪ greet() - Prints a greeting message
+▪ add() - Returns the sum of two numbers
+▪ Counter class with increment() and reset() methods
 
 Would you like to edit this file, search for patterns in it, or read any of the other files?
 
@@ -173,14 +172,12 @@ Successfully wrote 108 bytes to test.txt
 assistant> The file has been created successfully. I should confirm this to the
 user and let them know what content was written to the file.
 
-assistant> File `test.txt` has been created successfully with the following text:
+assistant> File test.txt has been created successfully with the following text:
 
-```
 This is a test file.
 
 It was just created with some text content.
 This might be useful for testing purposes.
-```
 
 If you'd like to do anything else with this file or need any other assistance, let me know!
 
@@ -242,7 +239,7 @@ Line 3: This might be useful for testing purposes.
 
 Let me confirm this was successful to the user.
 
-assistant> Done! The 3rd line has been removed from `test.txt`. 
+assistant> Done! The 3rd line has been removed from test.txt. 
 
 The file now contains:
 1. This is a test file.
@@ -286,7 +283,7 @@ bash rm test.txt
 assistant> The file test.txt has been deleted successfully. Let me inform the
 user about the deletion.
 
-assistant> File `test.txt` has been deleted successfully.
+assistant> File test.txt has been deleted successfully.
 
 Session exported to: /tmp/pimacs-session.html
 

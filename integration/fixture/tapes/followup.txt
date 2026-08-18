@@ -32,10 +32,10 @@ files, projects, or discussions.
 
 assistant> I'm ready to help you with follow-ups! However, I need a bit more information to assist you properly. Could you please clarify what you'd like to follow up on? For example, are you following up on:
 
-- A specific file or document
-- A previous conversation or discussion
-- A project or workflow
-- Something specific in your notes or files
+▪ A specific file or document
+▪ A previous conversation or discussion
+▪ A project or workflow
+▪ Something specific in your notes or files
 
 Let me know what needs to be addressed and I'll do my best to help!
 

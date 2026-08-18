@@ -15,6 +15,20 @@
 (require 'pimacs)
 (require 'pimacs-markdown)
 
+(ert-deftest pimacs-markdown-missing-treesit-warns-once ()
+  (let ((pimacs--markdown-treesit-warning-shown nil)
+        warnings)
+    (cl-letf (((symbol-function 'pimacs--markdown-available-p)
+               (lambda () nil))
+              ((symbol-function 'display-warning)
+               (lambda (&rest args)
+                 (push args warnings))))
+      (should (equal (pimacs--render-markdown :stream nil "text")
+                     '((:append "text"))))
+      (should (equal (pimacs--render-markdown :final nil "more")
+                     '((:append "more"))))
+      (should (= (length warnings) 1)))))
+
 (defvar pimacs-markdown-tests--directory
   (expand-file-name "pimacs-markdown-tapes"
                     (file-name-directory (or load-file-name buffer-file-name))))

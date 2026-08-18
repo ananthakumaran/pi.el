@@ -508,8 +508,7 @@ File: pimacs.info,  Node: Custom Variables,  Next: Custom Faces,  Prev: Keybindi
      ‘followUp’: Wait until the agent finishes.  Message is delivered
      only when agent stops.
 
- -- User Option: pimacs-markdown-renderer
-          #'pimacs--render-markdown-default
+ -- User Option: pimacs-markdown-renderer #'pimacs--render-markdown
 
      Function used to render Markdown content.
 
@@ -519,9 +518,8 @@ File: pimacs.info,  Node: Custom Variables,  Next: Custom Faces,  Prev: Keybindi
      ‘:final’ return ‘:append’, ‘:delete’, and ‘:replace-suffix’
      operations.  ‘:destroy’ releases resources.
 
-     The default preserves the existing ‘markdown-mode’ renderer.  Set
-     this to ‘pimacs--render-markdown’ to opt into the tree-sitter
-     renderer.
+     The default uses the incremental Tree-sitter Markdown renderer.  It
+     requires the Markdown and Markdown Inline Tree-sitter grammars.
 
  -- User Option: pimacs-thinking-renderer
           #'pimacs--render-thinking-default
@@ -788,8 +786,8 @@ File: pimacs.info,  Node: Custom Variables,  Next: Custom Faces,  Prev: Keybindi
             "thematic_break"
             "html_block")
 
-     Markdown block node types rendered on a fresh line when the
-     renderer starts mid-line.
+     List of Markdown block node types.  Render these on a fresh line
+     when the renderer starts mid-line.
 
  -- User Option: pimacs-markdown-incremental-render-debug nil
 
@@ -801,10 +799,6 @@ File: pimacs.info,  Node: Custom Variables,  Next: Custom Faces,  Prev: Keybindi
  -- User Option: pimacs-markdown-use-unicode-tables t
 
      Whether to render Markdown tables with Unicode borders.
-
- -- User Option: pimacs-align-markdown-tables t
-
-     Whether to align markdown tables while rendering assistant output.
 
  -- User Option: pimacs-section-autohide-count 2
 
@@ -1072,7 +1066,7 @@ Node: Sandbox13146
 Node: How It Works13539
 Node: Keybindings14691
 Node: Custom Variables18028
-Node: Custom Faces32289
+Node: Custom Faces32144
 
 End Tag Table
 

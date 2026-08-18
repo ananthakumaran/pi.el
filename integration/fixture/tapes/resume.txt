@@ -12,9 +12,9 @@ ask for clarification about what they're looking for.
 
 assistant> I see you've sent "h1" - this appears incomplete. Could you please provide more details about what you're looking for? For example:
 
-- A specific file, directory, or code structure?
-- An abbreviation or acronym you'd like me to explain?
-- Something related to HTML (h1 header tags) or mathematics?
+▪ A specific file, directory, or code structure?
+▪ An abbreviation or acronym you'd like me to explain?
+▪ Something related to HTML (h1 header tags) or mathematics?
 
 Please clarify so I can assist you better!
 
@@ -34,8 +34,8 @@ assistant> It looks like you may be continuing from "h1" with "h2".
 
 Could you please provide more context? Are you asking about:
 
-* **HTML heading tags (h2)** - the second-level heading element?
-* Something else, and you need additional help?
+▪ HTML heading tags (h2) - the second-level heading element?
+▪ Something else, and you need additional help?
 
 Let me know how I can assist!
 
@@ -65,27 +65,27 @@ sequence this way.
 
 assistant> I notice you are sending a sequence: h1, h2, h3. This looks like you might be asking about HTML heading tags!
 
-## HTML Heading Tags (h1-h6)
+HTML Heading Tags (h1-h6)
 
-| Tag    | Priority | Description                      |
-|--------|----------|----------------------------------|
-| **h1** | 1        | Highest priority - main title    |
-| **h2** | 2        | Secondary headings               |
-| **h3** | 3        | Tertiary headings                |
-| **h4** | 4        | Lower secondary headings         |
-| **h5** | 5        | Secondary headings               |
-| **h6** | 6        | Lowest priority - micro headings |
+│ Tag  │ Priority  │ Description  │
+├───── ┼────────── ┼────────────────────────────────── ┤
+│ h1  │ 1  │ Highest priority - main title  │
+│ h2  │ 2  │ Secondary headings  │
+│ h3  │ 3  │ Tertiary headings  │
+│ h4  │ 4  │ Lower secondary headings  │
+│ h5  │ 5  │ Secondary headings  │
+│ h6  │ 6  │ Lowest priority - micro headings  │
 
-### Best Practices:
-- **Use h1** for your page's main title (one per page)
-- Use **h2** and **h3** for section and subsection headings respectively
-- Ensure heading hierarchy is **logical** (h1 → h2 → h3, etc.)
-- Avoid skipping levels unless intentional
+Best Practices:
+▪ Use h1 for your page's main title (one per page)
+▪ Use h2 and h3 for section and subsection headings respectively
+▪ Ensure heading hierarchy is logical (h1 → h2 → h3, etc.)
+▪ Avoid skipping levels unless intentional
 
 Would you like me to:
-- **Explain more** about heading usage or accessibility guidelines?
-- **Provide code examples** of heading hierarchies?
-- Help with something **specific** related to these headings?
+▪ Explain more about heading usage or accessibility guidelines?
+▪ Provide code examples of heading hierarchies?
+▪ Help with something specific related to these headings?
 
 Just let me know what you need! 😊
 

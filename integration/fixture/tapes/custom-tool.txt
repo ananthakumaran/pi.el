@@ -16,15 +16,15 @@ cowsay (:message "hello")
 assistant> The `cowsay` tool was called, and it successfully output the cow
 saying "hello". I've fulfilled the user's request.
 
-assistant> ______
+assistant> 
+────────────────────────────────────────────────────────────────────────────────
 < hello >
  ------
-        \   ^__^
-         \  (oo)\_______
-            (__)\       )\/\
-                |   | ----w |
-                |   |       |   |
-
+    \   ^__^
+     \  (oo)\_______
+        (__)\       )\/\
+            ||----w |
+            ||     ||
 
 
  user> 

@@ -24,6 +24,7 @@
 (require 'cl-lib)
 (require 'subr-x)
 (require 'treesit)
+(require 'warnings)
 (require 'widget)
 (require 'wid-edit)
 (require 'pimacs-core)
@@ -115,6 +116,16 @@
           (1+ (pimacs--markdown-render-context-list-depth context)))
     (setf (pimacs--markdown-render-context-list-index context) list-index)
     context))
+
+(defvar pimacs--markdown-treesit-warning-shown nil)
+
+(defun pimacs--warn-missing-markdown-treesit ()
+  (unless pimacs--markdown-treesit-warning-shown
+    (setq pimacs--markdown-treesit-warning-shown t)
+    (display-warning
+     '(pimacs treesit)
+     "Tree-sitter Markdown rendering is unavailable; falling back to plain text. Run M-x pimacs-doctor to install the required grammars."
+     :warning)))
 
 (defun pimacs--markdown-available-p ()
   (and (treesit-available-p)
@@ -268,8 +279,8 @@
     "list"
     "thematic_break"
     "html_block")
-  "Markdown block node types rendered on a fresh line when the renderer
-  starts mid-line."
+  "List of Markdown block node types.
+Render these on a fresh line when the renderer starts mid-line."
   :type '(repeat string)
   :group 'pimacs)
 
@@ -1477,6 +1488,7 @@ When non-nil, diagnostics are appended to the temporary buffer
 (defun pimacs--render-thinking-markdown (operation &optional state text)
   (if (pimacs--markdown-available-p)
       (pimacs--render-markdown operation state text)
+    (pimacs--warn-missing-markdown-treesit)
     (pimacs--render-thinking-default operation state text)))
 
 (defun pimacs--render-markdown (operation &optional state text)
@@ -1501,6 +1513,7 @@ When non-nil, diagnostics are appended to the temporary buffer
            (pimacs--markdown-cleanup-session state)))
         (:destroy
          (pimacs--markdown-cleanup-session state)))
+    (pimacs--warn-missing-markdown-treesit)
     (pimacs--render-markdown-default operation state text)))
 
 (provide 'pimacs-markdown)
