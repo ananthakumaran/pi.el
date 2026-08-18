@@ -11,3 +11,5 @@ coverage-final.json
 .pi
 docs/index.html
 docs/changelog.html
+docs/index.md
+docs/changelog.md
