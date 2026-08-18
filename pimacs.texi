@@ -884,6 +884,22 @@ Format of the Pimacs mode-line entry.
 See @code{pimacs-header-line-format} for available components.
 @end defopt
 
+@defopt pimacs-markdown-leading-newline-block-types
+
+@lisp
+'("pipe_table"
+  "fenced_code_block"
+  "indented_code_block"
+  "block_quote"
+  "list"
+  "thematic_break"
+  "html_block")
+@end lisp
+
+Markdown block node types rendered on a fresh line when the renderer
+  starts mid-line.
+@end defopt
+
 @defopt pimacs-markdown-incremental-render-debug @code{nil}
 
 Whether to capture incremental Markdown rendering diagnostics.

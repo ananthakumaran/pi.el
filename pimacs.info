@@ -778,6 +778,19 @@ File: pimacs.info,  Node: Custom Variables,  Next: Custom Faces,  Prev: Keybindi
 
      See ‘pimacs-header-line-format’ for available components.
 
+ -- User Option: pimacs-markdown-leading-newline-block-types
+
+          '("pipe_table"
+            "fenced_code_block"
+            "indented_code_block"
+            "block_quote"
+            "list"
+            "thematic_break"
+            "html_block")
+
+     Markdown block node types rendered on a fresh line when the
+     renderer starts mid-line.
+
  -- User Option: pimacs-markdown-incremental-render-debug nil
 
      Whether to capture incremental Markdown rendering diagnostics.
@@ -1059,7 +1072,7 @@ Node: Sandbox13146
 Node: How It Works13539
 Node: Keybindings14691
 Node: Custom Variables18028
-Node: Custom Faces31938
+Node: Custom Faces32289
 
 End Tag Table
 

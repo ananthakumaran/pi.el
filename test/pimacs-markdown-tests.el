@@ -39,6 +39,17 @@
         (pimacs--render-markdown :final state input)
       (pimacs--render-markdown :destroy state))))
 
+(defun pimacs-markdown-tests--render-final-at (prefix input)
+  (with-temp-buffer
+    (insert prefix)
+    (let ((state (pimacs--render-markdown :create)))
+      (unwind-protect
+          (substring-no-properties
+           (plist-get
+            (car (pimacs--render-markdown :final state input))
+            :append))
+        (pimacs--render-markdown :destroy state)))))
+
 (defun pimacs-markdown-tests--render-complete (input)
   (with-temp-buffer
     (let ((context (pimacs--render-create-context))
@@ -285,6 +296,52 @@
                        "final"))
         (should-not (cdr operations))
         (should-not (pimacs--markdown-render-session-buffer state))))))
+
+(ert-deftest pimacs-markdown-leading-newline-is-contextual ()
+  (dolist (source '("| Name | Value |\n| --- | --- |\n| foo | bar |"
+                    "```elisp\n(message \"hello\")\n```"
+                    "    one\n    two"
+                    "> quoted\n> text"
+                    "- first\n- second"))
+    (should (string-prefix-p
+             "\n"
+             (pimacs-markdown-tests--render-final-at
+              "assistant> " source))))
+  (should-not (string-prefix-p
+               "\n"
+               (pimacs-markdown-tests--render-final-at
+                "" "| Name | Value |\n| --- | --- |\n| foo | bar |"))))
+
+(ert-deftest pimacs-markdown-leading-newline-honors-custom-block-types ()
+  (let ((pimacs-markdown-leading-newline-block-types '("paragraph")))
+    (should (string-prefix-p
+             "\n"
+             (pimacs-markdown-tests--render-final-at
+              "assistant> " "plain text")))))
+
+(ert-deftest pimacs-markdown-leading-newline-streaming-reclassifies-source ()
+  (with-temp-buffer
+    (insert "assistant> ")
+    (let ((context (pimacs--render-create-context))
+          (state (pimacs--render-markdown :create))
+          (source "| Name | Value |\n| --- | --- |\n| foo | bar |"))
+      (unwind-protect
+          (progn
+            (pimacs--render-apply-operations
+             context
+             (pimacs--render-markdown :stream state "| Name | Value |\n"))
+            (pimacs--render-apply-operations
+             context
+             (pimacs--render-markdown
+              :stream state "| --- | --- |\n| foo | bar |"))
+            (should (equal
+                     (buffer-substring-no-properties
+                      (pimacs-render-context-content-begin context)
+                      (pimacs-render-context-content-end context))
+                     (pimacs--markdown-render-source source t)))
+            (should (pimacs--markdown-render-session-leading-newline-rendered
+                     state)))
+        (pimacs--render-markdown :destroy state)))))
 
 (ert-deftest pimacs-markdown-image-label-has-image-url ()
   (with-temp-buffer
