@@ -48,40 +48,23 @@
       (and (file-executable-p pimacs-executable) pimacs-executable)
     (executable-find pimacs-executable)))
 
-(defun pimacs-doctor--agent-version ()
-  (condition-case err
-      (with-temp-buffer
-        (let ((exit-code
-               (apply #'call-process pimacs-executable nil t nil
-                      (append pimacs-flags '("--version")))))
-          (if (zerop exit-code)
-              (list :version (string-trim (buffer-string)))
-            (list :error (format "Exited with status %d: %s"
-                                 exit-code (string-trim (buffer-string)))))))
-    (error (list :error (error-message-string err)))))
-
-(defun pimacs-doctor--agent-version-compatible-p (version)
-  (condition-case nil
-      (version-list-<= (version-to-list pimacs--minimum-version)
-                       (version-to-list version))
-    (error nil)))
-
 (defun pimacs-doctor--treesit-ready-p (language)
   (condition-case nil
       (treesit-ready-p language t)
     (error nil)))
 
 (defun pimacs-doctor--insert-status (ok text)
-  (insert (propertize (if ok "  ✓ " "  ✗ ")
+  (insert (propertize (if ok "  ✔ " "  ✖ ")
                       'face (if ok 'success 'error))
           text "\n"))
 
 (defun pimacs-doctor--insert-pi-status ()
   (insert (propertize "Pi\n" 'face 'bold))
   (if-let ((executable (pimacs-doctor--executable)))
-      (let ((result (pimacs-doctor--agent-version)))
-        (if-let ((version (plist-get result :version)))
-            (let ((compatible (pimacs-doctor--agent-version-compatible-p version)))
+      (let ((pimacs-executable executable))
+        (condition-case err
+            (let* ((version (pimacs--agent-version))
+                   (compatible (pimacs--agent-version-compatible-p version)))
               (pimacs-doctor--insert-status
                compatible
                (format "%s %s (minimum %s)"
@@ -90,12 +73,13 @@
                 (insert-text-button "Install or upgrade Pi"
                                     'action #'pimacs-doctor--install-pi)
                 (insert "\n")))
-          (pimacs-doctor--insert-status
-           nil (format "%s is available, but its version could not be determined: %s"
-                       executable (plist-get result :error)))
-          (insert-text-button "Install or upgrade Pi"
-                              'action #'pimacs-doctor--install-pi)
-          (insert "\n")))
+          (error
+           (pimacs-doctor--insert-status
+            nil (format "%s is available, but its version could not be determined: %s"
+                        executable (error-message-string err)))
+           (insert-text-button "Install or upgrade Pi"
+                               'action #'pimacs-doctor--install-pi)
+           (insert "\n"))))
     (pimacs-doctor--insert-status nil (format "%s was not found" pimacs-executable))
     (insert-text-button "Install or upgrade Pi"
                         'action #'pimacs-doctor--install-pi)

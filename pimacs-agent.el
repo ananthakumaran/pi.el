@@ -287,9 +287,14 @@
                 (error "Failed to run `%s' (exit code %d)" command-line exit-code))))
         (delete-file stderr-file)))))
 
+(defun pimacs--agent-version-compatible-p (version)
+  (condition-case nil
+      (version-list-<= (version-to-list pimacs--minimum-version)
+                       (version-to-list version))
+    (error nil)))
+
 (defun pimacs--check-agent-version (version)
-  (unless (version-list-<= (version-to-list pimacs--minimum-version)
-                           (version-to-list version))
+  (unless (pimacs--agent-version-compatible-p version)
     (error "Pi agent version %s is older than minimum supported version %s"
            version pimacs--minimum-version)))
 
