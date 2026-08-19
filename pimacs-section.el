@@ -25,6 +25,8 @@
 
 (require 'cl-lib)
 (require 'compat)
+(require 'button)
+(require 'pp)
 
 (defcustom pimacs-section-autohide-count 2
   "Automatically hide older chat sections beyond this count.
@@ -228,7 +230,7 @@ Set this to nil to disable fringe indicators."
   (memq (pimacs-section-visibility section) '(:autohide :hide)))
 
 (defun pimacs-section--user-toggled-p (section)
-  (memq (pimacs-section-visibility section) '(:show :hide)))
+  (not (null (memq (pimacs-section-visibility section) '(:show :hide)))))
 
 (defun pimacs-section--prefix-p (prefix list)
   "Return non-nil if PREFIX is a prefix of LIST.
@@ -973,30 +975,82 @@ otherwise it return t."
 
     (pop-to-buffer buf)))
 
-(defun pimacs-describe-section (section &optional indent)
-  "Pretty print SECTION and its children with INDENT.
-Does not recurse into the parent."
-  (interactive (list (pimacs-section--current-section) 0))
-  (let ((prefix (make-string (* indent 2) ?\s))
-        (parent (pimacs-section-parent section)))
-    (princ (format "%sSection: %s\n" prefix
-                   (pimacs-section-type section)))
-    (when parent
-      (princ (format "%s  parent: %s\n" prefix
-                     (pimacs-section-type parent))))
-    (princ (format "%s  beginning: %s, end: %s\n" prefix
-                   (pimacs-section-beginning section)
-                   (pimacs-section-end section)))
-    (princ (format "%s  visibility: %s\n" prefix
-                   (pimacs-section-visibility section)))
-    (when (pimacs-section-info section)
-      (princ (format "%s  info: %s\n" prefix
-                     (pimacs-section-info section))))
-    (let ((children (pimacs-section-children section)))
-      (when children
-        (princ (format "%s  Children:\n" prefix))
+(defun pimacs-section--info-sexp (info)
+  (if (cl-struct-p info)
+      (let ((type (type-of info)))
+        (cons
+         type
+         (cl-loop for (slot) in (cdr (cl-struct-slot-info type))
+                  append (list (intern (concat ":" (symbol-name slot)))
+                               (cl-struct-slot-value type slot info)))))
+    info))
+
+(defun pimacs-section--fontify-info (info)
+  (condition-case err
+      (with-temp-buffer
+        (emacs-lisp-mode)
+        (let ((print-circle t)
+              (print-level 10)
+              (print-length 100))
+          (insert (pp-to-string (pimacs-section--info-sexp info))))
+        (font-lock-ensure)
+        (buffer-string))
+    (error
+     (format "<Unable to display info: %s>" (error-message-string err)))))
+
+(defun pimacs-section--insert-description-link (section)
+  (insert-text-button
+   (format "%s" (pimacs-section-type section))
+   'action (lambda (_button) (pimacs-describe-section section))
+   'follow-link t))
+
+(defun pimacs-section--insert-description-field (field)
+  (insert (propertize field 'face 'font-lock-keyword-face)))
+
+(defun pimacs-describe-section (section)
+  "Display information about SECTION in a Help buffer."
+  (interactive
+   (let ((section (pimacs-section--current-section)))
+     (unless section
+       (user-error "No section at point"))
+     (list section)))
+  (help-setup-xref (list #'pimacs-describe-section section)
+                   (called-interactively-p 'interactive))
+  (with-help-window (help-buffer)
+    (let ((parent (pimacs-section-parent section)))
+      (pimacs-section--insert-description-field "type:")
+      (insert (format " %s\n" (pimacs-section-type section)))
+      (when (and parent (pimacs-section-parent parent))
+        (pimacs-section--insert-description-field "parent:")
+        (insert " ")
+        (pimacs-section--insert-description-link parent)
+        (insert "\n"))
+      (pimacs-section--insert-description-field "beginning:")
+      (insert (format " %s\n" (pimacs-section-beginning section)))
+      (pimacs-section--insert-description-field "end:")
+      (insert (format " %s\n" (pimacs-section-end section)))
+      (pimacs-section--insert-description-field "visibility:")
+      (insert (format " %s\n" (pimacs-section-visibility section)))
+      (pimacs-section--insert-description-field "visibility-user-overridden:")
+      (insert (format " %s\n" (pimacs-section--user-toggled-p section)))
+      (pimacs-section--insert-description-field "autohide-eligible:")
+      (insert
+       (format " %s\n"
+               (if (and parent (not (pimacs-section-parent parent)))
+                   (pimacs-section--autohide-eligible-p section)
+                 "not applicable")))
+      (pimacs-section--insert-description-field "face:")
+      (insert (format " %s\n" (pimacs-section-face section)))
+      (when-let ((children (pimacs-section-children section)))
+        (pimacs-section--insert-description-field "Children:")
         (dolist (child children)
-          (pimacs-describe-section child (1+ indent)))))))
+          (insert " ")
+          (pimacs-section--insert-description-link child))
+        (insert "\n"))
+      (when-let ((info (pimacs-section-info section)))
+        (pimacs-section--insert-description-field "info:")
+        (insert "\n")
+        (insert (pimacs-section--fontify-info info))))))
 
 (defun pimacs-section--section-line ()
   "Return the 0-based line number of point within the current section.

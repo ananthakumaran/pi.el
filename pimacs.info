@@ -116,6 +116,7 @@ anywhere in the chat buffer to move point to the prompt input area.
 * Images::
 * State Lines::
 * Managing Sessions::
+* Section Visibility::
 
 
 File: pimacs.info,  Node: Slash Commands,  Next: File Name Completion,  Up: Usage
@@ -265,7 +266,7 @@ status only in a state line, add its key to
      (setq pimacs-status-widget-hidden-keys '("xyz-status"))
 
 
-File: pimacs.info,  Node: Managing Sessions,  Prev: State Lines,  Up: Usage
+File: pimacs.info,  Node: Managing Sessions,  Next: Section Visibility,  Prev: State Lines,  Up: Usage
 
 4.7 Managing Sessions
 =====================
@@ -278,6 +279,46 @@ column header to sort by that column.
 
    Customize the list's columns and initial sort order with
 ‘pimacs-list-sessions-table’ and ‘pimacs-list-sessions-sort-key’.
+
+
+File: pimacs.info,  Node: Section Visibility,  Prev: Managing Sessions,  Up: Usage
+
+4.8 Section Visibility
+======================
+
+Pimacs represents the chat as a hierarchy of sections.  Every non-root
+section has a type, a visibility state, and may have a parent or
+children.  Put point in a section and run ‘M-x pimacs-describe-section’
+to open a Help buffer with these details.  The report shows the
+section's ‘type’, visibility and user override state, automatic-hiding
+eligibility, applied face, buffer positions, and metadata.  Parent and
+child section types are links; use ‘RET’ to follow them.  The ‘type’
+value is the symbol to use when configuring section faces or automatic
+hiding, such as ‘tool-call’.
+
+   Use ‘TAB’ or ‘C-i’ to toggle the section at point.  Hiding a section
+keeps its first line visible, so it can be shown again.  On graphical
+displays, the fringe indicator can also be selected with the mouse to
+toggle visibility.  Use ‘S-TAB’ to cycle the visibility of the entire
+chat, or ‘1’, ‘2’, and ‘3’ to show progressively more of the tree around
+point.  ‘M-1’, ‘M-2’, and ‘M-3’ do the same for every top-level section.
+See *note Keybindings:: for the complete list of visibility and
+navigation commands.
+
+   As a conversation grows, Pimacs automatically hides older top-level
+sections.  ‘pimacs-section-autohide-count’ sets how many eligible recent
+sections remain visible; its default is 2, and ‘nil’ disables automatic
+hiding.  Use ‘pimacs-section-autohide-filter’ to select the eligible
+section types.  For example, the following keeps four eligible sections
+visible while never automatically hiding user sections:
+
+     (setq pimacs-section-autohide-count 4
+           pimacs-section-autohide-filter '(:exclude user))
+
+   Automatic hiding does not override a section whose visibility you
+explicitly toggled with ‘TAB’ or ‘C-i’.  Set
+‘pimacs-section-visibility-indicators’ to ‘nil’ to disable the fringe
+indicators.
 
 
 File: pimacs.info,  Node: UI Customization,  Next: Sandbox,  Prev: Usage,  Up: Top
@@ -1068,19 +1109,20 @@ Node: Introduction1159
 Node: Setup1416
 Node: Doctor2213
 Node: Usage2585
-Node: Slash Commands3445
-Node: File Name Completion5686
-Node: Bash6014
-Node: Sending Context6281
-Node: Images7089
-Node: State Lines7954
-Node: Managing Sessions9282
-Node: UI Customization9875
-Node: Sandbox13146
-Node: How It Works13539
-Node: Keybindings14691
-Node: Custom Variables18028
-Node: Custom Faces32746
+Node: Slash Commands3468
+Node: File Name Completion5709
+Node: Bash6037
+Node: Sending Context6304
+Node: Images7112
+Node: State Lines7977
+Node: Managing Sessions9305
+Node: Section Visibility9925
+Node: UI Customization11955
+Node: Sandbox15226
+Node: How It Works15619
+Node: Keybindings16771
+Node: Custom Variables20108
+Node: Custom Faces34826
 
 End Tag Table
 

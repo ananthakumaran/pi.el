@@ -141,6 +141,7 @@ input area.
 * Images::
 * State Lines::
 * Managing Sessions::
+* Section Visibility::
 @end menu
 
 @node Slash Commands
@@ -326,6 +327,44 @@ column header to sort by that column.
 
 Customize the list's columns and initial sort order with
 @code{pimacs-list-sessions-table} and @code{pimacs-list-sessions-sort-key}.
+
+@node Section Visibility
+@section Section Visibility
+
+Pimacs represents the chat as a hierarchy of sections.  Every non-root section
+has a type, a visibility state, and may have a parent or children.  Put point in
+a section and run @kbd{M-x pimacs-describe-section} to open a Help buffer with
+these details.  The report shows the section's @code{type}, visibility and
+user override state, automatic-hiding eligibility, applied face, buffer
+positions, and metadata.  Parent and child section types are links; use
+@kbd{RET} to follow them.  The @code{type} value is the symbol to use when
+configuring section faces or automatic hiding, such as @code{tool-call}.
+
+Use @kbd{TAB} or @kbd{C-i} to toggle the section at point.  Hiding a section
+keeps its first line visible, so it can be shown again.  On graphical displays,
+the fringe indicator can also be selected with the mouse to toggle visibility.
+Use @kbd{S-TAB} to cycle the visibility of the entire chat, or @kbd{1},
+@kbd{2}, and @kbd{3} to show progressively more of the tree around point.
+@kbd{M-1}, @kbd{M-2}, and @kbd{M-3} do the same for every top-level section.
+See @ref{Keybindings} for the complete list of visibility and navigation
+commands.
+
+As a conversation grows, Pimacs automatically hides older top-level sections.
+@code{pimacs-section-autohide-count} sets how many eligible recent sections
+remain visible; its default is 2, and @code{nil} disables automatic hiding.
+Use @code{pimacs-section-autohide-filter} to select the eligible section
+types.  For example, the following keeps four eligible sections visible while
+never automatically hiding user sections:
+
+@lisp
+(setq pimacs-section-autohide-count 4
+      pimacs-section-autohide-filter '(:exclude user))
+@end lisp
+
+Automatic hiding does not override a section whose visibility you explicitly
+toggled with @kbd{TAB} or @kbd{C-i}.
+Set @code{pimacs-section-visibility-indicators} to @code{nil} to disable the
+fringe indicators.
 
 @node UI Customization
 @chapter UI Customization
