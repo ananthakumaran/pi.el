@@ -793,6 +793,7 @@
                                           :message (list :role "user"
                                                          :content (format "message-%d" index)))))
           (pimacs-section-padding "|")
+          (pimacs-section-autohide-count 5)
           scheduled)
       (cl-letf (((symbol-function 'pimacs--history-schedule-idle-render)
                  (lambda (buffer generation)
@@ -808,7 +809,8 @@
         (should (= (length roots) 12))
         (should-not pimacs--history-loading-section)
         (should-not pimacs--history-render-pending)
-        (should (cl-every #'pimacs-section--hidden-p (seq-take roots 10)))
+        (should (cl-every #'pimacs-section--hidden-p (seq-take roots 7)))
+        (should (cl-every #'pimacs-section--visible-p (seq-drop roots 7)))
         (should (equal (buffer-string)
                        (concat "user> message-0|user> message-1|user> message-2|"
                                "user> message-3|user> message-4|user> message-5|"
@@ -816,6 +818,30 @@
                                "user> message-9|user> message-10|user> message-11|\n")))
         (should (equal scheduled
                        (list (current-buffer) pimacs--history-render-generation)))))))
+
+(ert-deftest pimacs--render-session-history-disables-lazy-autohide-with-nil-count ()
+  (with-temp-buffer
+    (pimacs-section--create-root-section)
+    (setq pimacs--tool-calls (make-hash-table :test 'equal)
+          pimacs--bash-executions (make-hash-table :test 'equal)
+          pimacs--content-sections (make-hash-table :test 'eql)
+          pimacs--history-render-generation 0)
+    (setq pimacs--prompt-widget
+          (widget-create 'editable-field :format "%v" :value ""))
+    (widget-setup)
+    (let ((entries (cl-loop for index below 12
+                            collect (list :type "message"
+                                          :message (list :role "user"
+                                                         :content (format "message-%d" index)))))
+          (pimacs-section-autohide-count nil))
+      (cl-letf (((symbol-function 'pimacs--history-schedule-idle-render)
+                 (lambda (_buffer _generation))))
+        (pimacs--widget-save-excursion
+          (pimacs--render-session-history entries))
+        (pimacs--history-render-idle (current-buffer) pimacs--history-render-generation))
+      (let ((roots (pimacs-section-children pimacs-section--root-section)))
+        (should (= (length roots) 12))
+        (should (cl-every #'pimacs-section--visible-p roots))))))
 
 
 ;;; pimacs-tests.el ends here

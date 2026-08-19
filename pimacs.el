@@ -2361,24 +2361,13 @@ FIELDS is a list of (LABEL . KEY) where KEY is a plist key."
       (setq pimacs--history-loading-section nil
             pimacs--history-render-boundary nil))))
 
-(defun pimacs--history-new-sections (boundary)
-  (let ((sections (cdr (memq pimacs--history-loading-section
-                             (pimacs-section-children pimacs-section--root-section))))
-        result)
-    (while (and sections (not (eq (car sections) boundary)))
-      (push (car sections) result)
-      (setq sections (cdr sections)))
-    (nreverse result)))
-
 (defun pimacs--history-render-chunk (chunk)
-  (let ((boundary pimacs--history-render-boundary)
-        (pimacs--tool-calls (make-hash-table :test 'equal)))
+  (let ((pimacs--tool-calls (make-hash-table :test 'equal)))
     (pimacs-section--with-insertion-before
         pimacs-section--root-section pimacs--history-render-boundary
       (pimacs--widget-save-excursion
         (pimacs--render-session-entries chunk)))
-    (dolist (section (pimacs--history-new-sections boundary))
-      (pimacs-section--set-visibility section :autohide))
+    (pimacs-section-autohide)
     (setq pimacs--history-render-boundary
           (cadr (pimacs-section-children pimacs-section--root-section)))
     (pimacs--history-update-loading-section)))
