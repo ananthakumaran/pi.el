@@ -807,6 +807,20 @@ File: pimacs.info,  Node: Custom Variables,  Next: Custom Faces,  Prev: Keybindi
      conversation grows long.  When nil, auto hiding is disabled and no
      sections are hidden automatically.
 
+ -- User Option: pimacs-section-autohide-filter 'all
+
+     Filter controlling which sections are eligible for automatic
+     hiding.
+
+     When set to ‘all’, every top-level section is eligible.
+
+     A value of ‘(:include TYPE...)’ makes only the listed section types
+     eligible.  A value of ‘(:exclude TYPE...)’ makes every section type
+     except the listed types eligible.  A function value is called with
+     each top-level section and should return non-nil when that section
+     is eligible.  Non-eligible sections do not count toward
+     ‘pimacs-section-autohide-count’.
+
  -- User Option: pimacs-section-padding "\n\n"
 
      String inserted between sections to control the visual gap.
@@ -1066,7 +1080,7 @@ Node: Sandbox13146
 Node: How It Works13539
 Node: Keybindings14691
 Node: Custom Variables18028
-Node: Custom Faces32144
+Node: Custom Faces32746
 
 End Tag Table
 

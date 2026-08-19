@@ -921,6 +921,19 @@ conversation grows long.  When nil, auto hiding is disabled and no
 sections are hidden automatically.
 @end defopt
 
+@defopt pimacs-section-autohide-filter @code{'all}
+
+Filter controlling which sections are eligible for automatic hiding.
+
+When set to @code{all}, every top-level section is eligible.
+
+A value of @code{(:include TYPE...)} makes only the listed section types eligible.
+A value of @code{(:exclude TYPE...)} makes every section type except the listed
+types eligible.  A function value is called with each top-level section and
+should return non-nil when that section is eligible.  Non-eligible sections
+do not count toward @code{pimacs-section-autohide-count}.
+@end defopt
+
 @defopt pimacs-section-padding @code{"\n\n"}
 
 String inserted between sections to control the visual gap.

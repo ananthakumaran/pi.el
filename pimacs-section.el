@@ -35,6 +35,27 @@ sections are hidden automatically."
                  integer)
   :group 'pimacs)
 
+(defcustom pimacs-section-autohide-filter 'all
+  "Filter controlling which sections are eligible for automatic hiding.
+
+When set to `all', every top-level section is eligible.
+
+A value of `(:include TYPE...)' makes only the listed section types eligible.
+A value of `(:exclude TYPE...)' makes every section type except the listed
+types eligible.  A function value is called with each top-level section and
+should return non-nil when that section is eligible.  Non-eligible sections
+do not count toward `pimacs-section-autohide-count'."
+  :type '(choice
+          (const :tag "All section types" all)
+          (cons :tag "Only these section types"
+                (const :include)
+                (repeat symbol))
+          (cons :tag "All except these section types"
+                (const :exclude)
+                (repeat symbol))
+          (function :tag "Predicate function"))
+  :group 'pimacs)
+
 (defcustom pimacs-section-padding "\n\n"
   "String inserted between sections to control the visual gap.
 Increase or decrease this value to adjust spacing between sections."
@@ -729,17 +750,36 @@ EVENT is the mouse event that triggered the toggle."
       (goto-char (pimacs-section-beginning section))
       (pimacs-toggle-section))))
 
+(defun pimacs-section--autohide-eligible-p (section)
+  (let ((filter pimacs-section-autohide-filter)
+        (type (pimacs-section-type section)))
+    (cond
+     ((eq filter 'all) t)
+     ((functionp filter) (funcall filter section))
+     ((eq (car-safe filter) :include) (memq type (cdr filter)))
+     ((eq (car-safe filter) :exclude) (not (memq type (cdr filter)))))))
+
 (defun pimacs-section-autohide ()
-  "Hide sections beyond `pimacs-section-autohide-count'."
+  "Reconcile automatically managed section visibility."
   (interactive)
-  (when-let* ((count pimacs-section-autohide-count)
-              (children (pimacs-section-children pimacs-section--root-section)))
-    (let ((hide-count (max 0 (- (length children) count))))
-      (dolist (child (seq-take children hide-count))
-        (when (and (eq (pimacs-section-visibility child) :autoshow)
-                   (not (and (>= (point) (pimacs-section-beginning child))
-                             (< (point) (pimacs-section-end child)))))
-          (pimacs-section--set-visibility child :autohide))))))
+  (let* ((count pimacs-section-autohide-count)
+         (children (pimacs-section-children pimacs-section--root-section))
+         (eligible (and count
+                        (seq-filter #'pimacs-section--autohide-eligible-p children)))
+         (hide-count (if count (max 0 (- (length eligible) count)) 0))
+         (hidden (make-hash-table :test 'eq)))
+    (dolist (child (seq-take eligible hide-count))
+      (puthash child t hidden))
+    (dolist (child children)
+      (unless (and (>= (point) (pimacs-section-beginning child))
+                   (< (point) (pimacs-section-end child)))
+        (let ((visibility (pimacs-section-visibility child))
+              (hide-p (gethash child hidden)))
+          (cond
+           ((and hide-p (eq visibility :autoshow))
+            (pimacs-section--set-visibility child :autohide))
+           ((and (not hide-p) (eq visibility :autohide))
+            (pimacs-section--set-visibility child :autoshow))))))))
 
 (defun pimacs-section--all-sections (section)
   (cons section
