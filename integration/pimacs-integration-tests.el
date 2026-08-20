@@ -232,6 +232,31 @@
       (pimacs--with-chat-buffer
         (should (seq-empty-p pimacs--attached-images))))))
 
+(ert-deftest pimacs-image-read ()
+  (let* ((image-file (expand-file-name "green-triangle.png" pimacs-project-directory))
+         (image-data (with-temp-buffer
+                       (set-buffer-multibyte nil)
+                       (insert-file-contents-literally image-file)
+                       (buffer-string)))
+         rendered-images)
+    (cl-letf (((symbol-function 'display-images-p)
+               (lambda () t))
+              ((symbol-function 'create-image)
+               (lambda (data image-type data-p &rest properties)
+                 (list :data data :type image-type :data-p data-p
+                       :properties properties)))
+              ((symbol-function 'insert-image)
+               (lambda (image &rest _)
+                 (push image rendered-images))))
+      (pimacs-with-integration-project "image-read"
+        (pimacs-send-prompt-and-wait
+         "Use the read tool to inspect green-triangle.png, then describe the image.")
+        (should (= (length rendered-images) 1))
+        (let ((image (car rendered-images)))
+          (should (eq (plist-get image :type) 'png))
+          (should (plist-get image :data-p))
+          (should (equal (plist-get image :data) image-data)))))))
+
 (ert-deftest pimacs-basics ()
   (pimacs-with-integration-project "basics"
     (pimacs-send-prompt-and-wait "list files")
