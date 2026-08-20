@@ -14,6 +14,9 @@
 
 (require 'pimacs)
 
+(defconst pimacs-tests--directory
+  (file-name-directory (or load-file-name buffer-file-name)))
+
 (ert-deftest pimacs-chat--transient-defaults-root-to-project-root ()
   (let ((prefix (transient-prefix :command 'pimacs-test)))
     (cl-letf (((symbol-function 'pimacs--project-root)
@@ -707,6 +710,25 @@
       (should (equal (property-at "link" 'face)
                      '(pimacs-section-thinking-face pimacs-markdown-link-face)))
       (should (equal (property-at "link" 'help-echo) "https://example.com")))))
+
+(ert-deftest pimacs--insert-content-renders-image ()
+  (let ((data (with-temp-buffer
+                (set-buffer-multibyte nil)
+                (insert-file-contents-literally
+                 (expand-file-name "../integration/project/green-triangle.png"
+                                   pimacs-tests--directory))
+                (buffer-string))))
+    (with-temp-buffer
+      (cl-letf (((symbol-function 'display-images-p)
+                 (lambda () t)))
+        (pimacs--insert-content
+         (list (list :type "image"
+                     :mimeType "image/png"
+                     :data (base64-encode-string data t)))))
+      (should (equal (buffer-string) "\n \n"))
+      (let ((image (get-text-property (1+ (point-min)) 'display)))
+        (should (eq (image-property image :type) 'png))
+        (should (equal (image-property image :data) data))))))
 (ert-deftest pimacs-clear-ui-keeps-sections-before-prompt-widgets ()
   (with-temp-buffer
     (pimacs-section--create-root-section)
