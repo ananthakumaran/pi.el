@@ -317,14 +317,12 @@
                           ;; when a >1k message is sent on macOS.
                           :connection-type 'pipe
                           :coding 'utf-8-unix
+                          :noquery t
                           :stderr (get-buffer-create "*pimacs-stderr*")
                           :file-handler t)))
       (set-process-coding-system process 'utf-8-unix 'utf-8-unix)
       (set-process-filter process #'pimacs--net-filter)
       (set-process-sentinel process #'pimacs--net-sentinel)
-      (set-process-query-on-exit-flag process nil)
-      (when-let ((stderr-process (get-process (concat (process-name process) " stderr"))))
-        (set-process-query-on-exit-flag stderr-process nil))
       (with-current-buffer (process-buffer process)
         (buffer-disable-undo)
         (setq-local pimacs--project-key key))
