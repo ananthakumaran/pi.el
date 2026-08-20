@@ -85,6 +85,20 @@
                 (setq done t))))))
       (- buffer-position start))))
 
+(defun pimacs--make-temp-buffer (&optional name)
+  "Create a temporary buffer named NAME with undo disabled."
+  (let ((buffer (generate-new-buffer (or name " *pimacs-temp*"))))
+    (with-current-buffer buffer
+      (buffer-disable-undo))
+    buffer))
+
+(defmacro pimacs--with-temp-buffer (&rest body)
+  "Evaluate BODY in a temporary buffer with undo disabled."
+  (declare (indent 0) (debug t))
+  `(with-temp-buffer
+     (buffer-disable-undo)
+     ,@body))
+
 (defmacro pimacs--def-permanent-buffer-local (name &optional init-value)
   "Declare NAME as buffer local variable with optional INIT-VALUE."
   `(progn
@@ -197,7 +211,7 @@ PRED is called with KEY VALUE."
 
 
 (defun pimacs--render-content (filename content &optional mode)
-  (with-temp-buffer
+  (pimacs--with-temp-buffer
     (when filename
       ;; Use a fake temp filename preserving extension only.
       (setq-local
@@ -242,7 +256,7 @@ PRED is called with KEY VALUE."
        (overlay-get ov 'face)))))
 
 (defun pimacs--render-diff (diff)
-  (with-temp-buffer
+  (pimacs--with-temp-buffer
     (insert diff)
     (ignore-errors
       (delay-mode-hooks

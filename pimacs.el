@@ -1297,26 +1297,28 @@ with the message plist to insert the custom message content."
 (defun pimacs--insert-ls-result (content _details _args)
   (pimacs--insert-content content))
 
-(defun pimacs--format-tool-args (tool-name args)
-  (with-temp-buffer
-    (if-let ((inserter (pimacs--alist-get-equal tool-name pimacs-insert-tool-args-functions)))
-        (funcall inserter args)
-      (when args
-        (insert (pimacs--render-content nil (format "%S" args)
-                                        #'emacs-lisp-mode))))
-    (buffer-string)))
+(defun pimacs--insert-tool-args (tool-name args)
+  (if-let ((inserter (pimacs--alist-get-equal tool-name pimacs-insert-tool-args-functions)))
+      (funcall inserter args)
+    (when args
+      (insert (pimacs--render-content nil (format "%S" args)
+                                      #'emacs-lisp-mode)))))
 
 (defun pimacs--insert-tool-call (section tool-name args)
-  "Format and insert a tool call into SECTION for TOOL-NAME with ARGS."
-  (let ((formatted-args (pimacs--format-tool-args tool-name args)))
+  "Insert a tool call into SECTION for TOOL-NAME with ARGS."
+  (let (args-begin args-end)
     (pimacs--widget-save-excursion
       (pimacs-section--insert-section section
         (pimacs--insert-tool-name tool-name)
-        (insert formatted-args))
-      (pimacs-section--set-info section (make-pimacs-section-tool-call-info
-                                         :tool-name tool-name
-                                         :args args
-                                         :header (pimacs--section-header (substring-no-properties formatted-args)))))))
+        (setq args-begin (point))
+        (pimacs--insert-tool-args tool-name args)
+        (setq args-end (point))))
+    (pimacs-section--set-info section (make-pimacs-section-tool-call-info
+                                       :tool-name tool-name
+                                       :args args
+                                       :header (pimacs--section-header
+                                                (buffer-substring-no-properties
+                                                 args-begin args-end))))))
 
 (defun pimacs--insert-tool-result (tool-name content is-error &optional details args)
   (if (eq is-error t)
@@ -1871,7 +1873,7 @@ If `pimacs-prompt-streaming-behavior' is `followUp', use `steer' and vice versa.
     (let* ((mime-string (or (mailcap-extension-to-mime (file-name-extension file t))
                             (user-error "Can't determine MIME type for %s" file)))
            (mime-type (intern mime-string))
-           (data (with-temp-buffer
+           (data (pimacs--with-temp-buffer
                    (set-buffer-multibyte nil)
                    (insert-file-contents-literally file)
                    (buffer-string))))
@@ -2184,7 +2186,7 @@ FIELDS is a list of (LABEL . KEY) where KEY is a plist key."
   id message timestamp cwd path parent-id name)
 
 (defun pimacs--read-session-choice (filename)
-  (with-temp-buffer
+  (pimacs--with-temp-buffer
     (insert-file-contents filename nil 0 10000)
     (goto-char (point-min))
     (let ((id nil)

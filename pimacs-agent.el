@@ -260,7 +260,7 @@
         (pimacs--dispatch-responses process (nreverse responses))))))
 
 (defun pimacs--agent-version ()
-  (with-temp-buffer
+  (pimacs--with-temp-buffer
     (let* ((process-arguments (append pimacs-flags '("--version")))
            (command-line (mapconcat #'shell-quote-argument (cons pimacs-executable process-arguments) " "))
            (stderr-file (make-temp-file "pimacs-version-stderr-")))
@@ -271,7 +271,7 @@
             (if (zerop exit-code)
                 (string-trim (buffer-string))
               (let ((output (buffer-string))
-                    (stderr (with-temp-buffer
+                    (stderr (pimacs--with-temp-buffer
                               (insert-file-contents stderr-file)
                               (buffer-string))))
                 (with-current-buffer (get-buffer-create "*pimacs-version-error*")

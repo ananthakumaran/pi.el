@@ -28,6 +28,7 @@
 (require 'widget)
 (require 'wid-edit)
 (require 'pimacs-core)
+(require 'pimacs-utils)
 (require 'pimacs-markdown-table)
 
 
@@ -137,7 +138,7 @@
     (treesit-parser-create grammar)))
 
 (defun pimacs--markdown-with-parser (text grammar function)
-  (let ((buffer (generate-new-buffer " *pimacs-markdown*")))
+  (let ((buffer (pimacs--make-temp-buffer " *pimacs-markdown*")))
     (unwind-protect
         (with-current-buffer buffer
           (insert text)
@@ -151,7 +152,7 @@
          (pool (pimacs--markdown-inline-parser-state-pool state))
          (entry (nth depth pool)))
     (unless entry
-      (let ((buffer (generate-new-buffer " *pimacs-markdown-inline*"))
+      (let ((buffer (pimacs--make-temp-buffer " *pimacs-markdown-inline*"))
             parser)
         (unwind-protect
             (with-current-buffer buffer
@@ -378,7 +379,7 @@ When non-nil, diagnostics are appended to the temporary buffer
 
 (defun pimacs--markdown-initialize-render-session (session)
   (unless (pimacs--markdown-render-session-buffer session)
-    (let ((buffer (generate-new-buffer " *pimacs-markdown-source*")))
+    (let ((buffer (pimacs--make-temp-buffer " *pimacs-markdown-source*")))
       (setf (pimacs--markdown-render-session-buffer session) buffer)
       (condition-case error
           (with-current-buffer buffer
@@ -714,7 +715,7 @@ When non-nil, diagnostics are appended to the temporary buffer
                       (t nil)))
          (common-prefix-length
           (when old-suffix
-            (with-temp-buffer
+            (pimacs--with-temp-buffer
               (insert old-suffix)
               (pimacs--buffer-string-common-prefix-length
                (current-buffer) (point-min) (point-max) rendered))))

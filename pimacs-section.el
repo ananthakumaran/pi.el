@@ -27,6 +27,7 @@
 (require 'compat)
 (require 'button)
 (require 'pp)
+(require 'pimacs-utils)
 
 (defcustom pimacs-section-autohide-count 2
   "Automatically hide older chat sections beyond this count.
@@ -987,7 +988,7 @@ otherwise it return t."
 
 (defun pimacs-section--fontify-info (info)
   (condition-case err
-      (with-temp-buffer
+      (pimacs--with-temp-buffer
         (emacs-lisp-mode)
         (let ((print-circle t)
               (print-level 10)
