@@ -53,14 +53,6 @@
     "0+")
    "[.]"))
 
-(defun pimacs--fill-string (string)
-  (with-temp-buffer
-    (insert string)
-    (goto-char (point-min))
-    (while (not (eobp))
-      (fill-region (point) (line-end-position))
-      (forward-line 1))
-    (buffer-string)))
 
 (defun pimacs--short-uuid (uuid)
   (when (stringp uuid)
@@ -203,14 +195,6 @@ PRED is called with KEY VALUE."
     (:final (list (list :append text)))
     (:destroy nil)))
 
-(defun pimacs--render-thinking-default (operation &optional _state text)
-  (pcase operation
-    (:create nil)
-    (:stream
-     (list (list :append text)))
-    (:final
-     (list (list :append (pimacs--fill-string text))))
-    (:destroy nil)))
 
 (defun pimacs--render-content (filename content &optional mode)
   (with-temp-buffer

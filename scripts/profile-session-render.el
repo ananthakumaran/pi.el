@@ -146,8 +146,7 @@
 
 (defun pimacs-render-profile--command-line ()
   (if-let ((session-path (getenv "PIMACS_RENDER_PROFILE_SESSION_FILE")))
-      (let ((pimacs-markdown-renderer #'pimacs--render-markdown)
-            (pimacs-thinking-renderer #'pimacs--render-thinking-markdown))
+      (let ((pimacs-markdown-renderer #'pimacs--render-markdown))
         (unless (pimacs--markdown-available-p)
           (error "Tree-sitter Markdown and Markdown Inline grammars are required"))
         (pimacs-render-profile--run (expand-file-name session-path)))

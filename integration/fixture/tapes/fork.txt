@@ -4,9 +4,7 @@ Thinking level set to: low
 
 user> hello
 
-assistant> The user is simply saying "hello" which is a greeting. I should
-respond with a friendly greeting and offer to help them with whatever
-they need.
+assistant> The user is simply saying "hello" which is a greeting. I should respond with a friendly greeting and offer to help them with whatever they need.
 
 assistant> Hello! How can I help you today?
 
@@ -14,10 +12,7 @@ Forked to new session
 
 user> hello fork
 
-assistant> The user is saying "hello fork" - this seems like they're greeting me
-and possibly referring to forks (in the context of collaborative
-software development, or perhaps something else). I should respond to
-their greeting and offer to help them.
+assistant> The user is saying "hello fork" - this seems like they're greeting me and possibly referring to forks (in the context of collaborative software development, or perhaps something else). I should respond to their greeting and offer to help them.
 
 assistant> Hello! It's great to see you again. 😊
 

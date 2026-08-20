@@ -42,10 +42,7 @@ Editor text set
 
 user> hello from extension
 
-assistant> The user is saying they said hello from "extension". They have a chat
-tool available, which I assume is a chat extension for me. This is a
-friendly greeting, so I should respond warmly and ask how they need
-help today.
+assistant> The user is saying they said hello from "extension". They have a chat tool available, which I assume is a chat extension for me. This is a friendly greeting, so I should respond warmly and ask how they need help today.
 
 assistant> Hello! It looks like I received a message from the chat extension. Is there anything I can help you with today?
 

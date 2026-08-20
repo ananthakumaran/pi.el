@@ -640,15 +640,16 @@ The default uses the incremental Tree-sitter Markdown renderer.  It requires
 the Markdown and Markdown Inline Tree-sitter grammars.
 @end defopt
 
-@defopt pimacs-thinking-renderer @code{#'pimacs--render-thinking-default}
+@defopt pimacs-thinking-renderer @code{#'pimacs--render-markdown}
 
 Function used to render assistant thinking content.
 
 It implements the same @code{:create}, @code{:stream}, @code{:final}, and @code{:destroy}
 renderer protocol as @code{pimacs-markdown-renderer}.
 
-The default preserves the legacy, dimmed plain-text rendering.  Set this to
-@code{pimacs--render-thinking-markdown} to render thinking as Markdown.
+The default uses the same incremental Tree-sitter Markdown renderer as regular
+assistant content.  It falls back to plain-text rendering when the required
+grammars are unavailable.
 @end defopt
 
 @defopt pimacs-slash-commands

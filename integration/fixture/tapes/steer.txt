@@ -7,9 +7,7 @@ queue
  Steering: hello 1
  Steering: hello 2
 
-assistant> The user is greeting me with "hello". This is a simple greeting
-message and doesn't require any specific tool usage - I should respond
-naturally as an AI assistant.
+assistant> The user is greeting me with "hello". This is a simple greeting message and doesn't require any specific tool usage - I should respond naturally as an AI assistant.
 
 assistant> Hello! How can I assist you today?
 
@@ -18,27 +16,21 @@ queue
 
 user> hello 1
 
-assistant> The user said "hello 1" which seems like they're continuing a
-conversation from before. However, I just greeted them with "Hello!
-How can I assist you today?" and they're saying "hello 1".
+assistant> The user said "hello 1" which seems like they're continuing a conversation from before. However, I just greeted them with "Hello! How can I assist you today?" and they're saying "hello 1".
 
-This appears to be a simple continuation of conversation in a playful
-or testing way. I should respond normally and offer my help.
+This appears to be a simple continuation of conversation in a playful or testing way. I should respond normally and offer my help.
 
 assistant> Hello! How can I assist you today?
 
 user> hello 2
 
-assistant> The user is sending me greetings with numbers appended. These appear
-to be simple hello messages. I should respond politely and ask how I
-can help them.
+assistant> The user is sending me greetings with numbers appended. These appear to be simple hello messages. I should respond politely and ask how I can help them.
 
 assistant> Hello! How can I assist you today?
 
 user> hello again
 
-assistant> The user is just saying "hello again" - they're greeting me in a
-friendly way. I should respond warmly and offer my assistance.
+assistant> The user is just saying "hello again" - they're greeting me in a friendly way. I should respond warmly and offer my assistance.
 
 assistant> Hello again! It's great to hear from you. How can I help out today?
 

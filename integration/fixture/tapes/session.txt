@@ -25,9 +25,7 @@ Cost
 
 user> say hello
 
-assistant> The user is asking me to "say hello". This is a simple greeting
-request that doesn't require any tools. I should respond with a
-friendly hello.
+assistant> The user is asking me to "say hello". This is a simple greeting request that doesn't require any tools. I should respond with a friendly hello.
 
 assistant> Hello! How can I help you today?
 

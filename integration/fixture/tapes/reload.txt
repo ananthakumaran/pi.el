@@ -4,12 +4,7 @@ Thinking level set to: low
 
 user> hello
 
-assistant> The user said "hello" back. It seems like they're responding or
-greeting me again. This could be a continuation of our interaction -
-someone might have greeted before, and now it's showing that too. I
-should respond warmly in an engaging way based on what we've been
-doing together so far (I'm having some chat about the tools available
-to help them).
+assistant> The user said "hello" back. It seems like they're responding or greeting me again. This could be a continuation of our interaction - someone might have greeted before, and now it's showing that too. I should respond warmly in an engaging way based on what we've been doing together so far (I'm having some chat about the tools available to help them).
 
 Let me offer helpful assistance while being friendly.
 
@@ -25,12 +20,7 @@ Reloaded extensions, skills and prompts.
 
 user> hello
 
-assistant> The user said "hello" back. It seems like they're responding or
-greeting me again. This could be a continuation of our interaction -
-someone might have greeted before, and now it's showing that too. I
-should respond warmly in an engaging way based on what we've been
-doing together so far (I'm having some chat about the tools available
-to help them).
+assistant> The user said "hello" back. It seems like they're responding or greeting me again. This could be a continuation of our interaction - someone might have greeted before, and now it's showing that too. I should respond warmly in an engaging way based on what we've been doing together so far (I'm having some chat about the tools available to help them).
 
 Let me offer helpful assistance while being friendly.
 

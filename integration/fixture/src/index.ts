@@ -227,7 +227,7 @@ export default async function (pi: ExtensionAPI) {
         id: "gemma4:12b",
         name: "gemma4:12b",
         reasoning: true,
-        input: ["text"],
+        input: ["text", "image"],
         cost: {
           input: 0,
           output: 0,

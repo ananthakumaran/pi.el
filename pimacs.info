@@ -562,17 +562,16 @@ File: pimacs.info,  Node: Custom Variables,  Next: Custom Faces,  Prev: Keybindi
      The default uses the incremental Tree-sitter Markdown renderer.  It
      requires the Markdown and Markdown Inline Tree-sitter grammars.
 
- -- User Option: pimacs-thinking-renderer
-          #'pimacs--render-thinking-default
+ -- User Option: pimacs-thinking-renderer #'pimacs--render-markdown
 
      Function used to render assistant thinking content.
 
      It implements the same ‘:create’, ‘:stream’, ‘:final’, and
      ‘:destroy’ renderer protocol as ‘pimacs-markdown-renderer’.
 
-     The default preserves the legacy, dimmed plain-text rendering.  Set
-     this to ‘pimacs--render-thinking-markdown’ to render thinking as
-     Markdown.
+     The default uses the same incremental Tree-sitter Markdown renderer
+     as regular assistant content.  It falls back to plain-text
+     rendering when the required grammars are unavailable.
 
  -- User Option: pimacs-slash-commands
 
@@ -1122,7 +1121,7 @@ Node: Sandbox15226
 Node: How It Works15619
 Node: Keybindings16771
 Node: Custom Variables20108
-Node: Custom Faces34826
+Node: Custom Faces34842
 
 End Tag Table
 

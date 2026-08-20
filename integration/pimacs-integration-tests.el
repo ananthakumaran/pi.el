@@ -211,6 +211,27 @@
   (pimacs-with-integration-project "custom-tool"
     (pimacs-send-prompt-and-wait "use the cowsay tool to say hello")))
 
+(ert-deftest pimacs-image-prompt ()
+  (pimacs-with-integration-project "image-prompt"
+    (let ((image-file (expand-file-name "green-triangle.png" pimacs-project-directory))
+          image-data)
+      (setq image-data
+            (with-temp-buffer
+              (set-buffer-multibyte nil)
+              (insert-file-contents-literally image-file)
+              (buffer-string)))
+      (pimacs--with-chat-buffer
+        (pimacs--yank-media-handler 'image/png image-data)
+        (should (= (length pimacs--attached-images) 1))
+        (let ((image (aref pimacs--attached-images 0)))
+          (should (equal (plist-get image :mimeType) "image/png"))
+          (should (equal (plist-get image :data)
+                         (base64-encode-string image-data t)))))
+      (pimacs-send-prompt-and-wait
+       "Describe the attached image.")
+      (pimacs--with-chat-buffer
+        (should (seq-empty-p pimacs--attached-images))))))
+
 (ert-deftest pimacs-basics ()
   (pimacs-with-integration-project "basics"
     (pimacs-send-prompt-and-wait "list files")

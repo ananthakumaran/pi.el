@@ -25,8 +25,7 @@ Cost
 
 user> hello
 
-assistant> The user is just saying "hello" which is a simple greeting. I should
-respond with a friendly greeting and let them know I'm here to help.
+assistant> The user is just saying "hello" which is a simple greeting. I should respond with a friendly greeting and let them know I'm here to help.
 
 assistant> Hello! How can I help you today?
 

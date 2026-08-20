@@ -679,36 +679,34 @@
           (should (equal (get-text-property (- (point) 5) 'face)
                          '(italic underline))))))))
 
-(ert-deftest pimacs--thinking-markdown-renderer-applies-section-face ()
+(ert-deftest pimacs--thinking-renderer-applies-section-face ()
   (with-temp-buffer
     (pimacs-section--create-root-section)
-    (let ((pimacs-thinking-renderer #'pimacs--render-thinking-markdown))
-      (pimacs-section--create-section 'thinking pimacs-section--root-section
-        (pimacs--thinking-insert
-         "# Heading\n**bold** and *italic* ~~strike~~ `code` [link](https://example.com)" nil))
-      (cl-labels ((property-at (text property)
-                    (save-excursion
-                      (goto-char (point-min))
-                      (search-forward text)
-                      (get-text-property (- (point) (length text)) property))))
-        (should (equal (buffer-substring-no-properties (point-min) (point-max))
-                       (concat "Heading\nbold and italic strike code link"
-                               pimacs-section-padding)))
-        (should (equal (property-at "Heading" 'face)
-                       '(pimacs-section-thinking-face pimacs-markdown-heading-face)))
-        (should (equal (property-at "bold" 'face)
-                       '(pimacs-section-thinking-face pimacs-markdown-bold-face)))
-        (should (eq (property-at "and" 'face) 'pimacs-section-thinking-face))
-        (should (equal (property-at "italic" 'face)
-                       '(pimacs-section-thinking-face pimacs-markdown-italic-face)))
-        (should (equal (property-at "strike" 'face)
-                       '(pimacs-section-thinking-face pimacs-markdown-strike-through-face)))
-        (should (equal (property-at "code" 'face)
-                       '(pimacs-section-thinking-face pimacs-markdown-inline-code-face)))
-        (should (equal (property-at "link" 'face)
-                       '(pimacs-section-thinking-face pimacs-markdown-link-face)))
-        (should (equal (property-at "link" 'help-echo) "https://example.com"))))))
-
+    (pimacs-section--create-section 'thinking pimacs-section--root-section
+      (pimacs--thinking-insert
+       "# Heading\n**bold** and *italic* ~~strike~~ `code` [link](https://example.com)" nil))
+    (cl-labels ((property-at (text property)
+                  (save-excursion
+                    (goto-char (point-min))
+                    (search-forward text)
+                    (get-text-property (- (point) (length text)) property))))
+      (should (equal (buffer-substring-no-properties (point-min) (point-max))
+                     (concat "Heading\nbold and italic strike code link"
+                             pimacs-section-padding)))
+      (should (equal (property-at "Heading" 'face)
+                     '(pimacs-section-thinking-face pimacs-markdown-heading-face)))
+      (should (equal (property-at "bold" 'face)
+                     '(pimacs-section-thinking-face pimacs-markdown-bold-face)))
+      (should (eq (property-at "and" 'face) 'pimacs-section-thinking-face))
+      (should (equal (property-at "italic" 'face)
+                     '(pimacs-section-thinking-face pimacs-markdown-italic-face)))
+      (should (equal (property-at "strike" 'face)
+                     '(pimacs-section-thinking-face pimacs-markdown-strike-through-face)))
+      (should (equal (property-at "code" 'face)
+                     '(pimacs-section-thinking-face pimacs-markdown-inline-code-face)))
+      (should (equal (property-at "link" 'face)
+                     '(pimacs-section-thinking-face pimacs-markdown-link-face)))
+      (should (equal (property-at "link" 'help-echo) "https://example.com")))))
 (ert-deftest pimacs-clear-ui-keeps-sections-before-prompt-widgets ()
   (with-temp-buffer
     (pimacs-section--create-root-section)

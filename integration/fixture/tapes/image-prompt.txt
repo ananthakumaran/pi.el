@@ -1,0 +1,12 @@
+user> Describe the attached image.
+
+assistant> The user wants a description of the provided image.
+
+1. Analyze the image: The image is a simple, solid green triangle pointing upwards. It has a black outline.
+2. Formulate the description: State that it's an equilateral (or isosceles, but looks equilateral) triangle, colored solid green with a thin black border.
+
+assistant> The image shows a simple, 2D graphic of a filled green triangle. It features a distinct dark outline and is oriented so that one vertex points upwards, forming an equilateral or isosceles shape against a white background.
+
+
+ user> 
+  

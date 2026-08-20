@@ -7,9 +7,7 @@ queue
  Follow-up: follow up 1
  Follow-up: follow up 2
 
-assistant> The user is saying "hello". This is a simple greeting, so I should
-respond in a friendly manner without needing to use any tools. I'll
-just respond with a greeting and ask how I can help them.
+assistant> The user is saying "hello". This is a simple greeting, so I should respond in a friendly manner without needing to use any tools. I'll just respond with a greeting and ask how I can help them.
 
 assistant> Hello! How can I help you today?
 
@@ -20,15 +18,9 @@ user> follow up 1
 
 user> follow up 2
 
-assistant> The user is sending messages "follow up 1" and "follow up 2" which
-seems like they might be asking about follow-ups for
-something. However, I don't have any context about what they might be
-following up on. There's no conversation history or file content that
-indicates what they could be following up about.
+assistant> The user is sending messages "follow up 1" and "follow up 2" which seems like they might be asking about follow-ups for something. However, I don't have any context about what they might be following up on. There's no conversation history or file content that indicates what they could be following up about.
 
-I should ask the user for clarification about what they want to follow
-up on, since I don't have any prior context about specific topics,
-files, projects, or discussions.
+I should ask the user for clarification about what they want to follow up on, since I don't have any prior context about specific topics, files, projects, or discussions.
 
 assistant> I'm ready to help you with follow-ups! However, I need a bit more information to assist you properly. Could you please clarify what you'd like to follow up on? For example, are you following up on:
 
@@ -41,8 +33,7 @@ Let me know what needs to be addressed and I'll do my best to help!
 
 user> hello again
 
-assistant> The user is saying "hello again" which is just a casual greeting. I
-should respond warmly and ask how I can help them today.
+assistant> The user is saying "hello again" which is just a casual greeting. I should respond warmly and ask how I can help them today.
 
 assistant> Hello! It's great to hear from you again. How is everything going? Is there something specific I can help you with today?
 

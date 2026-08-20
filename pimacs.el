@@ -53,7 +53,6 @@
 (require 'pimacs-doctor)
 (require 'pimacs-utils)
 (autoload 'pimacs--render-markdown "pimacs-markdown")
-(autoload 'pimacs--render-thinking-markdown "pimacs-markdown")
 (require 'pimacs-section)
 (require 'pimacs-edit)
 (require 'pimacs-agent)
@@ -178,14 +177,15 @@ the Markdown and Markdown Inline Tree-sitter grammars."
   :type 'function
   :group 'pimacs)
 
-(defcustom pimacs-thinking-renderer #'pimacs--render-thinking-default
+(defcustom pimacs-thinking-renderer #'pimacs--render-markdown
   "Function used to render assistant thinking content.
 
 It implements the same `:create', `:stream', `:final', and `:destroy'
 renderer protocol as `pimacs-markdown-renderer'.
 
-The default preserves the legacy, dimmed plain-text rendering.  Set this to
-`pimacs--render-thinking-markdown' to render thinking as Markdown."
+The default uses the same incremental Tree-sitter Markdown renderer as regular
+assistant content.  It falls back to plain-text rendering when the required
+grammars are unavailable."
   :type 'function
   :group 'pimacs)
 

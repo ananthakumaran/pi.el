@@ -1485,11 +1485,6 @@ When non-nil, diagnostics are appended to the temporary buffer
                                    :help-echo url)))
         (setq position next)))))
 
-(defun pimacs--render-thinking-markdown (operation &optional state text)
-  (if (pimacs--markdown-available-p)
-      (pimacs--render-markdown operation state text)
-    (pimacs--warn-missing-markdown-treesit)
-    (pimacs--render-thinking-default operation state text)))
 
 (defun pimacs--render-markdown (operation &optional state text)
   (if (pimacs--markdown-available-p)
