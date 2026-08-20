@@ -20,9 +20,20 @@ jobs:
     - uses: actions/setup-node@v6
       with:
         node-version: '22'
-    - uses: purcell/setup-emacs@master
-      with:
-        version: ${{ matrix.emacs_version }}
+    - uses: cachix/install-nix-action@v31
+    - name: Install Emacs with image support
+      run: |
+        case "${{ matrix.emacs_version }}" in
+          29.4)
+            nix profile install github:NixOS/nixpkgs/nixos-24.05#emacs29-pgtk
+            ;;
+          30.2)
+            nix profile install github:NixOS/nixpkgs/nixos-25.05#emacs30-pgtk
+            ;;
+        esac
+        echo "$HOME/.nix-profile/bin" >> "$GITHUB_PATH"
+        "$HOME/.nix-profile/bin/emacs" --batch -Q --eval \
+          "(unless (image-type-available-p 'png) (error \"PNG unavailable\"))"
     - uses: conao3/setup-cask@master
 
     - name: Run JavaScript lint
