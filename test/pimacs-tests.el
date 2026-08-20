@@ -797,9 +797,31 @@
          (last '(:type "message" :message (:role "user" :content "last")))
          (chunks (pimacs--history-split-entries
                   (append prefix (list call result last)))))
-    (should (equal (mapcar #'length chunks) '(11 1)))
-    (should (eq (nth 9 (car chunks)) call))
-    (should (eq (nth 10 (car chunks)) result))))
+    (should (equal (mapcar #'length chunks) '(5 6 1)))
+    (should (eq (nth 4 (nth 1 chunks)) call))
+    (should (eq (nth 5 (nth 1 chunks)) result))))
+
+(ert-deftest pimacs--history-split-entries-closes-orphaned-tool-call-at-next-message ()
+  (let* ((prefix (cl-loop for index below 9
+                          collect (list :type "session_info"
+                                        :name (format "name-%d" index))))
+         (orphan '(:type "message"
+                         :message (:role "assistant"
+                                         :content ((:type "toolCall" :id "call-1"
+                                                          :name "read" :arguments (:path "README.md"))))))
+         (next-turn '(:type "message"
+                            :message (:role "assistant"
+                                            :content ((:type "text" :text "continuing")))))
+         (suffix (cl-loop for index below 9
+                          collect (list :type "session_info"
+                                        :name (format "later-%d" index))))
+         (chunks (pimacs--history-split-entries
+                  (append prefix (list orphan next-turn) suffix))))
+    ;; The missing result cannot occur after NEXT-TURN, so it must not keep
+    ;; the remaining history in one unsplittable chunk.
+    (should (equal (mapcar #'length chunks) '(5 6 5 4)))
+    (should (eq (nth 4 (nth 1 chunks)) orphan))
+    (should (eq (nth 5 (nth 1 chunks)) next-turn))))
 
 (ert-deftest pimacs--render-session-history-progressively-inserts-history ()
   (with-temp-buffer
@@ -827,6 +849,9 @@
         (should (= (pimacs--history-pending-entry-count) 10))
         (should (string-match-p "Loading history: 10 entries pending"
                                 (buffer-string)))
+        (pimacs--history-render-idle (current-buffer) pimacs--history-render-generation)
+        (should (= (length (pimacs-section-children pimacs-section--root-section)) 8))
+        (should (= (pimacs--history-pending-entry-count) 5))
         (pimacs--history-render-idle (current-buffer) pimacs--history-render-generation))
       (let ((roots (pimacs-section-children pimacs-section--root-section)))
         (should (= (length roots) 12))
@@ -861,6 +886,7 @@
                  (lambda (_buffer _generation))))
         (pimacs--widget-save-excursion
           (pimacs--render-session-history entries))
+        (pimacs--history-render-idle (current-buffer) pimacs--history-render-generation)
         (pimacs--history-render-idle (current-buffer) pimacs--history-render-generation))
       (let ((roots (pimacs-section-children pimacs-section--root-section)))
         (should (= (length roots) 12))

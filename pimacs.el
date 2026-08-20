@@ -370,7 +370,7 @@ with the message plist to insert the custom message content."
   context
   renderer-session)
 
-(defconst pimacs--history-chunk-size 10)
+(defconst pimacs--history-chunk-size 5)
 (defconst pimacs--history-idle-delay 0.5)
 
 (cl-defstruct pimacs-render-context
@@ -2315,14 +2315,18 @@ FIELDS is a list of (LABEL . KEY) where KEY is a plist key."
   (when (equal (plist-get entry :type) "message")
     (let ((message (plist-get entry :message)))
       (pcase (pimacs--message-role message)
-        ("assistant"
-         (dolist (item (pimacs--content-normalize (plist-get message :content)))
-           (when (equal (plist-get item :type) "toolCall")
-             (when-let ((id (plist-get item :id)))
-               (puthash id t pending)))))
         ("toolResult"
          (when-let ((id (plist-get message :toolCallId)))
-           (remhash id pending)))))))
+           (remhash id pending)))
+        (_
+         ;; A new assistant or user message starts after the previous tool
+         ;; execution phase.  Its calls cannot receive results from that phase.
+         (clrhash pending)
+         (when (equal (pimacs--message-role message) "assistant")
+           (dolist (item (pimacs--content-normalize (plist-get message :content)))
+             (when (equal (plist-get item :type) "toolCall")
+               (when-let ((id (plist-get item :id)))
+                 (puthash id t pending))))))))))
 
 (defun pimacs--history-split-entries (entries)
   (let ((pending (make-hash-table :test 'equal))

@@ -83,6 +83,7 @@
            (progn
              ,@body
              (pimacs-drain-process-output)
+             (pimacs-render-pending-history)
              (pimacs--with-chat-buffer
                (pimacs--force-update-header-line)
                (pimacs-check-tape ,scenario ".txt"
@@ -109,6 +110,12 @@
                     (< (time-to-seconds (time-subtract (current-time) start)) timeout))
           (accept-process-output nil pimacs-poll-interval))))
     (sleep-for pimacs-settle-time)))
+
+(defun pimacs-render-pending-history ()
+  (pimacs--with-chat-buffer
+    (while pimacs--history-render-pending
+      (pimacs--history-render-idle
+       (current-buffer) pimacs--history-render-generation))))
 
 (defmacro pimacs-with-editor-buffer (&rest body)
   (declare (indent 0))
