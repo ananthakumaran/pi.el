@@ -712,6 +712,9 @@
       (should (equal (property-at "link" 'help-echo) "https://example.com")))))
 
 (ert-deftest pimacs--insert-content-renders-image ()
+  (unless (image-type-available-p 'png)
+    (message "Skipping image rendering test: PNG support is unavailable")
+    (ert-skip "PNG support is unavailable"))
   (let ((data (with-temp-buffer
                 (set-buffer-multibyte nil)
                 (insert-file-contents-literally
