@@ -2,6 +2,37 @@
 
 ## Unreleased
 
+## v0.5.0 - 2026-08-22
+
+### Breaking Changes
+
+- Remove the previously suggested renderer customization:
+
+  ```elisp
+  (setq pimacs-markdown-renderer #'pimacs--render-markdown
+        pimacs-thinking-renderer #'pimacs--render-thinking-markdown)
+  ```
+
+  Markdown rendering is now enabled by default, and `pimacs--render-thinking-markdown` has been removed.
+
+### Added
+
+- `pimacs-section-autohide-filter` controls which top-level sections are eligible for automatic hiding.
+
+### Changed
+
+- Tree-sitter Markdown rendering is now the default for assistant and thinking content; the `markdown-mode` dependency is no longer required.
+- Markdown rendering falls back to plain text with a warning when the required Tree-sitter grammars are unavailable.
+- Bash command output now renders ANSI color sequences consistently with widget and status output.
+- `pimacs-describe-section` now presents section details in a Help buffer with navigable links.
+- Session history is rendered in smaller chunks for improved responsiveness.
+- Pi agent stderr is sent to the `*pimacs-stderr*` buffer, and agent processes no longer prompt on exit.
+
+### Fixed
+
+- Orphaned tool calls no longer prevent subsequent session history from being rendered.
+- Block-level Markdown content now starts on a new line when needed.
+
 ## v0.4.0 - 2026-08-15
 
 ### Added
