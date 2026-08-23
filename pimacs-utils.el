@@ -25,6 +25,7 @@
 (require 'widget)
 (require 'ffap)
 (require 'diff-mode)
+(require 'xref)
 
 (defun pimacs--json-read-object ()
   (json-parse-buffer :object-type 'plist :null-object 'json-null :false-object 'json-false :array-type 'list))
@@ -118,10 +119,35 @@
   "Insert TEXT with `pimacs-error-face'."
   (insert (propertize text 'face 'pimacs-error-face)))
 
+(defun pimacs--visit-file (result &optional other-window)
+  (let ((file (plist-get result :file))
+        (line (plist-get result :line))
+        (column (plist-get result :column))
+        (find-file-func (if other-window #'find-file-other-window #'find-file)))
+    (when file
+      (xref-push-marker-stack)
+      (funcall find-file-func file)
+      (when line
+        (goto-char (point-min))
+        (forward-line (1- line)))
+      (when column
+        (forward-char (min column (- (line-end-position) (point))))))))
+
+(defun pimacs--visit-file-at-point (other-window)
+  (when-let (file (pimacs--file-at-point))
+    (pimacs--visit-file (list :file file) other-window)))
+
+(defun pimacs--file-link-action (widget &optional event)
+  (pimacs--visit-file
+   (list :file (widget-value widget))
+   (and event
+        (memq 'meta (event-modifiers event)))))
+
 (defun pimacs--insert-file-link (path &optional suffix)
   (widget-create 'file-link
                  :button-prefix ""
                  :button-suffix (or suffix "")
+                 :action #'pimacs--file-link-action
                  path))
 
 (defun pimacs--keyword-name (keyword)

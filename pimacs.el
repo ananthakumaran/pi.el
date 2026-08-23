@@ -2644,23 +2644,6 @@ summarization."
            (mapcar (lambda (c) (cons (plist-get c :name) c))
                    (plist-get (plist-get resp :data) :commands))))))
 
-(defun pimacs--visit-file (result &optional other-window)
-  (let ((file (plist-get result :file))
-        (line (plist-get result :line))
-        (column (plist-get result :column))
-        (find-file-func (if other-window #'find-file-other-window #'find-file)))
-    (when file
-      (funcall find-file-func file)
-      (when line
-        (goto-char (point-min))
-        (forward-line (1- line)))
-      (when column
-        (forward-char (min column (- (line-end-position) (point))))))))
-
-(defun pimacs--visit-file-at-point (other-window)
-  (when-let (file (pimacs--file-at-point))
-    (pimacs--visit-file (list :file file) other-window)))
-
 (defun pimacs-visit-item (&optional other-window)
   "Visit current item.
 With a prefix argument OTHER-WINDOW, visit in other window."

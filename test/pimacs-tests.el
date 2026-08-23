@@ -498,7 +498,10 @@
                    '(:file "example.el" :line 7 :column 2)))))
 
 (ert-deftest pimacs--visit-file-treats-column-as-character-offset ()
-  (let ((target (generate-new-buffer " *pimacs-visit-target*")))
+  (let ((source (current-buffer))
+        (source-position (point))
+        (target (generate-new-buffer " *pimacs-visit-target*"))
+        (xref--history (cons nil nil)))
     (unwind-protect
         (progn
           (with-current-buffer target
@@ -506,10 +509,27 @@
           (cl-letf (((symbol-function 'find-file)
                      (lambda (_file) (set-buffer target))))
             (pimacs--visit-file '(:file "unused" :line 1 :column 2))
+            (should (eq (marker-buffer (caar xref--history)) source))
+            (should (= (marker-position (caar xref--history)) source-position))
             (should (equal (buffer-substring (line-beginning-position) (point))
                            "\tf"))
             (should (looking-at "oo"))))
       (kill-buffer target))))
+
+(ert-deftest pimacs--file-link-pushes-xref-marker ()
+  (let ((file (make-temp-file "pimacs-file-link-"))
+        (xref--history (cons nil nil)))
+    (unwind-protect
+        (with-temp-buffer
+          (let ((source (current-buffer))
+                (source-position nil)
+                (widget (pimacs--insert-file-link file)))
+            (setq source-position (point))
+            (pimacs--file-link-action widget)
+            (should (eq (marker-buffer (caar xref--history)) source))
+            (should (= (marker-position (caar xref--history)) source-position))
+            (kill-buffer (current-buffer))))
+      (delete-file file))))
 
 (ert-deftest pimacs--handle-agent-state-formats-parallel-tools ()
   (with-temp-buffer
