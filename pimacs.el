@@ -609,9 +609,9 @@ with the message plist to insert the custom message content."
       (let* ((root (pimacs--project-root))
              (project (project-current nil root)))
         (when project
-          (let ((project-files-relative-names t))
-            (setq pimacs--project-file-cache
-                  (project-files project (list root))))))))
+          (setq pimacs--project-file-cache
+                (mapcar (lambda (file) (file-relative-name file root))
+                        (project-files project (list root))))))))
 
 (defun pimacs--native-file-completions (prefix)
   (let* ((dir (or (file-name-directory prefix) ""))
