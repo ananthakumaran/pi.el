@@ -606,10 +606,12 @@ with the message plist to insert the custom message content."
 
 (defun pimacs--project-file-completions (_prefix)
   (or pimacs--project-file-cache
-      (when-let (project (project-current))
-        (let ((default-directory (pimacs--project-root))
-              (project-files-relative-names t))
-          (setq pimacs--project-file-cache (project-files project))))))
+      (let* ((root (pimacs--project-root))
+             (project (project-current nil root)))
+        (when project
+          (let ((project-files-relative-names t))
+            (setq pimacs--project-file-cache
+                  (project-files project (list root))))))))
 
 (defun pimacs--native-file-completions (prefix)
   (let* ((dir (or (file-name-directory prefix) ""))

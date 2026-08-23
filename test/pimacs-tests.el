@@ -24,6 +24,13 @@
       (pimacs-chat--transient-init-value prefix))
     (should (equal (oref prefix value) '("--root=/tmp/project/")))))
 
+(ert-deftest pimacs--project-file-completions-use-pimacs-project-root ()
+  (let ((pimacs--project-root pimacs-tests--directory)
+        (pimacs--project-file-cache nil))
+    (let ((files (pimacs--project-file-completions "")))
+      (should (member "pimacs-tests.el" files))
+      (should-not (member "pimacs.el" files)))))
+
 (ert-deftest pimacs-chat--start-uses-transient-name-and-root ()
   (let (arguments)
     (cl-letf (((symbol-function 'transient-args)
