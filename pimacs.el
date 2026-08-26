@@ -1897,6 +1897,20 @@ If `pimacs-prompt-streaming-behavior' is `followUp', use `steer' and vice versa.
                             (concat current-value "\n" text))))
       (pimacs--widget-end-if-inside pimacs--prompt-widget))))
 
+(defun pimacs-quote-region (start end)
+  "Quote the text from START to END in the chat prompt."
+  (interactive "r")
+  (unless (use-region-p)
+    (user-error "No active region"))
+  (let* ((text (buffer-substring-no-properties start end))
+         (lines (split-string text "\n"))
+         (lines (if (string-suffix-p "\n" text) (butlast lines) lines))
+         (quote (mapconcat (lambda (line) (concat "> " line)) lines "\n")))
+    (deactivate-mark)
+    (pimacs--prompt-append
+     (concat quote "\n\n"))
+    (pimacs-focus-prompt)))
+
 (defun pimacs--pop-to-chat ()
   (when pimacs-send-pop-to-chat
     (let ((buffer (pimacs--current-chat)))
@@ -2710,6 +2724,7 @@ With a prefix argument OTHER-WINDOW, visit in other window."
   "M-g l" #'pimacs-goto-last-section
   "l" #'pimacs-goto-last-section
   "i" #'pimacs-focus-prompt
+  ">" #'pimacs-quote-region
   "q" #'pimacs-quit-chat)
 
 (defvar pimacs-chat-widget-field-keymap
