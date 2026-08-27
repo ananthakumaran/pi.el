@@ -1,1 +1,1 @@
-tokens=18969 model=gemma4:12b
+tokens=8575 model=gemma4:12b
