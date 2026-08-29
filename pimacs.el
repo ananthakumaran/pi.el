@@ -204,6 +204,7 @@ grammars are unavailable."
     ("cycle-thinking-level" pimacs-cycle-thinking-level 0 "Cycle through thinking levels")
     ("set-steering-mode" pimacs-set-steering-mode 0 "Set steering mode")
     ("set-follow-up-mode" pimacs-set-follow-up-mode 0 "Set follow-up mode")
+    ("clear-queue" pimacs-clear-queue 0 "Clear queued steering and follow-up messages")
     ("fork" pimacs-fork 0 "Create a new session from a previous user message")
     ("clone" pimacs-clone 0 "Duplicate the current active branch into a new session")
     ("copy" pimacs-copy 0 "Copy last assistant message to clipboard")
@@ -1725,7 +1726,7 @@ with the message plist to insert the custom message content."
 ;;; Commands
 
 (defun pimacs--parse-slash-command (prompt)
-  (when (string-match "\\`[ \t\n]*/\\([-a-zA-Z0-9]+\\)\\([ \t].*\\)?$" prompt)
+  (when (string-match "\\`[ \t\n]*/\\([-a-zA-Z0-9_]+\\)\\([ \t].*\\)?$" prompt)
     (let* ((name (match-string-no-properties 1 prompt))
            (raw (and (match-beginning 2)
                      (string-trim-left (match-string-no-properties 2 prompt))))
@@ -1998,6 +1999,23 @@ If `pimacs-prompt-streaming-behavior' is `followUp', use `steer' and vice versa.
            (pimacs-section--create-section 'error pimacs-section--root-section
              (pimacs--insert-error "Aborted")))))))
   (keyboard-quit))
+
+(defun pimacs-clear-queue ()
+  "Clear queued steering and follow-up messages."
+  (interactive)
+  (pimacs--with-chat-buffer
+    (pimacs--send-command
+     "clear_queue" '()
+     (pimacs--on-response-success-callback resp
+       (let* ((data (plist-get resp :data))
+              (steering-count (length (plist-get data :steering)))
+              (follow-up-count (length (plist-get data :followUp))))
+         (pimacs--notify
+          (format-message "Cleared %d steering %s and %d follow-up %s."
+                          steering-count
+                          (ngettext "message" "messages" steering-count)
+                          follow-up-count
+                          (ngettext "message" "messages" follow-up-count))))))))
 
 (defun pimacs--insert-stats-section (header plist fields)
   "Insert a stats section with HEADER (bold), extracting integers from PLIST.

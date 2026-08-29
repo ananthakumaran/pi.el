@@ -26,7 +26,7 @@
 (require 'pimacs-utils)
 (require 'pimacs-core)
 
-(defvar pimacs--minimum-version "0.82.0"
+(defvar pimacs--minimum-version "0.84.4"
   "The minimum supported Pi agent version.")
 
 (defcustom pimacs-sync-request-timeout 2
