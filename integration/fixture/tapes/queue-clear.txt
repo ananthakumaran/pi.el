@@ -1,0 +1,16 @@
+user> hello
+
+queue
+ Steering: steering message
+
+queue
+ Steering: steering message
+ Follow-up: follow-up message
+
+Cleared 1 steering message and 1 follow-up message.
+
+assistant> Hello! How can I help you today?
+
+
+ user> existing prompt
+  

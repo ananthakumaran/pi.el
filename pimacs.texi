@@ -669,6 +669,8 @@ grammars are unavailable.
   ("cycle-thinking-level" pimacs-cycle-thinking-level 0 "Cycle through thinking levels")
   ("set-steering-mode" pimacs-set-steering-mode 0 "Set steering mode")
   ("set-follow-up-mode" pimacs-set-follow-up-mode 0 "Set follow-up mode")
+  ("clear-queue" pimacs-clear-queue 0 "Clear queued steering and follow-up messages")
+  ("edit-queue" pimacs-edit-queue 0 "Edit queued steering and follow-up messages")
   ("fork" pimacs-fork 0 "Create a new session from a previous user message")
   ("clone" pimacs-clone 0 "Duplicate the current active branch into a new session")
   ("copy" pimacs-copy 0 "Copy last assistant message to clipboard")

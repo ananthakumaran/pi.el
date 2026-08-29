@@ -1,0 +1,23 @@
+http_interactions:
+  - request:
+      method: POST
+      path: /v1/chat/completions
+      headers:
+        content-type: application/json
+      body:
+        encoding: utf8
+        data: '{}'
+    response:
+      status:
+        code: 200
+      headers:
+        content-type: text/event-stream
+      body:
+        encoding: utf8
+        data: |
+          data: {"id":"chatcmpl-abort-empty-queue","object":"chat.completion.chunk","created":0,"model":"gemma4:12b","choices":[{"index":0,"delta":{"role":"assistant","content":"This response should not be displayed."},"finish_reason":null}]}
+
+          data: {"id":"chatcmpl-abort-empty-queue","object":"chat.completion.chunk","created":0,"model":"gemma4:12b","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
+
+          data: [DONE]
+      compression: none

@@ -1,0 +1,20 @@
+user> hello
+
+queue
+ Steering: steering message
+
+queue
+ Steering: steering message
+ Follow-up: follow-up message
+
+Restored 2 queued messages to editor.
+
+assistant> Hello! How can I help you with your code today?
+
+
+ user> steering message
+
+follow-up message
+
+existing prompt
+  

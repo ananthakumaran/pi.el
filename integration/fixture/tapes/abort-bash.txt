@@ -1,0 +1,9 @@
+bash printf 'started\n'; sleep 120
+started
+Cancelled
+
+Aborted
+
+
+ user> 
+  

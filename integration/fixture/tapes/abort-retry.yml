@@ -1,0 +1,18 @@
+http_interactions:
+  - request:
+      method: POST
+      path: /v1/chat/completions
+      headers:
+        content-type: application/json
+      body:
+        encoding: utf8
+        data: '{}'
+    response:
+      status:
+        code: 529
+      headers:
+        content-type: application/json
+      body:
+        encoding: utf8
+        data: '{"error":{"message":"Fixture overload","type":"overloaded_error"}}'
+      compression: none

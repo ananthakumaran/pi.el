@@ -1,0 +1,15 @@
+user> start retry
+
+529: {"message":"Fixture overload","type":"overloaded_error"}
+
+Error: 529: {"message":"Fixture overload","type":"overloaded_error"}
+
+Retrying 1/3 (waiting 2s)…
+
+Error: Retry failed after 1 attempts: Retry cancelled
+
+Aborted
+
+
+ user> 
+  

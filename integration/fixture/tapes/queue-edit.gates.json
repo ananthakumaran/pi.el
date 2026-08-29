@@ -1,0 +1,8 @@
+{
+  "gates": [
+    {
+      "name": "initial-response",
+      "prompt": "hello"
+    }
+  ]
+}

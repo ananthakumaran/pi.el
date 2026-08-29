@@ -1984,21 +1984,30 @@ If `pimacs-prompt-streaming-behavior' is `followUp', use `steer' and vice versa.
           (pimacs--prompt-append error-lines))))
     (pimacs--pop-to-chat)))
 
+(defun pimacs--send-abort (command)
+  (pimacs--send-command
+   command '()
+   (pimacs--on-response-success-callback resp
+     (pimacs--widget-save-excursion
+       (pimacs-section--create-section 'error pimacs-section--root-section
+         (pimacs--insert-error "Aborted"))))))
+
 (defun pimacs-abort ()
   "Abort the current agent operation."
   (interactive)
   (pimacs--with-chat-buffer
-    (when (or pimacs--retry-in-progress pimacs--agent-state)
+    (cond
+     (pimacs--retry-in-progress
+      (pimacs--send-abort "abort_retry"))
+     ((eq pimacs--agent-state 'bash)
+      (pimacs--send-abort "abort_bash"))
+     (pimacs--agent-state
       (pimacs--send-command
-       (cond
-        (pimacs--retry-in-progress "abort_retry")
-        ((eq pimacs--agent-state 'bash) "abort_bash")
-        (pimacs--agent-state "abort"))
-       '()
-       (pimacs--on-response-success-callback resp
-         (pimacs--widget-save-excursion
-           (pimacs-section--create-section 'error pimacs-section--root-section
-             (pimacs--insert-error "Aborted")))))))
+       "clear_queue" '()
+       (lambda (resp)
+         (pimacs--on-response-success resp
+           (pimacs--restore-queued-messages (plist-get resp :data)))
+         (pimacs--send-abort "abort"))))))
   (keyboard-quit))
 
 (defun pimacs-clear-queue ()
@@ -2021,6 +2030,21 @@ If `pimacs-prompt-streaming-behavior' is `followUp', use `steer' and vice versa.
                             follow-up-count
                             (ngettext "message" "messages" follow-up-count)))))))))
 
+(defun pimacs--restore-queued-messages (data)
+  (let* ((messages (append (plist-get data :steering)
+                           (plist-get data :followUp)))
+         (current-prompt (widget-value pimacs--prompt-widget))
+         (prompt (string-join
+                  (append messages
+                          (unless (string-empty-p current-prompt)
+                            (list current-prompt)))
+                  "\n\n")))
+    (when messages
+      (pimacs--widget-save-excursion
+        (widget-value-set pimacs--prompt-widget prompt))
+      (pimacs-focus-prompt))
+    messages))
+
 (defun pimacs-edit-queue ()
   "Clear queued messages and put them in the prompt for editing."
   (interactive)
@@ -2028,24 +2052,13 @@ If `pimacs-prompt-streaming-behavior' is `followUp', use `steer' and vice versa.
     (pimacs--send-command
      "clear_queue" '()
      (pimacs--on-response-success-callback resp
-       (let* ((data (plist-get resp :data))
-              (messages (append (plist-get data :steering)
-                                (plist-get data :followUp)))
-              (current-prompt (widget-value pimacs--prompt-widget))
-              (prompt (string-join
-                       (append messages
-                               (unless (string-empty-p current-prompt)
-                                 (list current-prompt)))
-                       "\n\n")))
+       (let ((messages (pimacs--restore-queued-messages (plist-get resp :data))))
          (if (null messages)
              (pimacs--notify "No queued messages to restore." "warning")
-           (pimacs--widget-save-excursion
-             (widget-value-set pimacs--prompt-widget prompt))
            (pimacs--notify
             (format-message "Restored %d queued %s to editor."
                             (length messages)
-                            (ngettext "message" "messages" (length messages))))
-           (pimacs-focus-prompt)))))))
+                            (ngettext "message" "messages" (length messages))))))))))
 
 (defun pimacs--insert-stats-section (header plist fields)
   "Insert a stats section with HEADER (bold), extracting integers from PLIST.

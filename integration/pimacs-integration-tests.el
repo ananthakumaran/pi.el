@@ -183,23 +183,23 @@
       (accept-process-output nil pimacs-poll-interval))
     (should (funcall predicate))))
 
-(defmacro pimacs-send-prompt-when-agent-starts (prompt &rest body)
+(defmacro pimacs-wait-for-agent-event (predicate &rest body)
   (declare (indent 1))
-  `(let ((started nil))
+  `(let (matched-event)
      (unwind-protect
          (progn
            (pimacs--with-chat-buffer
              (pimacs--set-event-listener
-              t 'pimacs-integration-tests
+              t 'pimacs-wait-for-agent-event
               (lambda (event)
-                (when (and (not started)
-                           (equal (plist-get event :type) "agent_start"))
-                  (setq started t)
-                  ,@body))))
-           (pimacs-send-prompt ,prompt)
-           (pimacs-wait-until (lambda () started)))
+                (when (and (null matched-event)
+                           (funcall ,predicate event))
+                  (setq matched-event event)))))
+           ,@body
+           (pimacs-wait-until (lambda () matched-event))
+           matched-event)
        (pimacs--with-chat-buffer
-         (pimacs--remove-event-listener t 'pimacs-integration-tests)))))
+         (pimacs--remove-event-listener t 'pimacs-wait-for-agent-event)))))
 
 (defun pimacs-assert-prompt (buffer expected)
   (with-current-buffer buffer
@@ -382,11 +382,152 @@
                 '(:spacer
                   "agent=" :agent_state
                   " thinking=" :thinking_level))
-    (pimacs-send-prompt-when-agent-starts "hello"
+    (pimacs-wait-for-agent-event
+        (lambda (event) (equal (plist-get event :type) "agent_start"))
+      (pimacs-send-prompt "hello"))
+    (pimacs-wait-for-agent-event
+        (lambda (event)
+          (and (null (plist-get event :steering))
+               (equal (plist-get event :followUp)
+                      '("follow up 1" "follow up 2"))))
       (pimacs-send-prompt "follow up 1")
       (pimacs-send-prompt "follow up 2"))
+    (pimacs-send-prompt "/fixture-release initial-response")
     (pimacs-drain-process-output)
     (pimacs-send-prompt-and-wait "hello again")))
+
+(ert-deftest pimacs-abort-restores-queue ()
+  (pimacs-with-integration-project "abort-queue"
+    (let (agent-started queue-confirmed queue-cleared agent-settled)
+      (unwind-protect
+          (progn
+            (pimacs--with-chat-buffer
+              (pimacs--set-event-listener
+               t 'pimacs-integration-tests
+               (lambda (event)
+                 (pcase (plist-get event :type)
+                   ("agent_start"
+                    (setq agent-started t))
+                   ("queue_update"
+                    (let ((steering (plist-get event :steering))
+                          (follow-up (plist-get event :followUp)))
+                      (cond
+                       ((and (equal steering '("steering message"))
+                             (equal follow-up '("follow-up message")))
+                        (setq queue-confirmed t))
+                       ((and queue-confirmed (null steering) (null follow-up))
+                        (setq queue-cleared t)))))
+                   ("agent_settled"
+                    (setq agent-settled t))))))
+            (pimacs-send-prompt "start request")
+            (pimacs-wait-until (lambda () agent-started))
+            (pimacs-send-prompt "steering message" 'steer)
+            (pimacs-send-prompt "follow-up message" 'followUp)
+            (pimacs-wait-until (lambda () queue-confirmed))
+            (pimacs--with-chat-buffer
+              (widget-value-set pimacs--prompt-widget "existing prompt"))
+            (condition-case nil
+                (pimacs-abort)
+              (quit nil))
+            (pimacs-wait-until (lambda () (and queue-cleared agent-settled)))
+            (pimacs--with-chat-buffer
+              (pimacs-assert-prompt (current-buffer)
+                                    "steering message\n\nfollow-up message\n\nexisting prompt")))
+        (pimacs--with-chat-buffer
+          (pimacs--remove-event-listener t 'pimacs-integration-tests))))))
+
+(ert-deftest pimacs-abort-empty-queue-preserves-prompt ()
+  (pimacs-with-integration-project "abort-empty-queue"
+    (pimacs-wait-for-agent-event
+        (lambda (event) (equal (plist-get event :type) "agent_start"))
+      (pimacs-send-prompt "start request"))
+    (pimacs--with-chat-buffer
+      (widget-value-set pimacs--prompt-widget "existing prompt"))
+    (pimacs-wait-for-agent-event
+        (lambda (event) (equal (plist-get event :type) "agent_settled"))
+      (condition-case nil
+          (pimacs-abort)
+        (quit nil)))
+    (pimacs--with-chat-buffer
+      (pimacs-assert-prompt (current-buffer) "existing prompt"))))
+
+(ert-deftest pimacs-abort-retry ()
+  (pimacs-with-integration-project "abort-retry"
+    (pimacs-wait-for-agent-event
+        (lambda (event) (equal (plist-get event :type) "auto_retry_start"))
+      (pimacs-send-prompt "start retry"))
+    (pimacs--with-chat-buffer
+      (should pimacs--retry-in-progress))
+    (pimacs-wait-for-agent-event
+        (lambda (event) (equal (plist-get event :type) "agent_settled"))
+      (condition-case nil
+          (pimacs-abort)
+        (quit nil)))
+    (pimacs--with-chat-buffer
+      (should-not pimacs--retry-in-progress))))
+
+(ert-deftest pimacs-abort-bash ()
+  (pimacs-with-integration-project "abort-bash"
+    (pimacs-wait-for-agent-event
+        (lambda (event) (equal (plist-get event :type) "bash_execution_update"))
+      (pimacs-bash "printf 'started\\n'; sleep 120"))
+    (pimacs--with-chat-buffer
+      (should (eq pimacs--agent-state 'bash)))
+    (condition-case nil
+        (pimacs-abort)
+      (quit nil))
+    (pimacs-wait-until
+     (lambda ()
+       (pimacs--with-chat-buffer
+         (null pimacs--agent-state))))))
+
+(ert-deftest pimacs-queue-clear ()
+  (pimacs-with-integration-project "queue-clear"
+    (pimacs-wait-for-agent-event
+        (lambda (event) (equal (plist-get event :type) "agent_start"))
+      (pimacs-send-prompt "hello"))
+    (pimacs-wait-for-agent-event
+        (lambda (event)
+          (and (equal (plist-get event :steering) '("steering message"))
+               (equal (plist-get event :followUp) '("follow-up message"))))
+      (pimacs-send-prompt "steering message" 'steer)
+      (pimacs-send-prompt "follow-up message" 'followUp))
+    (pimacs--with-chat-buffer
+      (widget-value-set pimacs--prompt-widget "existing prompt"))
+    (pimacs-wait-for-agent-event
+        (lambda (event)
+          (and (null (plist-get event :steering))
+               (null (plist-get event :followUp))))
+      (pimacs-clear-queue))
+    (pimacs--with-chat-buffer
+      (pimacs-assert-prompt (current-buffer) "existing prompt"))
+    (pimacs-send-prompt "/fixture-release initial-response")
+    (pimacs-drain-process-output)))
+
+(ert-deftest pimacs-queue-edit ()
+  (pimacs-with-integration-project "queue-edit"
+    (pimacs-wait-for-agent-event
+        (lambda (event) (equal (plist-get event :type) "agent_start"))
+      (pimacs-send-prompt "hello"))
+    (pimacs-wait-for-agent-event
+        (lambda (event)
+          (and (equal (plist-get event :steering) '("steering message"))
+               (equal (plist-get event :followUp) '("follow-up message"))))
+      (pimacs-send-prompt "steering message" 'steer)
+      (pimacs-send-prompt "follow-up message" 'followUp))
+    (pimacs--with-chat-buffer
+      (widget-value-set pimacs--prompt-widget "existing prompt"))
+    (pimacs-wait-for-agent-event
+        (lambda (event)
+          (and (null (plist-get event :steering))
+               (null (plist-get event :followUp))))
+      (pimacs-edit-queue))
+    (pimacs--with-chat-buffer
+      (pimacs-assert-prompt
+       (current-buffer)
+       "steering message\n\nfollow-up message\n\nexisting prompt"))
+    (pimacs-send-prompt "/fixture-release initial-response")
+    (pimacs-drain-process-output)))
 
 (ert-deftest pimacs-steer ()
   (pimacs-with-integration-project "steer"
@@ -394,9 +535,16 @@
                 '("provider=" :provider
                   :spacer
                   "thinking=" :thinking_level))
-    (pimacs-send-prompt-when-agent-starts "hello"
+    (pimacs-wait-for-agent-event
+        (lambda (event) (equal (plist-get event :type) "agent_start"))
+      (pimacs-send-prompt "hello"))
+    (pimacs-wait-for-agent-event
+        (lambda (event)
+          (and (equal (plist-get event :steering) '("hello 1" "hello 2"))
+               (null (plist-get event :followUp))))
       (pimacs-send-prompt-alternate "hello 1")
       (pimacs-send-prompt-alternate "hello 2"))
+    (pimacs-send-prompt "/fixture-release initial-response")
     (pimacs-drain-process-output)
     (pimacs-send-prompt-and-wait "hello again")))
 
