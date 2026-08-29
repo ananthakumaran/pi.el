@@ -205,6 +205,7 @@ grammars are unavailable."
     ("set-steering-mode" pimacs-set-steering-mode 0 "Set steering mode")
     ("set-follow-up-mode" pimacs-set-follow-up-mode 0 "Set follow-up mode")
     ("clear-queue" pimacs-clear-queue 0 "Clear queued steering and follow-up messages")
+    ("edit-queue" pimacs-edit-queue 0 "Edit queued steering and follow-up messages")
     ("fork" pimacs-fork 0 "Create a new session from a previous user message")
     ("clone" pimacs-clone 0 "Duplicate the current active branch into a new session")
     ("copy" pimacs-copy 0 "Copy last assistant message to clipboard")
@@ -2009,13 +2010,42 @@ If `pimacs-prompt-streaming-behavior' is `followUp', use `steer' and vice versa.
      (pimacs--on-response-success-callback resp
        (let* ((data (plist-get resp :data))
               (steering-count (length (plist-get data :steering)))
-              (follow-up-count (length (plist-get data :followUp))))
-         (pimacs--notify
-          (format-message "Cleared %d steering %s and %d follow-up %s."
-                          steering-count
-                          (ngettext "message" "messages" steering-count)
-                          follow-up-count
-                          (ngettext "message" "messages" follow-up-count))))))))
+              (follow-up-count (length (plist-get data :followUp)))
+              (message-count (+ steering-count follow-up-count)))
+         (if (zerop message-count)
+             (pimacs--notify "No queued messages to clear." "warning")
+           (pimacs--notify
+            (format-message "Cleared %d steering %s and %d follow-up %s."
+                            steering-count
+                            (ngettext "message" "messages" steering-count)
+                            follow-up-count
+                            (ngettext "message" "messages" follow-up-count)))))))))
+
+(defun pimacs-edit-queue ()
+  "Clear queued messages and put them in the prompt for editing."
+  (interactive)
+  (pimacs--with-chat-buffer
+    (pimacs--send-command
+     "clear_queue" '()
+     (pimacs--on-response-success-callback resp
+       (let* ((data (plist-get resp :data))
+              (messages (append (plist-get data :steering)
+                                (plist-get data :followUp)))
+              (current-prompt (widget-value pimacs--prompt-widget))
+              (prompt (string-join
+                       (append messages
+                               (unless (string-empty-p current-prompt)
+                                 (list current-prompt)))
+                       "\n\n")))
+         (if (null messages)
+             (pimacs--notify "No queued messages to restore." "warning")
+           (pimacs--widget-save-excursion
+             (widget-value-set pimacs--prompt-widget prompt))
+           (pimacs--notify
+            (format-message "Restored %d queued %s to editor."
+                            (length messages)
+                            (ngettext "message" "messages" (length messages))))
+           (pimacs-focus-prompt)))))))
 
 (defun pimacs--insert-stats-section (header plist fields)
   "Insert a stats section with HEADER (bold), extracting integers from PLIST.
@@ -2747,6 +2777,8 @@ With a prefix argument OTHER-WINDOW, visit in other window."
   "l" #'pimacs-goto-last-section
   "i" #'pimacs-focus-prompt
   ">" #'pimacs-quote-region
+  "e" #'pimacs-edit-queue
+  "k" #'pimacs-clear-queue
   "q" #'pimacs-quit-chat)
 
 (defvar pimacs-chat-widget-field-keymap
@@ -2760,6 +2792,8 @@ With a prefix argument OTHER-WINDOW, visit in other window."
     (keymap-set map "<backtab>" #'pimacs-section-cycle-global)
     (keymap-set map "C-k" #'widget-kill-line)
     (keymap-set map "C-e" #'widget-end-of-line)
+    (keymap-set map "C-c C-e" #'pimacs-edit-queue)
+    (keymap-set map "C-c C-k" #'pimacs-clear-queue)
     (keymap-set map "C-m" #'widget-field-activate)
     map))
 
