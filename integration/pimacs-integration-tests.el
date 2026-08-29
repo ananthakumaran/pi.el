@@ -529,6 +529,19 @@
     (pimacs-send-prompt "/fixture-release initial-response")
     (pimacs-drain-process-output)))
 
+(ert-deftest pimacs-queue-empty-warnings ()
+  (pimacs-with-integration-project "queue-empty"
+    (pimacs-clear-queue)
+    (pimacs-wait-until
+     (lambda ()
+       (pimacs--with-chat-buffer
+         (string-match-p "No queued messages to clear." (buffer-string)))))
+    (pimacs-edit-queue)
+    (pimacs-wait-until
+     (lambda ()
+       (pimacs--with-chat-buffer
+         (string-match-p "No queued messages to restore." (buffer-string)))))))
+
 (ert-deftest pimacs-steer ()
   (pimacs-with-integration-project "steer"
     (setq-local pimacs-header-line-format

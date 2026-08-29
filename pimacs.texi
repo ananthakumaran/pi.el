@@ -164,6 +164,12 @@ Angle brackets @code{<>} denote required arguments, square brackets
 @item @code{/compact}
 @tab @code{[prompt]}
 @tab Manually compact context, optionally with custom instructions.
+@item @code{/clear-queue}
+@tab
+@tab Discard all queued steering and follow-up messages.
+@item @code{/edit-queue}
+@tab
+@tab Move queued steering and follow-up messages into the prompt for editing.
 @item @code{/clone}
 @tab
 @tab Duplicate the current active branch into a new session.
@@ -506,7 +512,13 @@ the full extension API.
 in another window
 @item @kbd{C-g}
 @tab @code{pimacs-abort}
-@tab Abort the current operation
+@tab Abort the current operation and restore queued messages to the prompt.
+@item @kbd{e}
+@tab @code{pimacs-edit-queue}
+@tab Move queued steering and follow-up messages into the prompt for editing
+@item @kbd{k}
+@tab @code{pimacs-clear-queue}
+@tab Discard all queued steering and follow-up messages
 @item @kbd{TAB}, @kbd{C-i}
 @tab @code{pimacs-toggle-section}
 @tab Toggle visibility of the section at point
@@ -560,7 +572,13 @@ in another window
 @headitem Key @tab Command @tab Description
 @item @kbd{C-g}
 @tab @code{pimacs-abort}
-@tab Abort the current operation
+@tab Abort the current operation and restore queued messages to the prompt.
+@item @kbd{C-c C-e}
+@tab @code{pimacs-edit-queue}
+@tab Move queued steering and follow-up messages into the prompt for editing
+@item @kbd{C-c C-k}
+@tab @code{pimacs-clear-queue}
+@tab Discard all queued steering and follow-up messages
 @item @kbd{M-p}
 @tab @code{pimacs-previous-prompt}
 @tab Recall the previous prompt from history

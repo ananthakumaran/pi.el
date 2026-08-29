@@ -140,6 +140,10 @@ Command            Arguments   Description
 ---------------------------------------------------------------------------
 ‘/compact’         ‘[prompt]’  Manually compact context, optionally with
                                custom instructions.
+‘/clear-queue’                 Discard all queued steering and follow-up
+                               messages.
+‘/edit-queue’                  Move queued steering and follow-up
+                               messages into the prompt for editing.
 ‘/clone’                       Duplicate the current active branch into
                                a new session.
 ‘/copy’                        Copy last assistant message to clipboard.
@@ -465,7 +469,14 @@ Key            Command                Description
 ‘RET’          ‘pimacs-visit-item’    Jump to the source location at
                                       point; with a prefix argument,
                                       open in another window
-‘C-g’          ‘pimacs-abort’         Abort the current operation
+‘C-g’          ‘pimacs-abort’         Abort the current operation and
+                                      restore queued messages to the
+                                      prompt.
+‘e’            ‘pimacs-edit-queue’    Move queued steering and follow-up
+                                      messages into the prompt for
+                                      editing
+‘k’            ‘pimacs-clear-queue’   Discard all queued steering and
+                                      follow-up messages
 ‘TAB’, ‘C-i’   ‘pimacs-toggle-section’Toggle visibility of the section
                                       at point
 ‘S-TAB’        ‘pimacs-section-cycle-global’Cycle global section visibility,
@@ -496,7 +507,14 @@ Key            Command                Description
 
 Key            Command                Description
 ---------------------------------------------------------------------------
-‘C-g’          ‘pimacs-abort’         Abort the current operation
+‘C-g’          ‘pimacs-abort’         Abort the current operation and
+                                      restore queued messages to the
+                                      prompt.
+‘C-c C-e’      ‘pimacs-edit-queue’    Move queued steering and follow-up
+                                      messages into the prompt for
+                                      editing
+‘C-c C-k’      ‘pimacs-clear-queue’   Discard all queued steering and
+                                      follow-up messages
 ‘M-p’          ‘pimacs-previous-prompt’Recall the previous prompt from
                                       history
 ‘M-n’          ‘pimacs-next-prompt’   Recall the next prompt from
@@ -1111,19 +1129,19 @@ Node: Setup1408
 Node: Doctor2205
 Node: Usage2577
 Node: Slash Commands3460
-Node: File Name Completion5701
-Node: Bash6029
-Node: Sending Context6296
-Node: Images7104
-Node: State Lines7969
-Node: Managing Sessions9297
-Node: Section Visibility9917
-Node: UI Customization11947
-Node: Sandbox15218
-Node: How It Works15611
-Node: Keybindings16763
-Node: Custom Variables20100
-Node: Custom Faces35023
+Node: File Name Completion5958
+Node: Bash6286
+Node: Sending Context6553
+Node: Images7361
+Node: State Lines8226
+Node: Managing Sessions9554
+Node: Section Visibility10174
+Node: UI Customization12204
+Node: Sandbox15475
+Node: How It Works15868
+Node: Keybindings17020
+Node: Custom Variables21253
+Node: Custom Faces36176
 
 End Tag Table
 
