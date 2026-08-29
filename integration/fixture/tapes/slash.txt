@@ -3,7 +3,7 @@ New session started.
 Session renamed to: session1
 
 Session Info
- File: PROJECT_DIR/agent/sessions/SESSION_DIR/TIMESTAMP_UUID.jsonl
+ File: agent/sessions/SESSION_DIR/TIMESTAMP_UUID.jsonl
  ID: UUID
 
 Messages

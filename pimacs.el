@@ -1047,7 +1047,7 @@ with the message plist to insert the custom message content."
                     ((null limit) (format ":%d" start-line))
                     (t (let ((end-line (+ start-line limit -1)))
                          (format ":%d-%d" start-line end-line))))))
-      (pimacs--insert-file-link (expand-file-name path (pimacs--project-root)) suffix))))
+      (pimacs--insert-file-link path (pimacs--project-root) suffix))))
 
 (defun pimacs--insert-read-result (content _details args)
   (when-let ((path (plist-get args :path)))
@@ -1082,7 +1082,7 @@ with the message plist to insert the custom message content."
 (defun pimacs--insert-write-args (args)
   (when-let ((path (plist-get args :path))
              (content (plist-get args :content)))
-    (pimacs--insert-file-link (expand-file-name path (pimacs--project-root)))
+    (pimacs--insert-file-link path (pimacs--project-root))
     (when (not (string-empty-p content))
       (insert "\n")
       (insert (pimacs--render-content path content)))))
@@ -1106,7 +1106,7 @@ with the message plist to insert the custom message content."
 ;; edit
 (defun pimacs--insert-edit-args (args)
   (when-let ((path (plist-get args :path)))
-    (pimacs--insert-file-link (expand-file-name path (pimacs--project-root)))))
+    (pimacs--insert-file-link path (pimacs--project-root))))
 
 (defun pimacs--insert-edit-result (content details _args)
   (when-let ((patch (or (plist-get details :patch)
@@ -1160,7 +1160,7 @@ with the message plist to insert the custom message content."
       (pimacs--insert-error (format "Command exited with code %d" exit-code)))
     (when full-output-path
       (insert "Output truncated. See full output at: ")
-      (pimacs--insert-file-link full-output-path))))
+      (pimacs--insert-file-link full-output-path (pimacs--project-root)))))
 
 ;; grep
 (defun pimacs--insert-grep-args (args)
@@ -2083,7 +2083,7 @@ FIELDS is a list of (LABEL . KEY) where KEY is a plist key."
               (propertize "Session Info\n" 'face 'bold))
 
              (insert " File: ")
-             (pimacs--insert-file-link (plist-get data :sessionFile))
+             (pimacs--insert-file-link (plist-get data :sessionFile) (pimacs--project-root))
              (insert "\n")
 
              (insert
@@ -2585,7 +2585,7 @@ CALLBACK is called after a successful refresh."
            (pimacs--widget-save-excursion
              (pimacs-section--create-section 'info pimacs-section--root-section
                (insert "Session exported to: ")
-               (pimacs--insert-file-link path)))))))))
+               (pimacs--insert-file-link path (pimacs--project-root))))))))))
 
 (defun pimacs-copy ()
   "Copy the last assistant message to the clipboard."

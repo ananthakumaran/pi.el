@@ -143,12 +143,19 @@
    (and event
         (memq 'meta (event-modifiers event)))))
 
-(defun pimacs--insert-file-link (path &optional suffix)
-  (widget-create 'file-link
-                 :button-prefix ""
-                 :button-suffix (or suffix "")
-                 :action #'pimacs--file-link-action
-                 path))
+(defun pimacs--insert-file-link (path root &optional suffix)
+  (let* ((root (file-name-as-directory (expand-file-name root)))
+         (path (expand-file-name path root))
+         (relative-path (file-relative-name path root))
+         (display-path (if (string-prefix-p "../" relative-path)
+                           path
+                         relative-path)))
+    (widget-create 'file-link
+                   :button-prefix ""
+                   :button-suffix (or suffix "")
+                   :action #'pimacs--file-link-action
+                   :tag display-path
+                   :value path)))
 
 (defun pimacs--keyword-name (keyword)
   "Return the name of KEYWORD as a string without the leading colon."

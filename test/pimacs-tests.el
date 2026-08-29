@@ -525,13 +525,28 @@
         (with-temp-buffer
           (let ((source (current-buffer))
                 (source-position nil)
-                (widget (pimacs--insert-file-link file)))
+                (widget (pimacs--insert-file-link file default-directory)))
             (setq source-position (point))
             (pimacs--file-link-action widget)
             (should (eq (marker-buffer (caar xref--history)) source))
             (should (= (marker-position (caar xref--history)) source-position))
             (kill-buffer (current-buffer))))
       (delete-file file))))
+
+(ert-deftest pimacs--file-link-displays-project-relative-path ()
+  (let* ((root (make-temp-file "pimacs-project-" t))
+         (inside (expand-file-name "lib/file.el" root))
+         (outside (make-temp-file "pimacs-file-link-")))
+    (unwind-protect
+        (with-temp-buffer
+          (let ((inside-widget (pimacs--insert-file-link "lib/file.el" root)))
+            (insert " ")
+            (let ((outside-widget (pimacs--insert-file-link outside root)))
+              (should (equal (buffer-string) (concat "lib/file.el " outside)))
+              (should (equal (widget-value inside-widget) inside))
+              (should (equal (widget-value outside-widget) outside)))))
+      (delete-file outside)
+      (delete-directory root t))))
 
 (ert-deftest pimacs--handle-agent-state-formats-parallel-tools ()
   (with-temp-buffer

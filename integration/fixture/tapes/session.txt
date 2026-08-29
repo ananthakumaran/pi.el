@@ -3,7 +3,7 @@ New session started.
 Session renamed to: test-session
 
 Session Info
- File: PROJECT_DIR/agent/sessions/SESSION_DIR/TIMESTAMP_UUID.jsonl
+ File: agent/sessions/SESSION_DIR/TIMESTAMP_UUID.jsonl
  ID: UUID
 
 Messages
@@ -30,7 +30,7 @@ assistant> The user is asking me to "say hello". This is a simple greeting reque
 assistant> Hello! How can I help you today?
 
 Session Info
- File: PROJECT_DIR/agent/sessions/SESSION_DIR/TIMESTAMP_UUID.jsonl
+ File: agent/sessions/SESSION_DIR/TIMESTAMP_UUID.jsonl
  ID: UUID
 
 Messages

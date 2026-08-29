@@ -49,7 +49,7 @@ user> create a new filed name test.txt
 
 assistant> The user wants me to create a new file named test.txt. I'll use the write function to create this file. Since they didn't specify content, I'll create an empty file or add a basic content to it.
 
-write PROJECT_DIR/test.txt
+write test.txt
 # Test file created
 Successfully wrote 19 bytes to test.txt
 
@@ -93,7 +93,7 @@ user> read utils.py file
 
 assistant> The user wants to read the contents of the utils.py file that was listed in the initial directory listing. I'll use the read function to get its contents.
 
-read PROJECT_DIR/utils.py
+read utils.py
 def greet(name):
     return f"Hello, {name}!"
 
@@ -144,7 +144,7 @@ user> create test.txt with some text
 
 assistant> The user wants me to create a new file named test.txt with some text content. I'll use the write function to create this file.
 
-write PROJECT_DIR/test.txt
+write test.txt
 This is a test file.
 
 It was just created with some text content.
@@ -190,7 +190,7 @@ The user wants to remove the 3rd line, which would be "It was just created with 
 
 I need to use the edit tool to make this replacement. I need to match the old text and replace it.
 
-edit PROJECT_DIR/test.txt
+edit test.txt
 --- test.txt
 +++ test.txt
 @@ -1,4 +1,3 @@
