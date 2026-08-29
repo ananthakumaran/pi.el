@@ -300,8 +300,28 @@ PRED is called with KEY VALUE."
           (diff-hunk-next)
           (diff-refine-hunk))
         (pimacs--diff-overlay-to-text-properties)))
+    (goto-char (point-min))
+    (when (re-search-forward "^--- .*\n\\+\\+\\+ .*\n" nil t)
+      (delete-region (match-beginning 0) (match-end 0)))
     (set-buffer-modified-p nil)
     (buffer-string)))
+
+(defun pimacs--diff-hunk-location ()
+  (let ((target (line-beginning-position))
+        (column (max 0 (- (point) (line-beginning-position) 1)))
+        (hunk-regexp "^@@ -\\([0-9]+\\)\\(?:,[0-9]+\\)? \\+\\([0-9]+\\)\\(?:,[0-9]+\\)? @@"))
+    (save-excursion
+      (beginning-of-line)
+      (unless (looking-at hunk-regexp)
+        (re-search-backward hunk-regexp nil t))
+      (when (looking-at hunk-regexp)
+        (let ((line (string-to-number (match-string 2))))
+          (forward-line)
+          (while (< (point) target)
+            (unless (looking-at "^-")
+              (setq line (1+ line)))
+            (forward-line))
+          (list :line line :column column))))))
 
 (defun pimacs--plist-get (list &rest args)
   (cl-reduce

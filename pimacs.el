@@ -1123,21 +1123,11 @@ with the message plist to insert the custom message content."
 (defun pimacs--visit-edit-result (_details args)
   (when-let ((path (plist-get args :path)))
     (let* ((section (pimacs-section--current-section))
-           (reverse (not (save-excursion (beginning-of-line) (looking-at "[-<]"))))
            (location
             (save-restriction
               (narrow-to-region (pimacs-section-beginning section)
                                 (pimacs-section-end section))
-              (condition-case nil
-                  (pcase-let ((`(,buffer ,_line-offset ,pos ,src ,_dst ,_switched)
-                               (diff-find-source-location nil reverse)))
-                    (with-current-buffer buffer
-                      (let ((visit-pos (+ (car pos) (cdr src))))
-                        (save-excursion
-                          (goto-char visit-pos)
-                          (list :line (line-number-at-pos)
-                                :column (- visit-pos (line-beginning-position)))))))
-                (error nil)))))
+              (pimacs--diff-hunk-location))))
       (list :file (expand-file-name path (pimacs--project-root))
             :line (or (plist-get location :line) 1)
             :column (plist-get location :column)))))

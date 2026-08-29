@@ -548,6 +548,32 @@
       (delete-file outside)
       (delete-directory root t))))
 
+(ert-deftest pimacs--render-diff-strips-file-headers ()
+  (let* ((header "--- a/file.el\n+++ b/file.el\n")
+         (body "@@ -1 +1 @@\n-old\n+new\n")
+         (rendered (pimacs--render-diff (concat header body))))
+    (should (equal (substring-no-properties rendered) body))))
+
+(ert-deftest pimacs--diff-hunk-location-counts-lines ()
+  (with-temp-buffer
+    (insert "@@ -10,2 +20,3 @@\n context\n-old\n+new\n new-context\n")
+    (goto-char (point-min))
+    (search-forward "-old")
+    (beginning-of-line)
+    (should (equal (pimacs--diff-hunk-location) '(:line 21 :column 0)))
+    (search-forward "+new")
+    (beginning-of-line)
+    (should (equal (pimacs--diff-hunk-location) '(:line 21 :column 0)))
+    (forward-char 3)
+    (should (equal (pimacs--diff-hunk-location) '(:line 21 :column 2)))))
+
+(ert-deftest pimacs--diff-hunk-location-uses-character-columns ()
+  (with-temp-buffer
+    (insert "@@ -1 +1 @@\n+\tfoo\n")
+    (goto-char (point-min))
+    (search-forward "f")
+    (should (equal (pimacs--diff-hunk-location) '(:line 1 :column 2)))))
+
 (ert-deftest pimacs--handle-agent-state-formats-parallel-tools ()
   (with-temp-buffer
     (setq pimacs--spinner (spinner-create 'progress-bar))
