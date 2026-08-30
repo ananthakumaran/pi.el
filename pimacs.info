@@ -20,7 +20,7 @@ END-INFO-DIR-ENTRY
 
 File: pimacs.info,  Node: Top,  Next: Introduction,  Up: (dir)
 
-Pimacs User Manual v0.5.0
+Pimacs User Manual v0.6.0
 *************************
 
 Pimacs is an Emacs client for Pi Coding Agent (https://pi.dev/).  For
