@@ -2757,6 +2757,8 @@ With a prefix argument OTHER-WINDOW, visit in other window."
   :doc "Keymap for `pimacs-chat-mode'."
   :parent special-mode-map
   "<remap> <keyboard-quit>" #'pimacs-abort
+  "<remap> <revert-buffer>" #'pimacs-reload
+  "<remap> <revert-buffer-quick>" #'pimacs-reload
   "<left-fringe> <mouse-1>" #'pimacs-mouse-toggle-section
   "<left-fringe> <mouse-2>" #'pimacs-mouse-toggle-section
   "RET" #'pimacs-visit-item
@@ -2787,6 +2789,8 @@ With a prefix argument OTHER-WINDOW, visit in other window."
 (defvar pimacs-chat-widget-field-keymap
   (let ((map (make-sparse-keymap)))
     (keymap-set map "<remap> <keyboard-quit>" #'pimacs-abort)
+    (keymap-set map "<remap> <revert-buffer>" #'pimacs-reload)
+    (keymap-set map "<remap> <revert-buffer-quick>" #'pimacs-reload)
     (keymap-set map "M-p" #'pimacs-previous-prompt)
     (keymap-set map "M-n" #'pimacs-next-prompt)
     (keymap-set map "C-r" #'pimacs-search-prompt)
