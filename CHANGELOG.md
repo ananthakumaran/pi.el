@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## v0.6.0 - 2026-08-30
+
+### Added
+
+- `/clear-queue` and `/edit-queue` commands for managing queued steering and follow-up messages.
+- `pimacs-quote-region` and the `>` chat key binding for quoting selected text in the prompt.
+
+### Changed
+
+- Aborting an operation now restores queued messages to the prompt.
+- File links display project-relative paths when possible and push an xref marker before visiting files.
+- File completion is scoped to the Pimacs project root.
+- Grep rendering now tolerates errors in individual result lines.
+- Diff headers are no longer shown in rendered edit results.
+- The minimum supported Pi agent version is now 0.84.4.
+
 ## v0.5.0 - 2026-08-22
 
 ### Breaking Changes
