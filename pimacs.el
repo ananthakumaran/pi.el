@@ -4,7 +4,7 @@
 
 ;; Author: Anantha kumaran <ananthakumaran@gmail.com>
 ;; URL: https://github.com/ananthakumaran/pimacs.el
-;; Version: 0.6.0
+;; Version: 0.7.0-pre
 ;; Keywords: convenience processes
 ;; Package-Requires: ((emacs "29.1") (compat "31.0") (timeout "2.1.7") (pcre2el "1.12") (spinner "1.7") (transient "0.3.7"))
 
@@ -2876,6 +2876,7 @@ With a prefix argument OTHER-WINDOW, visit in other window."
               (append (list '(:eval (pimacs--format-state-line pimacs-mode-line-format)))
                       mode-line-misc-info))
   (pimacs--update-header-line)
+  (hack-dir-local-variables-non-file-buffer)
   (pimacs--fetch-commands))
 
 (defun pimacs-chat--read-root (prompt _initial-input _history)
@@ -2900,6 +2901,12 @@ With a prefix argument OTHER-WINDOW, visit in other window."
    ["Actions"
     ("RET" "Start chat" pimacs-chat--start)]])
 
+(defun pimacs--with-directory-local-variables (directory fn)
+  (with-temp-buffer
+    (let ((default-directory directory))
+      (hack-dir-local-variables-non-file-buffer)
+      (funcall fn))))
+
 (defun pimacs-chat--create (name root)
   (let* ((explicit-root root)
          (root (if explicit-root
@@ -2909,7 +2916,10 @@ With a prefix argument OTHER-WINDOW, visit in other window."
     (let ((pimacs--project-root root)
           (pimacs--project-key key))
       (unless (pimacs--current-agent)
-        (pimacs--start-agent key))
+        (pimacs--with-directory-local-variables
+         root
+         (lambda ()
+           (pimacs--start-agent key))))
       (let ((chat-buffer (or (pimacs--current-chat)
                              (let ((buffer (generate-new-buffer (pimacs--chat-buffer-name name))))
                                (with-current-buffer buffer

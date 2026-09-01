@@ -5,6 +5,7 @@ assistant> The user wants me to use the read tool to inspect a file named green-
 I'll start by looking for the file green-triangle.png.
 
 ls .
+.dir-locals.el
 .project
 agent/
 config.json

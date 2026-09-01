@@ -1,6 +1,7 @@
 .cask
 *.elc
 .dir-locals.el
+!integration/project/.dir-locals.el
 *~
 sandbox
 integration/fixture/node_modules

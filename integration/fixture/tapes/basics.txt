@@ -3,6 +3,7 @@ user> list files
 assistant> The user wants me to list files in the current directory. I'll use the ls function to do this.
 
 ls 
+.dir-locals.el
 .project
 agent/
 config.json

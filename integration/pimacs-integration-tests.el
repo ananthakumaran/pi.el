@@ -65,10 +65,13 @@
   (declare (indent 1))
   `(pimacs-with-silenced-integration-messages
      (let* ((default-directory pimacs-project-directory)
-            (pimacs-process-environment (list
-                                         (concat "FIXTURE_SCENARIO=" ,scenario)
-                                         (concat "PI_CODING_AGENT_DIR=" pimacs-project-agent-directory)
-                                         (concat "FIXTURE_MODE=" (pimacs-fixture-mode))))
+            (enable-local-variables :all)
+            (fixture-process-environment
+             (list (concat "FIXTURE_SCENARIO=" ,scenario)
+                   (concat "PI_CODING_AGENT_DIR=" pimacs-project-agent-directory)
+                   (concat "FIXTURE_MODE=" (pimacs-fixture-mode))))
+            (process-environment
+             (append fixture-process-environment process-environment))
             (pimacs-flags (list "--tools" "read,bash,edit,write,grep,find,ls,cowsay" "--extension" (expand-file-name "fixture" pimacs-integration-directory))))
        (let ((sessions-dir (expand-file-name "sessions" pimacs-project-agent-directory)))
          (when (file-exists-p sessions-dir)
@@ -681,6 +684,16 @@
         (pimacs-send-prompt "/reload"))
       (sleep-for 3)
       (should-not (get-buffer "*pimacs-edit*")))
+    (pimacs-send-prompt-and-wait "hello")))
+
+(ert-deftest pimacs-reload-preserves-directory-local-variables ()
+  (pimacs-with-integration-project "reload-dir-locals"
+    (pimacs-send-prompt-and-wait "!!echo $PIMACS_DIRECTORY_LOCAL")
+    (pimacs-send-prompt-and-wait "hello")
+    (pimacs--with-chat-buffer
+      (pimacs-reload))
+    (sleep-for 3)
+    (pimacs-send-prompt-and-wait "!!echo $PIMACS_DIRECTORY_LOCAL")
     (pimacs-send-prompt-and-wait "hello")))
 
 (ert-deftest pimacs-extension-ui ()
