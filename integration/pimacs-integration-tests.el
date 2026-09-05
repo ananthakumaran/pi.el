@@ -40,6 +40,7 @@
   '("^(.*) Starting pimacs version .+\.\.\.$"
     "^(.*) pimacs agent started successfully\.$"
     "^(.*) pimacs exits: killed\\(: [0-9]+\\)?\\.$"
+    "^Couldn.?t find project root folder\\. Using .+ as project root\\.$"
     "^Copied last assistant message to clipboard\.$"))
 
 (defmacro pimacs-with-silenced-integration-messages (&rest body)
