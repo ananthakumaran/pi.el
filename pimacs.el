@@ -583,26 +583,35 @@ with the message plist to insert the custom message content."
     (>= (window-point window)
         (widget-get pimacs--prompt-widget :from))))
 
-(defmacro pimacs--widget-save-excursion (&rest body)
-  "Insert before PROMPT-WIDGET and restore focus.  BODY is the content."
+
+(defmacro pimacs--widget-save-excursion-preserving-undo (&rest body)
+  "Insert BODY before PROMPT-WIDGET and restore focus, preserving undo."
   (declare (indent 0))
-  `(let* ((inhibit-read-only t)
-          (follow-p (pimacs--point-in-prompt-p)))
-     (save-excursion
-       (goto-char (widget-get pimacs--prompt-widget :from))
-       ,@body)
-     (when follow-p
-       (pimacs--recenter-chat))))
+  (let ((follow-p (make-symbol "follow-p")))
+    `(let* ((inhibit-read-only t)
+            (,follow-p (pimacs--point-in-prompt-p)))
+       (save-excursion
+         (goto-char (widget-get pimacs--prompt-widget :from))
+         ,@body)
+       (when ,follow-p
+         (pimacs--recenter-chat)))))
+
+(defmacro pimacs--widget-save-excursion (&rest body)
+  "Insert generated BODY before PROMPT-WIDGET and restore focus."
+  (declare (indent 0))
+  `(pimacs--without-undo-before (widget-field-start pimacs--prompt-widget)
+     (pimacs--widget-save-excursion-preserving-undo ,@body)))
 
 (defmacro pimacs--with-chat-buffer (&rest body)
   "Execute BODY in the current chat buffer."
   (declare (indent 0))
-  `(let ((buffer (or (pimacs--current-chat)
-                     (pimacs--select-relevant-chat))))
-     (if buffer
-         (with-current-buffer buffer
-           (progn ,@body))
-       (error "Chat doesn't exist, start a new chat using M-x pimacs-chat"))))
+  (let ((buffer (make-symbol "buffer")))
+    `(let ((,buffer (or (pimacs--current-chat)
+                        (pimacs--select-relevant-chat))))
+       (if ,buffer
+           (with-current-buffer ,buffer
+             (progn ,@body))
+         (error "Chat doesn't exist, start a new chat using M-x pimacs-chat")))))
 
 ;;; Completion
 
@@ -962,8 +971,9 @@ with the message plist to insert the custom message content."
     (nreverse merged-events)))
 
 (defun pimacs--handle-message-update-batch (events)
-  (dolist (event (pimacs--merge-message-updates events))
-    (pimacs--handle-message-update event)))
+  (pimacs--without-undo-before (widget-field-start pimacs--prompt-widget)
+    (dolist (event (pimacs--merge-message-updates events))
+      (pimacs--handle-message-update event))))
 
 (defun pimacs--handle-message-end (event)
   (let* ((message (plist-get event :message))
@@ -1468,20 +1478,21 @@ with the message plist to insert the custom message content."
                      empty-text)))
 
 (defun pimacs--update-prompt-widgets ()
-  (let ((above '())
-        (below '()))
-    (when pimacs--prompt-widget-lines
-      (maphash (lambda (key val)
-                 (let ((lines (pimacs--join (car val)))
-                       (placement (cdr val)))
-                   (pcase placement
-                     ("aboveEditor"
-                      (push (cons key lines) above))
-                     ("belowEditor"
-                      (push (cons key lines) below)))))
-               pimacs--prompt-widget-lines))
-    (pimacs--update-widget-by-entries pimacs--prompt-before-widget above "\n")
-    (pimacs--update-widget-by-entries pimacs--prompt-after-widget below)))
+  (pimacs--without-undo-before (widget-field-start pimacs--prompt-widget)
+    (let ((above '())
+          (below '()))
+      (when pimacs--prompt-widget-lines
+        (maphash (lambda (key val)
+                   (let ((lines (pimacs--join (car val)))
+                         (placement (cdr val)))
+                     (pcase placement
+                       ("aboveEditor"
+                        (push (cons key lines) above))
+                       ("belowEditor"
+                        (push (cons key lines) below)))))
+                 pimacs--prompt-widget-lines))
+      (pimacs--update-widget-by-entries pimacs--prompt-before-widget above "\n")
+      (pimacs--update-widget-by-entries pimacs--prompt-after-widget below))))
 
 (defun pimacs--handle-set-widget (event)
   (let* ((widget-key (plist-get event :widgetKey))
@@ -1494,20 +1505,21 @@ with the message plist to insert the custom message content."
     (pimacs--update-prompt-widgets)))
 
 (defun pimacs--update-status-widget ()
-  (let (entries)
-    (when pimacs--status-texts
-      (maphash (lambda (key text)
-                 (unless (member key pimacs-status-widget-hidden-keys)
-                   (push (cons key
-                               (propertize text
-                                           'help-echo
-                                           key))
-                         entries)))
-               pimacs--status-texts))
-    (widget-value-set pimacs--status-widget
-                      (pimacs--widget-ensure-trailing-newline
-                       (pimacs--join (pimacs--sort-entries-by-key entries) " ")))
-    (force-mode-line-update)))
+  (pimacs--without-undo-before (widget-field-start pimacs--prompt-widget)
+    (let (entries)
+      (when pimacs--status-texts
+        (maphash (lambda (key text)
+                   (unless (member key pimacs-status-widget-hidden-keys)
+                     (push (cons key
+                                 (propertize text
+                                             'help-echo
+                                             key))
+                           entries)))
+                 pimacs--status-texts))
+      (widget-value-set pimacs--status-widget
+                        (pimacs--widget-ensure-trailing-newline
+                         (pimacs--join (pimacs--sort-entries-by-key entries) " ")))
+      (force-mode-line-update))))
 
 (defun pimacs--handle-set-status (event)
   (let* ((status-key (plist-get event :statusKey))
@@ -1742,10 +1754,12 @@ with the message plist to insert the custom message content."
       (when (not (string-match-p "^[ \t]+$" result))
         result))))
 
-(defun pimacs--clear-prompt (prompt)
+(defun pimacs--clear-prompt (prompt &optional discard-undo)
   (let ((current (widget-value pimacs--prompt-widget)))
     (when (string= current prompt)
       (widget-value-set pimacs--prompt-widget "")))
+  (when discard-undo
+    (setq buffer-undo-list nil))
   (unless (and (> (ring-length pimacs--prompt-history) 0)
                (equal prompt (ring-ref pimacs--prompt-history 0)))
     (ring-insert pimacs--prompt-history prompt))
@@ -1787,7 +1801,7 @@ with the message plist to insert the custom message content."
             (pimacs--send-command
              "prompt" args
              (pimacs--on-response-success-callback resp
-               (pimacs--clear-prompt prompt))))))))))
+               (pimacs--clear-prompt prompt t))))))))))
 
 (defun pimacs-send-prompt-alternate (&optional prompt)
   "Send PROMPT with the alternative streaming behavior.
@@ -1834,33 +1848,34 @@ If `pimacs-prompt-streaming-behavior' is `followUp', use `steer' and vice versa.
         (pimacs-focus-prompt)))))
 
 (defun pimacs--update-images-preview ()
-  (let ((images pimacs--attached-images))
-    (if (seq-empty-p images)
-        (widget-value-set pimacs--attached-images-widget pimacs--empty-widget-text)
-      (let ((preview "\n"))
-        (dotimes (i (length images))
-          (let* ((plist (aref images i))
-                 (mime-type (plist-get plist :mimeType))
-                 (base64-data (plist-get plist :data))
-                 (image-type (pimacs--alist-get-equal mime-type pimacs--image-type-alist))
-                 (image (ignore-errors
-                          (create-image (base64-decode-string base64-data)
-                                        image-type t
-                                        :data-p t
-                                        :max-width 200
-                                        :max-height 100
-                                        :margin '(4 . 4)
-                                        :ascent 100))))
-            (when image
-              (setq preview (concat preview
-                                    (propertize " " 'display image
-                                                'keymap pimacs--image-remove-map
-                                                'pimacs-image-index i
-                                                'mouse-face 'highlight
-                                                'help-echo (format "Remove image %d (backspace/delete)" (1+ i))))))))
-        (unless (string-empty-p preview)
-          (setq preview (concat preview "\n")))
-        (widget-value-set pimacs--attached-images-widget preview)))))
+  (pimacs--without-undo-before (widget-field-start pimacs--prompt-widget)
+    (let ((images pimacs--attached-images))
+      (if (seq-empty-p images)
+          (widget-value-set pimacs--attached-images-widget pimacs--empty-widget-text)
+        (let ((preview "\n"))
+          (dotimes (i (length images))
+            (let* ((plist (aref images i))
+                   (mime-type (plist-get plist :mimeType))
+                   (base64-data (plist-get plist :data))
+                   (image-type (pimacs--alist-get-equal mime-type pimacs--image-type-alist))
+                   (image (ignore-errors
+                            (create-image (base64-decode-string base64-data)
+                                          image-type t
+                                          :data-p t
+                                          :max-width 200
+                                          :max-height 100
+                                          :margin '(4 . 4)
+                                          :ascent 100))))
+              (when image
+                (setq preview (concat preview
+                                      (propertize " " 'display image
+                                                  'keymap pimacs--image-remove-map
+                                                  'pimacs-image-index i
+                                                  'mouse-face 'highlight
+                                                  'help-echo (format "Remove image %d (backspace/delete)" (1+ i))))))))
+          (unless (string-empty-p preview)
+            (setq preview (concat preview "\n")))
+          (widget-value-set pimacs--attached-images-widget preview))))))
 
 (defun pimacs--check-image-type (mime-type)
   (unless (pimacs--alist-get-equal (symbol-name mime-type) pimacs--image-type-alist)
@@ -1886,7 +1901,7 @@ If `pimacs-prompt-streaming-behavior' is `followUp', use `steer' and vice versa.
 (defun pimacs--prompt-append (text)
   (pimacs--with-chat-buffer
     (let ((current-value (widget-value pimacs--prompt-widget)))
-      (pimacs--widget-save-excursion
+      (pimacs--widget-save-excursion-preserving-undo
         (if (string-empty-p current-value)
             (widget-value-set pimacs--prompt-widget text)
           (widget-value-set pimacs--prompt-widget
@@ -2030,7 +2045,7 @@ If `pimacs-prompt-streaming-behavior' is `followUp', use `steer' and vice versa.
                             (list current-prompt)))
                   "\n\n")))
     (when messages
-      (pimacs--widget-save-excursion
+      (pimacs--widget-save-excursion-preserving-undo
         (widget-value-set pimacs--prompt-widget prompt))
       (pimacs-focus-prompt))
     messages))
@@ -2618,7 +2633,7 @@ CALLBACK is called after a successful refresh."
                 (pimacs--unless-cancelled resp "Fork"
                   (pimacs-refresh-session
                    (lambda ()
-                     (pimacs--widget-save-excursion
+                     (pimacs--widget-save-excursion-preserving-undo
                        (widget-value-set pimacs--prompt-widget (or message-text "")))
                      (pimacs-focus-prompt)
                      (pimacs--notify "Forked to new session")))
@@ -2868,6 +2883,8 @@ With a prefix argument OTHER-WINDOW, visit in other window."
     (yank-media-handler (mapcar (lambda (pair) (intern (car pair))) pimacs--image-type-alist)
                         #'pimacs--yank-media-handler))
   (widget-setup)
+  ;; `widget-create' enables undo; start with only subsequent prompt edits.
+  (setq buffer-undo-list nil)
   (pimacs-focus-prompt)
   (add-hook 'kill-buffer-hook #'pimacs--cleanup-chat-buffer nil t)
   (pimacs--register-agent-cleanup)

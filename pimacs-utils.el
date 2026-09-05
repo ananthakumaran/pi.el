@@ -100,6 +100,64 @@
      (buffer-disable-undo)
      ,@body))
 
+(defvar pimacs--without-undo-before-active nil)
+(defvar pimacs--apply-undo-entry-warning-issued nil)
+
+(defun pimacs--discard-and-shift-undo-list (undo-list boundary shift)
+  "Discard apply entries and adjust UNDO-LIST after an unrecorded edit.
+
+BOUNDARY and SHIFT describe the change in positions after the edit."
+  (let ((head undo-list)
+        previous
+        (current undo-list)
+        (deltas (and (/= shift 0) (list (cons boundary (- shift)))))
+        (count 0))
+    (while (consp current)
+      (if (eq (car-safe (car current)) 'apply)
+          (progn
+            (if previous
+                (setcdr previous (cdr current))
+              (setq head (cdr current)))
+            (setq count (1+ count)))
+        (when deltas
+          (setcar current (undo-adjust-elt (car current) deltas)))
+        (setq previous current))
+      (setq current (cdr current)))
+    (when (and (> count 0) (not pimacs--apply-undo-entry-warning-issued))
+      (setq pimacs--apply-undo-entry-warning-issued t)
+      (display-warning
+       'pimacs
+       "Pimacs discarded unsupported apply undo entries while updating output."
+       :warning))
+    head))
+
+(defmacro pimacs--without-undo-before (input-start &rest body)
+  "Run BODY without undo, preserving input undo after INPUT-START.
+
+BODY must not modify the input field; retained undo entries must belong to it."
+  (declare (indent 1) (debug (form body)))
+  (let ((input-position (make-symbol "input-position"))
+        (anchor (make-symbol "anchor"))
+        (shift (make-symbol "shift")))
+    `(if pimacs--without-undo-before-active
+         (progn ,@body)
+       (let ((,input-position ,input-start))
+         (if (null ,input-position)
+             ;; Without a prompt widget, there is no prompt undo to adjust.
+             (let ((buffer-undo-list t))
+               ,@body)
+           (let ((,anchor (copy-marker ,input-position t))
+                 (pimacs--without-undo-before-active t))
+             (undo-boundary)
+             (unwind-protect
+                 (let ((buffer-undo-list t))
+                   ,@body)
+               (let ((,shift (- (marker-position ,anchor) ,input-position)))
+                 (setq buffer-undo-list
+                       (pimacs--discard-and-shift-undo-list
+                        buffer-undo-list ,input-position ,shift)))
+               (set-marker ,anchor nil))))))))
+
 (defmacro pimacs--def-permanent-buffer-local (name &optional init-value)
   "Declare NAME as buffer local variable with optional INIT-VALUE."
   `(progn
