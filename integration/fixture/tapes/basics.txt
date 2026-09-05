@@ -52,7 +52,7 @@ assistant> The user wants me to create a new file named test.txt. I'll use the w
 
 write test.txt
 # Test file created
-Successfully wrote 19 bytes to test.txt
+Successfully wrote to test.txt
 
 assistant> The file has been created successfully. Let me confirm this to the user.
 
@@ -150,7 +150,7 @@ This is a test file.
 
 It was just created with some text content.
 This might be useful for testing purposes.
-Successfully wrote 108 bytes to test.txt
+Successfully wrote to test.txt
 
 assistant> The file has been created successfully. I should confirm this to the user and let them know what content was written to the file.
 
