@@ -926,24 +926,36 @@ with the message plist to insert the custom message content."
                          :section section
                          :content content)
                         pimacs--content-sections))))))
+      ("toolcall_start"
+       (let ((tool-call-id (plist-get assistant-message-event :id))
+             (tool-name (plist-get assistant-message-event :toolName)))
+         (when (and tool-call-id tool-name)
+           (pimacs--widget-save-excursion
+             (let ((call-section (pimacs-section--new-section 'tool-call pimacs-section--root-section :padding "\n")))
+               (pimacs--insert-tool-call call-section tool-name nil nil t)
+               (puthash tool-call-id
+                        (make-pimacs-tool-call
+                         :call-section call-section
+                         :result-section nil
+                         :prev-text ""
+                         :tool-name tool-name
+                         :args nil)
+                        pimacs--tool-calls))))))
       ("toolcall_end"
        (let* ((tool-call (plist-get assistant-message-event :toolCall))
               (tool-call-id (plist-get tool-call :id))
               (tool-name (plist-get tool-call :name))
               (args (plist-get tool-call :arguments)))
          (pimacs--widget-save-excursion
-           (let ((call-section (pimacs-section--new-section 'tool-call pimacs-section--root-section :padding "\n")))
-             (pimacs--insert-tool-call call-section tool-name args)
-             (let ((result-section (pimacs-section--new-section 'tool-result call-section)))
+           (let ((entry (gethash tool-call-id pimacs--tool-calls)))
+             (pimacs--insert-tool-call (pimacs-tool-call-call-section entry) tool-name args t)
+             (setf (pimacs-tool-call-tool-name entry) tool-name
+                   (pimacs-tool-call-args entry) args)
+             (let ((result-section (pimacs-section--new-section
+                                    'tool-result
+                                    (pimacs-tool-call-call-section entry))))
                (pimacs-section--insert-section result-section)
-               (puthash tool-call-id
-                        (make-pimacs-tool-call
-                         :call-section call-section
-                         :result-section result-section
-                         :prev-text ""
-                         :tool-name tool-name
-                         :args args)
-                        pimacs--tool-calls)))))))))
+               (setf (pimacs-tool-call-result-section entry) result-section)))))))))
 
 (defun pimacs--message-update-mergeable-p (first second)
   (let ((first-event (plist-get first :assistantMessageEvent))
@@ -1312,15 +1324,28 @@ with the message plist to insert the custom message content."
       (insert (pimacs--render-content nil (format "%S" args)
                                       #'emacs-lisp-mode)))))
 
-(defun pimacs--insert-tool-call (section tool-name args)
-  "Insert a tool call into SECTION for TOOL-NAME with ARGS."
+(defun pimacs--insert-tool-call (section tool-name args &optional replace in-progress)
+  "Insert a tool call into SECTION for TOOL-NAME with ARGS.
+
+When REPLACE is non-nil, replace SECTION's existing content.  When IN-PROGRESS
+is non-nil, insert an ellipsis instead of ARGS."
   (let (args-begin args-end)
     (pimacs--widget-save-excursion
-      (pimacs-section--insert-section section
-        (pimacs--insert-tool-name tool-name)
-        (setq args-begin (point))
-        (pimacs--insert-tool-args tool-name args)
-        (setq args-end (point))))
+      (let ((insert-content
+             (lambda ()
+               (pimacs--insert-tool-name tool-name)
+               (setq args-begin (point))
+               (cond
+                (args
+                 (pimacs--insert-tool-args tool-name args))
+                (in-progress
+                 (insert "…")))
+               (setq args-end (point)))))
+        (if replace
+            (pimacs-section--replace-section section
+              (funcall insert-content))
+          (pimacs-section--insert-section section
+            (funcall insert-content)))))
     (pimacs-section--set-info section (make-pimacs-section-tool-call-info
                                        :tool-name tool-name
                                        :args args
@@ -1693,9 +1718,12 @@ with the message plist to insert the custom message content."
     (agent_settled (pimacs--update-agent-state nil)
                    (pimacs-clear-project-file-cache))
     (turn_start (pimacs--update-agent-state 'thinking))
-    (tool_execution_start
-     (pimacs--update-agent-state
-      (pimacs--agent-state-add-tool (plist-get event :toolName))))
+    (message_update
+     (let ((assistant-message-event (plist-get event :assistantMessageEvent)))
+       (when (equal (plist-get assistant-message-event :type) "toolcall_start")
+         (when-let ((tool-name (plist-get assistant-message-event :toolName)))
+           (pimacs--update-agent-state
+            (pimacs--agent-state-add-tool tool-name))))))
     (tool_execution_end
      (pimacs--update-agent-state
       (pimacs--agent-state-remove-tool (plist-get event :toolName))))

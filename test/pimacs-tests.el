@@ -623,33 +623,81 @@
     (setq pimacs--spinner (spinner-create 'progress-bar))
     (pimacs-section--create-root-section)
 
-    (pimacs--handle-agent-state '(:type "tool_execution_start" :toolName "read"))
+    (pimacs--handle-agent-state
+     '(:type "message_update"
+             :assistantMessageEvent (:type "toolcall_start" :id "read-1" :toolName "read")))
     (should (equal (pimacs--format-state) "tool(read)"))
     (should (spinner--active-p pimacs--spinner))
 
-    (pimacs--handle-agent-state '(:type "tool_execution_start" :toolName "grep"))
+    (pimacs--handle-agent-state
+     '(:type "tool_execution_start" :toolCallId "read-1" :toolName "read"))
+    (should (equal (pimacs--format-state) "tool(read)"))
+    (should (spinner--active-p pimacs--spinner))
+
+    (pimacs--handle-agent-state
+     '(:type "message_update"
+             :assistantMessageEvent (:type "toolcall_start" :id "grep-1" :toolName "grep")))
     (should (equal (pimacs--format-state) "tool(grep, read)"))
     (should (spinner--active-p pimacs--spinner))
 
-    (pimacs--handle-agent-state '(:type "tool_execution_start" :toolName "bash"))
+    (pimacs--handle-agent-state
+     '(:type "message_update"
+             :assistantMessageEvent (:type "toolcall_start" :id "bash-1" :toolName "bash")))
     (should (equal (pimacs--format-state) "tool(bash, grep + 1 more)"))
     (should (spinner--active-p pimacs--spinner))
 
-    (pimacs--handle-agent-state '(:type "tool_execution_end" :toolName "bash"))
+    (pimacs--handle-agent-state '(:type "tool_execution_end" :toolCallId "bash-1" :toolName "bash"))
     (should (equal (pimacs--format-state) "tool(grep, read)"))
     (should (spinner--active-p pimacs--spinner))
 
-    (pimacs--handle-agent-state '(:type "tool_execution_end" :toolName "grep"))
+    (pimacs--handle-agent-state '(:type "tool_execution_end" :toolCallId "grep-1" :toolName "grep"))
     (should (equal (pimacs--format-state) "tool(read)"))
     (should (spinner--active-p pimacs--spinner))
 
-    (pimacs--handle-agent-state '(:type "tool_execution_end" :toolName "read"))
+    (pimacs--handle-agent-state '(:type "tool_execution_end" :toolCallId "read-1" :toolName "read"))
     (should (equal (pimacs--format-state) "thinking"))
     (should (spinner--active-p pimacs--spinner))
 
     (pimacs--handle-agent-state '(:type "agent_settled"))
     (should (equal (pimacs--format-state) "idle"))
     (should-not (spinner--active-p pimacs--spinner))))
+
+(ert-deftest pimacs--handle-message-update-renders-toolcall-start-early ()
+  (with-temp-buffer
+    (pimacs-section--create-root-section)
+    (setq pimacs--tool-calls (make-hash-table :test 'equal))
+    (setq pimacs--prompt-widget
+          (widget-create 'editable-field :format "%v" :value ""))
+    (widget-setup)
+
+    (pimacs--handle-message-update
+     '(:assistantMessageEvent (:type "toolcall_start" :id "read-1" :toolName "read")))
+
+    (let* ((entry (gethash "read-1" pimacs--tool-calls))
+           (call-section (pimacs-tool-call-call-section entry)))
+      (should entry)
+      (should (equal (pimacs-tool-call-tool-name entry) "read"))
+      (should-not (pimacs-tool-call-args entry))
+      (should-not (pimacs-tool-call-result-section entry))
+      (should (string-match-p "…"
+                              (buffer-substring-no-properties
+                               (pimacs-section-beginning call-section)
+                               (pimacs-section-end call-section))))
+
+      (pimacs--handle-message-update
+       '(:assistantMessageEvent
+         (:type "toolcall_end"
+                :toolCall (:id "read-1" :name "read" :arguments (:path "file.el")))))
+
+      (should (eq (pimacs-tool-call-call-section entry) call-section))
+      (should (equal (pimacs-tool-call-args entry) '(:path "file.el")))
+      (should-not (string-match-p "…"
+                                  (buffer-substring-no-properties
+                                   (pimacs-section-beginning call-section)
+                                   (pimacs-section-end call-section))))
+      (should (pimacs-tool-call-result-section entry))
+      (should (= (length (pimacs-section-children pimacs-section--root-section)) 1))
+      (should (= (length (pimacs-section-children call-section)) 1)))))
 
 (ert-deftest pimacs--handle-message-end-creates-section-without-deltas ()
   (with-temp-buffer
