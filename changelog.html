@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pimacs Changelog</title>
+  <link rel="alternate" type="text/markdown" href="changelog.md">
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.slate.min.css">
+  <link rel="stylesheet" href="global.css">
+</head>
+<body>
+<main class="container">
+<h1 id="changelog">Changelog</h1>
+<h2 id="unreleased">Unreleased</h2>
+<h2 id="v060---2026-08-30">v0.6.0 - 2026-08-30</h2>
+<h3 id="added">Added</h3>
+<ul>
+<li><code>/clear-queue</code> and <code>/edit-queue</code> commands for
+managing queued steering and follow-up messages.</li>
+<li><code>pimacs-quote-region</code> and the <code>&gt;</code> chat key
+binding for quoting selected text in the prompt.</li>
+</ul>
+<h3 id="changed">Changed</h3>
+<ul>
+<li>Aborting an operation now restores queued messages to the
+prompt.</li>
+<li>File links display project-relative paths when possible and push an
+xref marker before visiting files.</li>
+<li>File completion is scoped to the Pimacs project root.</li>
+<li>Grep rendering now tolerates errors in individual result lines.</li>
+<li>Diff headers are no longer shown in rendered edit results.</li>
+<li>The minimum supported Pi agent version is now 0.84.4.</li>
+</ul>
+<h2 id="v050---2026-08-22">v0.5.0 - 2026-08-22</h2>
+<h3 id="breaking-changes">Breaking Changes</h3>
+<ul>
+<li><p>Remove the previously suggested renderer customization:</p>
+<pre class="elisp"><code>(setq pimacs-markdown-renderer #&#39;pimacs--render-markdown
+      pimacs-thinking-renderer #&#39;pimacs--render-thinking-markdown)</code></pre>
+<p>Markdown rendering is now enabled by default, and
+<code>pimacs--render-thinking-markdown</code> has been removed.</p></li>
+</ul>
+<h3 id="added-1">Added</h3>
+<ul>
+<li><code>pimacs-section-autohide-filter</code> controls which top-level
+sections are eligible for automatic hiding.</li>
+</ul>
+<h3 id="changed-1">Changed</h3>
+<ul>
+<li>Tree-sitter Markdown rendering is now the default for assistant and
+thinking content; the <code>markdown-mode</code> dependency is no longer
+required.</li>
+<li>Markdown rendering falls back to plain text with a warning when the
+required Tree-sitter grammars are unavailable.</li>
+<li>Bash command output now renders ANSI color sequences consistently
+with widget and status output.</li>
+<li><code>pimacs-describe-section</code> now presents section details in
+a Help buffer with navigable links.</li>
+<li>Session history is rendered in smaller chunks for improved
+responsiveness.</li>
+<li>Pi agent stderr is sent to the <code>*pimacs-stderr*</code> buffer,
+and agent processes no longer prompt on exit.</li>
+</ul>
+<h3 id="fixed">Fixed</h3>
+<ul>
+<li>Orphaned tool calls no longer prevent subsequent session history
+from being rendered.</li>
+<li>Block-level Markdown content now starts on a new line when
+needed.</li>
+</ul>
+<h2 id="v040---2026-08-15">v0.4.0 - 2026-08-15</h2>
+<h3 id="added-2">Added</h3>
+<ul>
+<li>Customizable faces for chat sections, including separate faces for
+thinking levels and user messages.</li>
+<li>Syntax highlighting for arguments in custom tool calls.</li>
+</ul>
+<h3 id="changed-2">Changed</h3>
+<ul>
+<li>Session history is rendered incrementally in chunks to keep large
+sessions responsive.</li>
+<li>Grep results are fontified in place for better performance and more
+accurate navigation.</li>
+<li>Tree-sitter Markdown rendering uses <code>ts-mode</code> when it is
+available.</li>
+</ul>
+<h3 id="fixed-1">Fixed</h3>
+<ul>
+<li>Incremental search now temporarily reveals collapsed text.</li>
+<li>Markdown code fences without a trailing newline are rendered
+correctly.</li>
+<li>Partial or incomplete diffs no longer prevent edit results from
+rendering.</li>
+<li>Grep result fontification now remains within the result region.</li>
+</ul>
+<h2 id="v030---2026-08-06">v0.3.0 - 2026-08-06</h2>
+<h3 id="added-3">Added</h3>
+<ul>
+<li>An opt-in Tree-sitter-based Markdown renderer with incremental
+streaming, rich Markdown syntax support, formatted tables, and link
+widgets.</li>
+<li><code>pimacs-doctor</code> reports the status of Pi, Tree-sitter,
+and the Markdown grammars, with actions to install missing
+dependencies.</li>
+<li>Commands and keybindings to show section visibility at selected
+levels, apply visibility levels globally, and cycle global
+visibility.</li>
+<li>Batching and merging of streamed message updates to reduce redundant
+renders.</li>
+</ul>
+<h3 id="changed-3">Changed</h3>
+<ul>
+<li>Thinking-level selection now uses Pi's
+<code>get_available_thinking_levels</code> command.</li>
+<li>Message handling no longer depends on the removed
+<code>partial</code> and <code>message</code> event fields, enabling
+compatibility with upcoming Pi versions.</li>
+<li>The minimum supported Emacs version is now 29.1.</li>
+</ul>
+<h3 id="fixed-2">Fixed</h3>
+<ul>
+<li>Grep result highlighting now handles regular-expression patterns
+correctly.</li>
+</ul>
+<h2 id="v020---2026-07-25">v0.2.0 - 2026-07-25</h2>
+<h3 id="added-4">Added</h3>
+<ul>
+<li>Bash command output is streamed while the command is running.</li>
+<li>Extension status text can be placed in header and mode lines with
+<code>(:status STATUS-KEY ...)</code>, including per-placement face
+customization. Status keys can be hidden from the prompt status widget
+with <code>pimacs-status-widget-hidden-keys</code>.</li>
+<li><code>pimacs-list-sessions</code> displays active chats in a
+sortable tabulated list. Its columns and initial sort order are
+configurable with <code>pimacs-list-sessions-table</code> and
+<code>pimacs-list-sessions-sort-key</code>.</li>
+<li>The <code>:project_root</code> state-line component displays the
+project root directory.</li>
+<li><code>pimacs-switch-session</code> switches between active
+chats.</li>
+<li>Send commands select an active chat by enclosing project root,
+prompting when ambiguous.</li>
+<li>Start chats from any directory using the <code>C-u</code> prefix for
+<code>pimacs-chat</code>, which opens a transient for selecting a
+session name and root directory.</li>
+</ul>
+<h2 id="v010---2026-07-19">v0.1.0 - 2026-07-19</h2>
+<h3 id="added-5">Added</h3>
+<ul>
+<li>Configurable header and mode-line status formats via
+<code>pimacs-header-line-format</code> and
+<code>pimacs-mode-line-format</code>.</li>
+</ul>
+</main>
+</body>
+</html>

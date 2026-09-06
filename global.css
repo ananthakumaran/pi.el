@@ -1,0 +1,47 @@
+:root {
+    --pico-font-size: 100%;
+}
+
+body {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.nav-panel {
+    display: none;
+}
+
+div.example {
+    margin: 0;
+}
+
+div.example pre {
+    padding: 1em;
+}
+
+.chapter-level-extent > .mini-toc, .section-level-extent > .mini-toc {
+    display: none;
+}
+
+.category-def {
+    display: none;
+}
+
+.hljs {
+    background: var(--pico-code-background-color);
+    color: var(--pico-code-color);
+}
+
+dl.table {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.5rem 1rem;
+    align-items: baseline;
+}
+
+dl.table dt,
+dl.table dd,
+dl.table dd > p {
+    margin: 0;
+}

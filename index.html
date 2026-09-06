@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html>
+<!-- Created by GNU Texinfo 7.1, https://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<!-- Copyright © 2026 Anantha Kumaran.
+
+You can redistribute this document and/or modify it under the terms
+of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+This document is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+ -->
+<title>Pimacs User Manual v0.7.0-pre</title>
+
+<meta name="description" content="Pimacs User Manual v0.7.0-pre">
+<meta name="keywords" content="Pimacs User Manual v0.7.0-pre">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<link href="#Top" rel="start" title="Top">
+<link href="#Introduction" rel="next" title="Introduction">
+<style type="text/css">
+<!--
+a.copiable-link {visibility: hidden; text-decoration: none; line-height: 0em}
+div.example {margin-left: 3.2em}
+kbd.kbd {font-style: oblique}
+span:hover a.copiable-link {visibility: visible}
+strong.def-name {font-family: monospace; font-weight: bold; font-size: larger}
+ul.mark-bullet {list-style-type: disc}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+
+
+<link rel="alternate" type="text/markdown" href="index.md">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+
+<!-- and it's easy to individually load additional languages -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/lisp.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.css">
+
+<script src="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.js"></script>
+
+
+<script>
+hljs.registerAliases(["example"], { languageName: "shell" });
+hljs.configure({
+  cssSelector: "div.example > pre",
+  languageDetectRe: /\b([\w-]+)-preformatted\b/
+});
+
+hljs.addPlugin(new CopyButtonPlugin());
+
+hljs.highlightAll();
+</script>
+
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.slate.min.css">
+<link rel="stylesheet" type="text/css" href="global.css">
+
+
+<div class="top-level-extent" id="Top">
+<div class="nav-panel">
+<p>
+Next: <a href="#Introduction" accesskey="n" rel="next">Introduction</a> &nbsp; </p>
+</div>
+<h1 class="top" id="Pimacs-User-Manual-v0_002e7_002e0_002dpre"><span>Pimacs User Manual v0.7.0-pre<a class="copiable-link" href="#Pimacs-User-Manual-v0_002e7_002e0_002dpre"> &para;</a></span></h1>
+
+<p>Pimacs is an Emacs client for <a class="uref" href="https://pi.dev/">Pi Coding Agent</a>.  For release history, see the <a class="uref" href="changelog.html">changelog</a>.
+</p>
+
+<ul class="mini-toc">
+<li><a href="#Introduction" accesskey="1">Introduction</a></li>
+<li><a href="#Setup" accesskey="2">Setup</a></li>
+<li><a href="#Doctor" accesskey="3">Doctor</a></li>
+<li><a href="#Usage" accesskey="4">Usage</a></li>
+<li><a href="#UI-Customization" accesskey="5">UI Customization</a></li>
+<li><a href="#Sandbox" accesskey="6">Sandbox</a></li>
+<li><a href="#How-It-Works" accesskey="7">How It Works</a></li>
+<li><a href="#Keybindings" accesskey="8">Keybindings</a></li>
+<li><a href="#Custom-Variables" accesskey="9">Custom Variables</a></li>
+<li><a href="#Custom-Faces">Custom Faces</a></li>
+</ul>
+<hr>
+<div class="chapter-level-extent" id="Introduction">
+<div class="nav-panel">
+<p>
+Next: <a href="#Setup" accesskey="n" rel="next">Setup</a>, Previous: <a href="#Top" accesskey="p" rel="prev">Pimacs User Manual v0.7.0-pre</a>, Up: <a href="#Top" accesskey="u" rel="up">Pimacs User Manual v0.7.0-pre</a> &nbsp; </p>
+</div>
+<h2 class="chapter" id="Introduction-1"><span>Introduction<a class="copiable-link" href="#Introduction-1"> &para;</a></span></h2>
+
+<p>Pimacs is an Emacs client for <a class="uref" href="https://pi.dev/">Pi Coding Agent</a>.
+It provides an interactive interface to the Pi Coding Agent directly
+from Emacs.
+</p>
+<hr>
+</div>
+<div class="chapter-level-extent" id="Setup">
+<div class="nav-panel">
+<p>
+Next: <a href="#Doctor" accesskey="n" rel="next">Doctor</a>, Previous: <a href="#Introduction" accesskey="p" rel="prev">Introduction</a>, Up: <a href="#Top" accesskey="u" rel="up">Pimacs User Manual v0.7.0-pre</a> &nbsp; </p>
+</div>
+<h2 class="chapter" id="Setup-1"><span>Setup<a class="copiable-link" href="#Setup-1"> &para;</a></span></h2>
+
+<ul class="mini-toc">
+<li><a href="#Install-the-Pi-Agent" accesskey="1">Install the Pi Agent</a></li>
+<li><a href="#Install-pimacs_002eel" accesskey="2">Install <code class="code">pimacs.el</code></a></li>
+</ul>
+<div class="section-level-extent" id="Install-the-Pi-Agent">
+<h3 class="section"><span>Install the Pi Agent<a class="copiable-link" href="#Install-the-Pi-Agent"> &para;</a></span></h3>
+
+<p>First, install the Pi agent using npm:
+</p>
+<div class="example">
+<pre class="example-preformatted">npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+</pre></div>
+
+<p>Pimacs does not yet support authentication configuration.  To configure your provider, run <code class="code">pi</code> in a terminal, then run <code class="code">/login</code> in Pi.
+</p>
+</div>
+<div class="section-level-extent" id="Install-pimacs_002eel">
+<h3 class="section"><span>Install <code class="code">pimacs.el</code><a class="copiable-link" href="#Install-pimacs_002eel"> &para;</a></span></h3>
+
+<p>Pimacs is available from <a class="uref" href="https://stable.melpa.org/">MELPA Stable</a>, which
+is recommended for installation.  Add it to your package archives, then install
+with <code class="code">use-package</code>:
+</p>
+<div class="example lisp">
+<pre class="lisp-preformatted">(add-to-list 'package-archives
+             '(&quot;melpa-stable&quot; . &quot;https://stable.melpa.org/packages/&quot;) t)
+
+(use-package pimacs
+  :ensure t)
+</pre></div>
+
+<hr>
+</div>
+</div>
+<div class="chapter-level-extent" id="Doctor">
+<div class="nav-panel">
+<p>
+Next: <a href="#Usage" accesskey="n" rel="next">Usage</a>, Previous: <a href="#Setup" accesskey="p" rel="prev">Setup</a>, Up: <a href="#Top" accesskey="u" rel="up">Pimacs User Manual v0.7.0-pre</a> &nbsp; </p>
+</div>
+<h2 class="chapter" id="Doctor-1"><span>Doctor<a class="copiable-link" href="#Doctor-1"> &para;</a></span></h2>
+
+<p>Run <kbd class="kbd">M-x pimacs-doctor</kbd> to display a dependency report.  It checks that
+Pi is available and meets the minimum supported version, and that Tree-sitter
+and the Markdown grammars are installed.  When Pi or either grammar is
+missing, the report provides a button to install it.
+</p>
+<hr>
+</div>
+<div class="chapter-level-extent" id="Usage">
+<div class="nav-panel">
+<p>
+Next: <a href="#UI-Customization" accesskey="n" rel="next">UI Customization</a>, Previous: <a href="#Doctor" accesskey="p" rel="prev">Doctor</a>, Up: <a href="#Top" accesskey="u" rel="up">Pimacs User Manual v0.7.0-pre</a> &nbsp; </p>
+</div>
+<h2 class="chapter" id="Usage-1"><span>Usage<a class="copiable-link" href="#Usage-1"> &para;</a></span></h2>
+
+<p>Run <kbd class="kbd">M-x pimacs-chat</kbd> from any file in your project to start a Pimacs chat
+session.  Use a prefix argument (<kbd class="kbd">C-u M-x pimacs-chat</kbd>) to open a
+transient where you can set a session name and root directory.  Setting a root
+directory starts the chat there instead of using <code class="code">project.el</code> to find the
+project root.  Run <kbd class="kbd">M-x pimacs-switch-session</kbd> to switch between any
+active chat sessions.
+</p>
+<p>The chat buffer is read-only except for the prompt input area.  Use
+<kbd class="kbd">RET</kbd> to submit a prompt and <kbd class="kbd">C-j</kbd> to insert a newline.  Press
+<kbd class="kbd">i</kbd> from anywhere in the chat buffer to move point to the prompt
+input area.
+</p>
+
+<ul class="mini-toc">
+<li><a href="#Slash-Commands" accesskey="1">Slash Commands</a></li>
+<li><a href="#File-Name-Completion" accesskey="2">File Name Completion</a></li>
+<li><a href="#Bash" accesskey="3">Bash</a></li>
+<li><a href="#Sending-Context" accesskey="4">Sending Context</a></li>
+<li><a href="#Images" accesskey="5">Images</a></li>
+<li><a href="#State-Lines" accesskey="6">State Lines</a></li>
+<li><a href="#Managing-Sessions" accesskey="7">Managing Sessions</a></li>
+<li><a href="#Section-Visibility" accesskey="8">Section Visibility</a></li>
+</ul>
+<hr>
+<div class="section-level-extent" id="Slash-Commands">
+<div class="nav-panel">
+<p>
+Next: <a href="#File-Name-Completion" accesskey="n" rel="next">File Name Completion</a>, Up: <a href="#Usage" accesskey="u" rel="up">Usage</a> &nbsp; </p>
+</div>
+<h3 class="section" id="Slash-Commands-1"><span>Slash Commands<a class="copiable-link" href="#Slash-Commands-1"> &para;</a></span></h3>
+
+<p><a class="uref" href="https://pi.dev/docs/latest/usage#slash-commands">Slash commands</a>
+support completion in the prompt buffer.  Type <kbd class="kbd">/</kbd> and press
+<kbd class="kbd">C-M-i</kbd> (or any key bound to completion) to see available commands.
+</p>
+<p>In addition to the commands listed below, extension commands, prompt
+templates, and skills registered with the Pi agent can also be invoked
+via slash commands.  These are fetched automatically from the agent
+and included in the completion list.
+</p>
+<p>Angle brackets <code class="code">&lt;&gt;</code> denote required arguments, square brackets
+<code class="code">[]</code> denote optional arguments.
+</p>
+<table class="multitable">
+<thead><tr><th width="25%">Command</th><th width="15%">Arguments</th><th width="60%">Description</th></tr></thead>
+<tbody><tr><td width="25%"><code class="code">/compact</code></td><td width="15%"><code class="code">[prompt]</code></td><td width="60%">Manually compact context, optionally with custom instructions.</td></tr>
+<tr><td width="25%"><code class="code">/clear-queue</code></td><td width="15%"></td><td width="60%">Discard all queued steering and follow-up messages.</td></tr>
+<tr><td width="25%"><code class="code">/edit-queue</code></td><td width="15%"></td><td width="60%">Move queued steering and follow-up messages into the prompt for editing.</td></tr>
+<tr><td width="25%"><code class="code">/clone</code></td><td width="15%"></td><td width="60%">Duplicate the current active branch into a new session.</td></tr>
+<tr><td width="25%"><code class="code">/copy</code></td><td width="15%"></td><td width="60%">Copy last assistant message to clipboard.</td></tr>
+<tr><td width="25%"><code class="code">/cycle-model</code></td><td width="15%"></td><td width="60%">Cycle through available models.</td></tr>
+<tr><td width="25%"><code class="code">/cycle-thinking-level</code></td><td width="15%"></td><td width="60%">Cycle through thinking levels.</td></tr>
+<tr><td width="25%"><code class="code">/exit</code></td><td width="15%"></td><td width="60%">Quit pimacs.</td></tr>
+<tr><td width="25%"><code class="code">/export</code></td><td width="15%"><code class="code">[file]</code></td><td width="60%">Export session to HTML.</td></tr>
+<tr><td width="25%"><code class="code">/fork</code></td><td width="15%"></td><td width="60%">Create a new session from a previous user message.</td></tr>
+<tr><td width="25%"><code class="code">/model</code></td><td width="15%"></td><td width="60%">Switch models.</td></tr>
+<tr><td width="25%"><code class="code">/name</code></td><td width="15%"><code class="code">&lt;name&gt;</code></td><td width="60%">Set session display name.</td></tr>
+<tr><td width="25%"><code class="code">/new</code></td><td width="15%"></td><td width="60%">Start a new session.</td></tr>
+<tr><td width="25%"><code class="code">/quit</code></td><td width="15%"></td><td width="60%">Quit pimacs.</td></tr>
+<tr><td width="25%"><code class="code">/reload</code></td><td width="15%"></td><td width="60%">Reload extensions, skills and prompts.</td></tr>
+<tr><td width="25%"><code class="code">/resume</code></td><td width="15%"></td><td width="60%">Pick from previous sessions.</td></tr>
+<tr><td width="25%"><code class="code">/session</code></td><td width="15%"></td><td width="60%">Show session file, ID, messages, tokens, and cost.</td></tr>
+<tr><td width="25%"><code class="code">/set-auto-compaction</code></td><td width="15%"></td><td width="60%">Set auto compaction.</td></tr>
+<tr><td width="25%"><code class="code">/set-auto-retry</code></td><td width="15%"></td><td width="60%">Set auto retry.</td></tr>
+<tr><td width="25%"><code class="code">/set-follow-up-mode</code></td><td width="15%"></td><td width="60%">Set follow-up mode.</td></tr>
+<tr><td width="25%"><code class="code">/set-steering-mode</code></td><td width="15%"></td><td width="60%">Set steering mode.</td></tr>
+<tr><td width="25%"><code class="code">/set-thinking-level</code></td><td width="15%"></td><td width="60%">Set thinking level.</td></tr>
+</tbody>
+</table>
+
+<hr>
+</div>
+<div class="section-level-extent" id="File-Name-Completion">
+<div class="nav-panel">
+<p>
+Next: <a href="#Bash" accesskey="n" rel="next">Bash</a>, Previous: <a href="#Slash-Commands" accesskey="p" rel="prev">Slash Commands</a>, Up: <a href="#Usage" accesskey="u" rel="up">Usage</a> &nbsp; </p>
+</div>
+<h3 class="section" id="File-Name-Completion-1"><span>File Name Completion<a class="copiable-link" href="#File-Name-Completion-1"> &para;</a></span></h3>
+
+<p>Type <kbd class="kbd">@</kbd> followed by a partial file path to trigger file name
+completion in the prompt buffer.  The completion backend is controlled
+by <code class="code">pimacs-file-completion-backend</code>.
+</p>
+<hr>
+</div>
+<div class="section-level-extent" id="Bash">
+<div class="nav-panel">
+<p>
+Next: <a href="#Sending-Context" accesskey="n" rel="next">Sending Context</a>, Previous: <a href="#File-Name-Completion" accesskey="p" rel="prev">File Name Completion</a>, Up: <a href="#Usage" accesskey="u" rel="up">Usage</a> &nbsp; </p>
+</div>
+<h3 class="section" id="Bash-1"><span>Bash<a class="copiable-link" href="#Bash-1"> &para;</a></span></h3>
+
+<p>Prefix a command with <code class="code">!</code> to run it in Bash.  Use <code class="code">!!</code> to
+run a command without adding it to the conversation context.
+</p>
+<div class="example">
+<pre class="example-preformatted">! echo &quot;hello&quot;
+</pre></div>
+
+<hr>
+</div>
+<div class="section-level-extent" id="Sending-Context">
+<div class="nav-panel">
+<p>
+Next: <a href="#Images" accesskey="n" rel="next">Images</a>, Previous: <a href="#Bash" accesskey="p" rel="prev">Bash</a>, Up: <a href="#Usage" accesskey="u" rel="up">Usage</a> &nbsp; </p>
+</div>
+<h3 class="section" id="Sending-Context-1"><span>Sending Context<a class="copiable-link" href="#Sending-Context-1"> &para;</a></span></h3>
+
+<p>You can send contextual information from any buffer to the Pimacs chat
+prompt.
+</p>
+<table class="multitable">
+<thead><tr><th width="35%">Command</th><th width="65%">Description</th></tr></thead>
+<tbody><tr><td width="35%"><code class="code">pimacs-send-region</code></td><td width="65%">Append the selected region to the prompt input.</td></tr>
+<tr><td width="35%"><code class="code">pimacs-send-filename</code></td><td width="65%">Append the current buffer&rsquo;s filename (prefixed with <code class="code">@</code>) to the prompt input.</td></tr>
+<tr><td width="35%"><code class="code">pimacs-send-flycheck-errors</code></td><td width="65%">Append the Flycheck errors at point to the prompt input.  Falls back to all current errors in the buffer when there are none at point.</td></tr>
+</tbody>
+</table>
+
+<hr>
+</div>
+<div class="section-level-extent" id="Images">
+<div class="nav-panel">
+<p>
+Next: <a href="#State-Lines" accesskey="n" rel="next">State Lines</a>, Previous: <a href="#Sending-Context" accesskey="p" rel="prev">Sending Context</a>, Up: <a href="#Usage" accesskey="u" rel="up">Usage</a> &nbsp; </p>
+</div>
+<h3 class="section" id="Images-1"><span>Images<a class="copiable-link" href="#Images-1"> &para;</a></span></h3>
+
+<p>You can attach images to your prompt to provide visual context to the
+agent.  Images are displayed as thumbnail previews above the prompt
+input area and are sent along with your message.  The agent may also
+render images inline in its responses, for example when using the
+<code class="code">read</code> tool on a file that contains images.
+</p>
+<ul class="mini-toc">
+<li><a href="#Supported-Formats" accesskey="1">Supported Formats</a></li>
+</ul>
+<div class="subsection-level-extent" id="Supported-Formats">
+<h4 class="subsection"><span>Supported Formats<a class="copiable-link" href="#Supported-Formats"> &para;</a></span></h4>
+
+<p>The following image formats are supported:
+</p>
+<ul class="itemize mark-bullet">
+<li>PNG
+</li><li>JPEG
+</li><li>GIF
+</li><li>WebP
+</li></ul>
+
+
+<p>Drag an image file from your file manager and drop it into the Pimacs
+chat buffer, or paste a supported image from the clipboard via
+<code class="code">yank-media</code>.  To remove an attached image, click on the
+thumbnail with the mouse, or place point on it and press
+<kbd class="kbd">backspace</kbd> or <kbd class="kbd">delete</kbd>.
+</p>
+<hr>
+</div>
+</div>
+<div class="section-level-extent" id="State-Lines">
+<div class="nav-panel">
+<p>
+Next: <a href="#Managing-Sessions" accesskey="n" rel="next">Managing Sessions</a>, Previous: <a href="#Images" accesskey="p" rel="prev">Images</a>, Up: <a href="#Usage" accesskey="u" rel="up">Usage</a> &nbsp; </p>
+</div>
+<h3 class="section" id="State-Lines-1"><span>State Lines<a class="copiable-link" href="#State-Lines-1"> &para;</a></span></h3>
+
+<p>The header line displays session context and model information.  The
+mode line displays the current agent state.  Customize them with the
+<code class="code">pimacs-header-line-format</code> and <code class="code">pimacs-mode-line-format</code>
+defcustoms.  Both accept strings and state components; use
+<code class="code">:spacer</code> to right-align following components.
+</p>
+<div class="example">
+<pre class="example-preformatted">(setq pimacs-header-line-format
+      '(:context_usage :spacer
+        (:model face font-lock-function-name-face)))
+</pre></div>
+
+<p>See <code class="code">pimacs-header-line-format</code> for available components.  A
+component may also be a function that receives the current state plist.
+</p>
+<p>Extension status text can be placed in either state line with a
+<code class="code">(:status STATUS-KEY ...)</code> component.  STATUS-KEY is the key used by
+the extension&rsquo;s status update.  Text properties after the key customize the
+status at that placement.
+</p>
+<div class="example">
+<pre class="example-preformatted">(setq pimacs-header-line-format
+      '(:context_usage &quot; &quot; (:status &quot;xyz-status&quot; face font-lock-warning-face)
+        :spacer :model))
+</pre></div>
+
+<p>By default, status text also appears beside the prompt.  To display a status
+only in a state line, add its key to <code class="code">pimacs-status-widget-hidden-keys</code>.
+</p>
+<div class="example">
+<pre class="example-preformatted">(setq pimacs-status-widget-hidden-keys '(&quot;xyz-status&quot;))
+</pre></div>
+
+<hr>
+</div>
+<div class="section-level-extent" id="Managing-Sessions">
+<div class="nav-panel">
+<p>
+Next: <a href="#Section-Visibility" accesskey="n" rel="next">Section Visibility</a>, Previous: <a href="#State-Lines" accesskey="p" rel="prev">State Lines</a>, Up: <a href="#Usage" accesskey="u" rel="up">Usage</a> &nbsp; </p>
+</div>
+<h3 class="section" id="Managing-Sessions-1"><span>Managing Sessions<a class="copiable-link" href="#Managing-Sessions-1"> &para;</a></span></h3>
+
+<p>Use <code class="code">pimacs-switch-session</code> to switch between active Pimacs chat
+sessions using completion.  Use <code class="code">pimacs-list-sessions</code> to display all
+active chat sessions in a sortable tabulated list.  Press <kbd class="kbd">RET</kbd> to visit
+the session on the current line and <kbd class="kbd">g</kbd> to refresh the list.  Select a
+column header to sort by that column.
+</p>
+<p>Customize the list&rsquo;s columns and initial sort order with
+<code class="code">pimacs-list-sessions-table</code> and <code class="code">pimacs-list-sessions-sort-key</code>.
+</p>
+<hr>
+</div>
+<div class="section-level-extent" id="Section-Visibility">
+<div class="nav-panel">
+<p>
+Previous: <a href="#Managing-Sessions" accesskey="p" rel="prev">Managing Sessions</a>, Up: <a href="#Usage" accesskey="u" rel="up">Usage</a> &nbsp; </p>
+</div>
+<h3 class="section" id="Section-Visibility-1"><span>Section Visibility<a class="copiable-link" href="#Section-Visibility-1"> &para;</a></span></h3>
+
+<p>Pimacs represents the chat as a hierarchy of sections.  Every non-root section
+has a type, a visibility state, and may have a parent or children.  Put point in
+a section and run <kbd class="kbd">M-x pimacs-describe-section</kbd> to open a Help buffer with
+these details.  The report shows the section&rsquo;s <code class="code">type</code>, visibility and
+user override state, automatic-hiding eligibility, applied face, buffer
+positions, and metadata.  Parent and child section types are links; use
+<kbd class="kbd">RET</kbd> to follow them.  The <code class="code">type</code> value is the symbol to use when
+configuring section faces or automatic hiding, such as <code class="code">tool-call</code>.
+</p>
+<p>Use <kbd class="kbd">TAB</kbd> or <kbd class="kbd">C-i</kbd> to toggle the section at point.  Hiding a section
+keeps its first line visible, so it can be shown again.  On graphical displays,
+the fringe indicator can also be selected with the mouse to toggle visibility.
+Use <kbd class="kbd">S-TAB</kbd> to cycle the visibility of the entire chat, or <kbd class="kbd">1</kbd>,
+<kbd class="kbd">2</kbd>, and <kbd class="kbd">3</kbd> to show progressively more of the tree around point.
+<kbd class="kbd">M-1</kbd>, <kbd class="kbd">M-2</kbd>, and <kbd class="kbd">M-3</kbd> do the same for every top-level section.
+See <a class="ref" href="#Keybindings">Keybindings</a> for the complete list of visibility and navigation
+commands.
+</p>
+<p>As a conversation grows, Pimacs automatically hides older top-level sections.
+<code class="code">pimacs-section-autohide-count</code> sets how many eligible recent sections
+remain visible; its default is 2, and <code class="code">nil</code> disables automatic hiding.
+Use <code class="code">pimacs-section-autohide-filter</code> to select the eligible section
+types.  For example, the following keeps four eligible sections visible while
+never automatically hiding user sections:
+</p>
+<div class="example lisp">
+<pre class="lisp-preformatted">(setq pimacs-section-autohide-count 4
+      pimacs-section-autohide-filter '(:exclude user))
+</pre></div>
+
+<p>Automatic hiding does not override a section whose visibility you explicitly
+toggled with <kbd class="kbd">TAB</kbd> or <kbd class="kbd">C-i</kbd>.
+Set <code class="code">pimacs-section-visibility-indicators</code> to <code class="code">nil</code> to disable the
+fringe indicators.
+</p>
+<hr>
+</div>
+</div>
+<div class="chapter-level-extent" id="UI-Customization">
+<div class="nav-panel">
+<p>
+Next: <a href="#Sandbox" accesskey="n" rel="next">Sandbox</a>, Previous: <a href="#Usage" accesskey="p" rel="prev">Usage</a>, Up: <a href="#Top" accesskey="u" rel="up">Pimacs User Manual v0.7.0-pre</a> &nbsp; </p>
+</div>
+<h2 class="chapter" id="UI-Customization-1"><span>UI Customization<a class="copiable-link" href="#UI-Customization-1"> &para;</a></span></h2>
+
+<p>Pimacs renders the chat as a sequence of sections.  Each section type has a
+face, so the chat can be styled without changing the Markdown renderer.
+Customize <code class="code">pimacs-section-type-faces</code> to select the face for a section
+type, and customize the selected face with <kbd class="kbd">M-x customize-face</kbd>.
+</p>
+<p>The built-in section faces are listed in <a class="ref" href="#Custom-Faces">Custom Faces</a>.
+</p>
+<ul class="mini-toc">
+<li><a href="#Common-Styling-Effects" accesskey="1">Common Styling Effects</a></li>
+<li><a href="#Cards-and-Padding" accesskey="2">Cards and Padding</a></li>
+<li><a href="#Choosing-Section-Faces" accesskey="3">Choosing Section Faces</a></li>
+<li><a href="#Prompt-Face" accesskey="4">Prompt Face</a></li>
+</ul>
+<div class="section-level-extent" id="Common-Styling-Effects">
+<h3 class="section"><span>Common Styling Effects<a class="copiable-link" href="#Common-Styling-Effects"> &para;</a></span></h3>
+
+<p>A section face supplies the base appearance for one kind of chat content.
+Only the attributes that you set take effect; leave an attribute unspecified
+when the Markdown or role styling should continue to provide it.
+</p>
+<p>For a coloured assistant card that preserves Markdown colours, set only a
+background and <code class="code">:extend t</code>:
+</p>
+<div class="example lisp">
+<pre class="lisp-preformatted">(set-face-attribute 'pimacs-section-assistant-face nil
+                    :background &quot;#18212b&quot;
+                    :extend t)
+</pre></div>
+
+<p>Set <code class="code">:foreground</code> when every part of a section should use one colour.
+Otherwise, leave it as <code class="code">unspecified</code> to retain Markdown heading, link,
+and syntax colours.  Likewise, set <code class="code">:height</code> or <code class="code">:slant</code> to make a
+section compact or italic, and leave <code class="code">:weight</code> unspecified when Markdown
+bold text should remain bold.
+</p>
+<p>Role labels such as <code class="code">assistant&gt;</code> and tool names retain their own
+recognizable colours by default.  Configure their faces separately when you
+want to change them.
+</p>
+</div>
+<div class="section-level-extent" id="Cards-and-Padding">
+<h3 class="section"><span>Cards and Padding<a class="copiable-link" href="#Cards-and-Padding"> &para;</a></span></h3>
+
+<p>Section faces are also applied to <code class="code">pimacs-section-padding</code>.  Specify
+both <code class="code">:background</code> and <code class="code">:extend t</code> for a full-width card background;
+the background then also covers empty padding lines.
+</p>
+<p>Thinking defaults to <code class="code">shadow</code>.  A compact, more subdued thinking card
+can be configured as follows:
+</p>
+<div class="example lisp">
+<pre class="lisp-preformatted">(set-face-attribute 'pimacs-section-thinking-face nil
+                    :foreground &quot;#64707c&quot;
+                    :background &quot;#131a21&quot;
+                    :height 0.9
+                    :extend t)
+</pre></div>
+
+</div>
+<div class="section-level-extent" id="Choosing-Section-Faces">
+<h3 class="section"><span>Choosing Section Faces<a class="copiable-link" href="#Choosing-Section-Faces"> &para;</a></span></h3>
+
+<p>The type-to-face mapping is evaluated when a section is created.  Change one
+entry without replacing the other defaults with <code class="code">alist-get</code>:
+</p>
+<div class="example lisp">
+<pre class="lisp-preformatted">(setf (alist-get 'tool-result pimacs-section-type-faces)
+      'my-pimacs-tool-result-face)
+</pre></div>
+
+<p>Define a named face when several attributes belong together:
+</p>
+<div class="example lisp">
+<pre class="lisp-preformatted">(defface my-pimacs-tool-result-face
+  '((t :inherit fixed-pitch
+       :foreground &quot;#c2cbd5&quot;
+       :background &quot;#1a2027&quot;
+       :extend t))
+  &quot;My Pimacs tool result face.&quot;)
+</pre></div>
+
+<p>Changing a face updates already-displayed text immediately.  Changing
+<code class="code">pimacs-section-type-faces</code> affects newly created sections; recreate the
+chat contents to apply a new mapping to existing sections.
+</p>
+</div>
+<div class="section-level-extent" id="Prompt-Face">
+<h3 class="section"><span>Prompt Face<a class="copiable-link" href="#Prompt-Face"> &para;</a></span></h3>
+
+<p>The editable portion of the prompt uses <code class="code">pimacs-prompt-face</code> and can be
+customized independently:
+</p>
+<div class="example lisp">
+<pre class="lisp-preformatted">(set-face-attribute 'pimacs-prompt-face nil
+                    :foreground &quot;#d7e0e8&quot;
+                    :background &quot;#202936&quot;
+                    :extend t)
+</pre></div>
+
+<p>The <code class="code">user&gt;</code> prompt label uses <code class="code">pimacs-chat-user-role-face</code>.
+</p>
+<hr>
+</div>
+</div>
+<div class="chapter-level-extent" id="Sandbox">
+<div class="nav-panel">
+<p>
+Next: <a href="#How-It-Works" accesskey="n" rel="next">How It Works</a>, Previous: <a href="#UI-Customization" accesskey="p" rel="prev">UI Customization</a>, Up: <a href="#Top" accesskey="u" rel="up">Pimacs User Manual v0.7.0-pre</a> &nbsp; </p>
+</div>
+<h2 class="chapter" id="Sandbox-1"><span>Sandbox<a class="copiable-link" href="#Sandbox-1"> &para;</a></span></h2>
+
+<p>To run Pi inside a sandbox, customize <code class="code">pimacs-executable</code> and
+<code class="code">pimacs-flags</code>:
+</p>
+<div class="example lisp">
+<pre class="lisp-preformatted">(setq pimacs-executable &quot;nono&quot;)
+(setq pimacs-flags '(&quot;run&quot; &quot;--silent&quot; &quot;--profile&quot; &quot;pi&quot; &quot;--allow-cwd&quot; &quot;--&quot; &quot;pi&quot;
+                 &quot;--tools&quot; &quot;read,bash,edit,write,grep,find,ls&quot;))
+</pre></div>
+
+<hr>
+</div>
+<div class="chapter-level-extent" id="How-It-Works">
+<div class="nav-panel">
+<p>
+Next: <a href="#Keybindings" accesskey="n" rel="next">Keybindings</a>, Previous: <a href="#Sandbox" accesskey="p" rel="prev">Sandbox</a>, Up: <a href="#Top" accesskey="u" rel="up">Pimacs User Manual v0.7.0-pre</a> &nbsp; </p>
+</div>
+<h2 class="chapter" id="How-It-Works-1"><span>How It Works<a class="copiable-link" href="#How-It-Works-1"> &para;</a></span></h2>
+
+<p>Emacs starts Pi in <a class="uref" href="https://pi.dev/docs/latest/rpc">RPC mode</a>.
+In this setup, Pi handles the agent logic while Emacs provides the
+user interface. Some features, such as <code class="code">/login</code> and
+<code class="code">/logout</code>, are not
+<a class="uref" href="https://github.com/earendil-works/pi/issues/885">supported</a>
+because they are not currently exposed through the RPC API.
+</p>
+<ul class="mini-toc">
+<li><a href="#Extension-UI" accesskey="1">Extension UI</a></li>
+</ul>
+<div class="section-level-extent" id="Extension-UI">
+<h3 class="section"><span>Extension UI<a class="copiable-link" href="#Extension-UI"> &para;</a></span></h3>
+
+<p>Pimacs supports the RPC-compatible extension UI methods: notifications,
+selection, confirmation, text input, editing text in an Emacs buffer, setting
+the prompt text and chat title, prompt widgets, and status text.  Extension
+commands, tools, hooks, and custom messages are also supported.
+</p>
+<p>Pimacs does not support terminal-specific extension UI features, including
+<code class="code">ctx.ui.custom()</code> components, component factories, extension keyboard
+shortcuts, or custom TUI rendering callbacks.  Extensions should use the
+supported UI methods when running in RPC mode.  See the
+<a class="uref" href="https://pi.dev/docs/latest/extensions">Pi extension documentation</a> for
+the full extension API.
+</p>
+<hr>
+</div>
+</div>
+<div class="chapter-level-extent" id="Keybindings">
+<div class="nav-panel">
+<p>
+Next: <a href="#Custom-Variables" accesskey="n" rel="next">Custom Variables</a>, Previous: <a href="#How-It-Works" accesskey="p" rel="prev">How It Works</a>, Up: <a href="#Top" accesskey="u" rel="up">Pimacs User Manual v0.7.0-pre</a> &nbsp; </p>
+</div>
+<h2 class="chapter" id="Keybindings-1"><span>Keybindings<a class="copiable-link" href="#Keybindings-1"> &para;</a></span></h2>
+
+<ul class="mini-toc">
+<li><a href="#Chat-Buffer-Keybindings" accesskey="1">Chat Buffer Keybindings</a></li>
+<li><a href="#Prompt-Input-Keybindings" accesskey="2">Prompt Input Keybindings</a></li>
+</ul>
+<div class="section-level-extent" id="Chat-Buffer-Keybindings">
+<h3 class="section"><span>Chat Buffer Keybindings<a class="copiable-link" href="#Chat-Buffer-Keybindings"> &para;</a></span></h3>
+
+<table class="multitable">
+<thead><tr><th width="20%">Key</th><th width="30%">Command</th><th width="50%">Description</th></tr></thead>
+<tbody><tr><td width="20%"><kbd class="kbd">RET</kbd></td><td width="30%"><code class="code">pimacs-visit-item</code></td><td width="50%">Jump to the source location at point; with a prefix argument, open
+in another window</td></tr>
+<tr><td width="20%"><kbd class="kbd">C-g</kbd></td><td width="30%"><code class="code">pimacs-abort</code></td><td width="50%">Abort the current operation and restore queued messages to the prompt.</td></tr>
+<tr><td width="20%"><kbd class="kbd">e</kbd></td><td width="30%"><code class="code">pimacs-edit-queue</code></td><td width="50%">Move queued steering and follow-up messages into the prompt for editing</td></tr>
+<tr><td width="20%"><kbd class="kbd">k</kbd></td><td width="30%"><code class="code">pimacs-clear-queue</code></td><td width="50%">Discard all queued steering and follow-up messages</td></tr>
+<tr><td width="20%"><kbd class="kbd">TAB</kbd>, <kbd class="kbd">C-i</kbd></td><td width="30%"><code class="code">pimacs-toggle-section</code></td><td width="50%">Toggle visibility of the section at point</td></tr>
+<tr><td width="20%"><kbd class="kbd">S-TAB</kbd></td><td width="30%"><code class="code">pimacs-section-cycle-global</code></td><td width="50%">Cycle global section visibility, hiding all sections and then expanding one more level at a time</td></tr>
+<tr><td width="20%"><kbd class="kbd">1</kbd></td><td width="30%"><code class="code">pimacs-section-show-level-1</code></td><td width="50%">Show the current section tree at the first level</td></tr>
+<tr><td width="20%"><kbd class="kbd">2</kbd></td><td width="30%"><code class="code">pimacs-section-show-level-2</code></td><td width="50%">Show the current section tree through the second level</td></tr>
+<tr><td width="20%"><kbd class="kbd">3</kbd></td><td width="30%"><code class="code">pimacs-section-show-level-3</code></td><td width="50%">Show the current section tree through the third level</td></tr>
+<tr><td width="20%"><kbd class="kbd">M-1</kbd></td><td width="30%"><code class="code">pimacs-section-show-level-1-all</code></td><td width="50%">Show only headings of all root sections</td></tr>
+<tr><td width="20%"><kbd class="kbd">M-2</kbd></td><td width="30%"><code class="code">pimacs-section-show-level-2-all</code></td><td width="50%">Show root sections and only headings of their children</td></tr>
+<tr><td width="20%"><kbd class="kbd">M-3</kbd></td><td width="30%"><code class="code">pimacs-section-show-level-3-all</code></td><td width="50%">Show sections through the second level and headings at the third</td></tr>
+<tr><td width="20%"><kbd class="kbd">n</kbd>, <kbd class="kbd">M-n</kbd></td><td width="30%"><code class="code">pimacs-goto-next-section</code></td><td width="50%">Move to the next section</td></tr>
+<tr><td width="20%"><kbd class="kbd">N</kbd></td><td width="30%"><code class="code">pimacs-goto-next-user-message</code></td><td width="50%">Move to the next user message</td></tr>
+<tr><td width="20%"><kbd class="kbd">p</kbd>, <kbd class="kbd">M-p</kbd></td><td width="30%"><code class="code">pimacs-goto-previous-section</code></td><td width="50%">Move to the previous section</td></tr>
+<tr><td width="20%"><kbd class="kbd">P</kbd></td><td width="30%"><code class="code">pimacs-goto-previous-user-message</code></td><td width="50%">Move to the previous user message</td></tr>
+<tr><td width="20%"><kbd class="kbd">l</kbd>, <kbd class="kbd">M-g l</kbd></td><td width="30%"><code class="code">pimacs-goto-last-section</code></td><td width="50%">Jump to the most recent section</td></tr>
+<tr><td width="20%"><kbd class="kbd">i</kbd></td><td width="30%"><code class="code">pimacs-focus-prompt</code></td><td width="50%">Focus the prompt input field</td></tr>
+<tr><td width="20%"><kbd class="kbd">q</kbd></td><td width="30%"><code class="code">pimacs-quit-chat</code></td><td width="50%">Quit the chat buffer</td></tr>
+</tbody>
+</table>
+
+</div>
+<div class="section-level-extent" id="Prompt-Input-Keybindings">
+<h3 class="section"><span>Prompt Input Keybindings<a class="copiable-link" href="#Prompt-Input-Keybindings"> &para;</a></span></h3>
+
+<table class="multitable">
+<thead><tr><th width="20%">Key</th><th width="30%">Command</th><th width="50%">Description</th></tr></thead>
+<tbody><tr><td width="20%"><kbd class="kbd">C-g</kbd></td><td width="30%"><code class="code">pimacs-abort</code></td><td width="50%">Abort the current operation and restore queued messages to the prompt.</td></tr>
+<tr><td width="20%"><kbd class="kbd">C-c C-e</kbd></td><td width="30%"><code class="code">pimacs-edit-queue</code></td><td width="50%">Move queued steering and follow-up messages into the prompt for editing</td></tr>
+<tr><td width="20%"><kbd class="kbd">C-c C-k</kbd></td><td width="30%"><code class="code">pimacs-clear-queue</code></td><td width="50%">Discard all queued steering and follow-up messages</td></tr>
+<tr><td width="20%"><kbd class="kbd">M-p</kbd></td><td width="30%"><code class="code">pimacs-previous-prompt</code></td><td width="50%">Recall the previous prompt from history</td></tr>
+<tr><td width="20%"><kbd class="kbd">M-n</kbd></td><td width="30%"><code class="code">pimacs-next-prompt</code></td><td width="50%">Recall the next prompt from history</td></tr>
+<tr><td width="20%"><kbd class="kbd">C-r</kbd></td><td width="30%"><code class="code">pimacs-search-prompt</code></td><td width="50%">Search prompt history</td></tr>
+<tr><td width="20%"><kbd class="kbd">RET</kbd></td><td width="30%"><code class="code">widget-field-activate</code></td><td width="50%">Send the current prompt</td></tr>
+<tr><td width="20%"><kbd class="kbd">M-RET</kbd></td><td width="30%"><code class="code">pimacs-send-prompt-alternate</code></td><td width="50%">Send the prompt using the alternate streaming behavior</td></tr>
+<tr><td width="20%"><kbd class="kbd">M-g l</kbd></td><td width="30%"><code class="code">pimacs-goto-last-section</code></td><td width="50%">Jump to the most recent section</td></tr>
+<tr><td width="20%"><kbd class="kbd">S-TAB</kbd></td><td width="30%"><code class="code">pimacs-section-cycle-global</code></td><td width="50%">Cycle global section visibility</td></tr>
+</tbody>
+</table>
+
+<hr>
+</div>
+</div>
+<div class="chapter-level-extent" id="Custom-Variables">
+<div class="nav-panel">
+<p>
+Next: <a href="#Custom-Faces" accesskey="n" rel="next">Custom Faces</a>, Previous: <a href="#Keybindings" accesskey="p" rel="prev">Keybindings</a>, Up: <a href="#Top" accesskey="u" rel="up">Pimacs User Manual v0.7.0-pre</a> &nbsp; </p>
+</div>
+<h2 class="chapter" id="Custom-Variables-1"><span>Custom Variables<a class="copiable-link" href="#Custom-Variables-1"> &para;</a></span></h2>
+
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dstatus_002dwidget_002dhidden_002dkeys"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-status-widget-hidden-keys</strong> <var class="def-var-arguments"><code class="code">nil</code></var><a class="copiable-link" href="#index-pimacs_002dstatus_002dwidget_002dhidden_002dkeys"> &para;</a></span></dt>
+<dd>
+<p>Status keys to hide from the default status widget.
+</p>
+<p>Hidden statuses remain available to <code class="code">(:status STATUS-KEY ...)</code> components
+in <code class="code">pimacs-header-line-format</code> and <code class="code">pimacs-mode-line-format</code>.  Hover over a
+status in the default widget to see its key.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dfile_002dcompletion_002dbackend"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-file-completion-backend</strong> <var class="def-var-arguments"><code class="code">'project</code></var><a class="copiable-link" href="#index-pimacs_002dfile_002dcompletion_002dbackend"> &para;</a></span></dt>
+<dd>
+<p>Completion backend for prefixed file paths in prompts.
+<code class="code">project</code> uses <code class="code">project-files</code> to list files in the current project.
+<code class="code">file</code> uses <code class="code">file-name-all-completions</code> to list files under the project root.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dprompt_002dhistory_002dmax_002dsize"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-prompt-history-max-size</strong> <var class="def-var-arguments"><code class="code">500</code></var><a class="copiable-link" href="#index-pimacs_002dprompt_002dhistory_002dmax_002dsize"> &para;</a></span></dt>
+<dd>
+<p>Maximum number of prompt history entries to keep.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dresume_002dmax_002dsessions"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-resume-max-sessions</strong> <var class="def-var-arguments"><code class="code">100</code></var><a class="copiable-link" href="#index-pimacs_002dresume_002dmax_002dsessions"> &para;</a></span></dt>
+<dd>
+<p>Maximum number of recent sessions to list when resuming a session.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dprompt_002dstreaming_002dbehavior"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-prompt-streaming-behavior</strong> <var class="def-var-arguments"><code class="code">'followUp</code></var><a class="copiable-link" href="#index-pimacs_002dprompt_002dstreaming_002dbehavior"> &para;</a></span></dt>
+<dd>
+<p>Default streaming behavior for prompts.
+</p>
+<p><code class="code">steer</code>: Queue the message while the agent is running.  It is delivered
+after the current assistant turn finishes executing its tool calls,
+before the next LLM call.
+</p>
+<p><code class="code">followUp</code>: Wait until the agent finishes.  Message is delivered only
+when agent stops.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dmarkdown_002drenderer"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-markdown-renderer</strong> <var class="def-var-arguments"><code class="code">#'pimacs--render-markdown</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002drenderer"> &para;</a></span></dt>
+<dd>
+<p>Function used to render Markdown content.
+</p>
+<p>Pi calls it as <code class="code">(RENDERER :create)</code>, <code class="code">(RENDERER :stream STATE TEXT)</code>,
+<code class="code">(RENDERER :final STATE TEXT)</code>, and <code class="code">(RENDERER :destroy STATE)</code>.  <code class="code">:create</code>
+returns opaque renderer state.  <code class="code">:stream</code> and <code class="code">:final</code> return <code class="code">:append</code>,
+<code class="code">:delete</code>, and <code class="code">:replace-suffix</code> operations.  <code class="code">:destroy</code> releases resources.
+</p>
+<p>The default uses the incremental Tree-sitter Markdown renderer.  It requires
+the Markdown and Markdown Inline Tree-sitter grammars.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dthinking_002drenderer"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-thinking-renderer</strong> <var class="def-var-arguments"><code class="code">#'pimacs--render-markdown</code></var><a class="copiable-link" href="#index-pimacs_002dthinking_002drenderer"> &para;</a></span></dt>
+<dd>
+<p>Function used to render assistant thinking content.
+</p>
+<p>It implements the same <code class="code">:create</code>, <code class="code">:stream</code>, <code class="code">:final</code>, and <code class="code">:destroy</code>
+renderer protocol as <code class="code">pimacs-markdown-renderer</code>.
+</p>
+<p>The default uses the same incremental Tree-sitter Markdown renderer as regular
+assistant content.  It falls back to plain-text rendering when the required
+grammars are unavailable.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dslash_002dcommands"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-slash-commands</strong><a class="copiable-link" href="#index-pimacs_002dslash_002dcommands"> &para;</a></span></dt>
+<dd>
+<div class="example lisp">
+<pre class="lisp-preformatted">'((&quot;model&quot; pimacs-select-model 0 &quot;Switch models&quot;)
+  (&quot;new&quot; pimacs-new-session 0 &quot;Start a new session&quot;)
+  (&quot;reload&quot; pimacs-reload 0 &quot;Reload extensions, skills and prompts&quot;)
+  (&quot;resume&quot; pimacs-resume 0 &quot;Pick from previous sessions&quot;)
+  (&quot;compact&quot; pimacs-compact 1 &quot;Manually compact context, optionally with custom instructions&quot;)
+  (&quot;set-auto-compaction&quot; pimacs-set-auto-compaction 0 &quot;Set auto compaction&quot;)
+  (&quot;set-auto-retry&quot; pimacs-set-auto-retry 0 &quot;Set auto retry&quot;)
+  (&quot;session&quot; pimacs-session-stats 0 &quot;Show session file, ID, messages, tokens, and cost&quot;)
+  (&quot;name&quot; pimacs-set-session-name 1 &quot;Set session display name&quot;)
+  (&quot;set-thinking-level&quot; pimacs-set-thinking-level 0 &quot;Set thinking level&quot;)
+  (&quot;cycle-model&quot; pimacs-cycle-model 0 &quot;Cycle through available models&quot;)
+  (&quot;cycle-thinking-level&quot; pimacs-cycle-thinking-level 0 &quot;Cycle through thinking levels&quot;)
+  (&quot;set-steering-mode&quot; pimacs-set-steering-mode 0 &quot;Set steering mode&quot;)
+  (&quot;set-follow-up-mode&quot; pimacs-set-follow-up-mode 0 &quot;Set follow-up mode&quot;)
+  (&quot;clear-queue&quot; pimacs-clear-queue 0 &quot;Clear queued steering and follow-up messages&quot;)
+  (&quot;edit-queue&quot; pimacs-edit-queue 0 &quot;Edit queued steering and follow-up messages&quot;)
+  (&quot;fork&quot; pimacs-fork 0 &quot;Create a new session from a previous user message&quot;)
+  (&quot;clone&quot; pimacs-clone 0 &quot;Duplicate the current active branch into a new session&quot;)
+  (&quot;copy&quot; pimacs-copy 0 &quot;Copy last assistant message to clipboard&quot;)
+  (&quot;export&quot; pimacs-export 1 &quot;Export session to HTML&quot;)
+  (&quot;quit&quot; pimacs-quit-chat 0 &quot;Quit pimacs&quot;)
+  (&quot;exit&quot; pimacs-quit-chat 0 &quot;Quit pimacs&quot;))
+</pre></div>
+
+<p>Alist mapping slash command names to command specs.
+</p>
+<p>Each entry is (NAME COMMAND MAX-ARGS DESCRIPTION) where NAME is the command
+string without the leading slash, COMMAND is a command symbol,
+MAX-ARGS is 0 or 1 indicating the number of optional string
+arguments the command accepts, and DESCRIPTION is a short
+description string.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dinsert_002dtool_002dargs_002dfunctions"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-insert-tool-args-functions</strong><a class="copiable-link" href="#index-pimacs_002dinsert_002dtool_002dargs_002dfunctions"> &para;</a></span></dt>
+<dd>
+<div class="example lisp">
+<pre class="lisp-preformatted">'((&quot;read&quot; . pimacs--insert-read-args)
+  (&quot;write&quot; . pimacs--insert-write-args)
+  (&quot;edit&quot; . pimacs--insert-edit-args)
+  (&quot;bash&quot; . pimacs--insert-bash-args)
+  (&quot;grep&quot; . pimacs--insert-grep-args)
+  (&quot;find&quot; . pimacs--insert-find-args)
+  (&quot;ls&quot; . pimacs--insert-ls-args))
+</pre></div>
+
+<p>Alist mapping tool names to inserter functions.
+</p>
+<p>Each entry is (TOOL-NAME . FUNCTION) where FUNCTION is called
+with ARGS plist to insert formatted tool call arguments.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dinsert_002dtool_002dresult_002dfunctions"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-insert-tool-result-functions</strong><a class="copiable-link" href="#index-pimacs_002dinsert_002dtool_002dresult_002dfunctions"> &para;</a></span></dt>
+<dd>
+<div class="example lisp">
+<pre class="lisp-preformatted">'((&quot;bash&quot; . pimacs--insert-bash-result)
+  (&quot;read&quot; . pimacs--insert-read-result)
+  (&quot;write&quot; . pimacs--insert-write-result)
+  (&quot;edit&quot; . pimacs--insert-edit-result)
+  (&quot;grep&quot; . pimacs--insert-grep-result)
+  (&quot;find&quot; . pimacs--insert-find-result)
+  (&quot;ls&quot; . pimacs--insert-ls-result))
+</pre></div>
+
+<p>Alist mapping tool names to result inserter functions.
+</p>
+<p>Each entry is (TOOL-NAME . FUNCTION) where FUNCTION is called
+with (CONTENT DETAILS ARGS) to insert the tool execution result.
+CONTENT is a list of content items.  Use <code class="code">pimacs--insert-content</code> to render
+it, or <code class="code">pimacs--content-text</code> to extract text from content.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dvisit_002dtool_002dresult_002dfunctions"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-visit-tool-result-functions</strong><a class="copiable-link" href="#index-pimacs_002dvisit_002dtool_002dresult_002dfunctions"> &para;</a></span></dt>
+<dd>
+<div class="example lisp">
+<pre class="lisp-preformatted">'((&quot;read&quot; . pimacs--visit-read-result)
+  (&quot;write&quot; . pimacs--visit-write-result)
+  (&quot;edit&quot; . pimacs--visit-edit-result)
+  (&quot;grep&quot; . pimacs--visit-grep-result))
+</pre></div>
+
+<p>Alist mapping tool names to result visitor functions.
+</p>
+<p>Each entry is (TOOL-NAME . FUNCTION) where FUNCTION is called
+with (DETAILS ARGS) to visit the relevant location of the tool result.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dvisit_002dtool_002dcall_002dfunctions"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-visit-tool-call-functions</strong><a class="copiable-link" href="#index-pimacs_002dvisit_002dtool_002dcall_002dfunctions"> &para;</a></span></dt>
+<dd>
+<div class="example lisp">
+<pre class="lisp-preformatted">'((&quot;read&quot; . pimacs--visit-read-call)
+  (&quot;write&quot; . pimacs--visit-write-call)
+  (&quot;edit&quot; . pimacs--visit-edit-call))
+</pre></div>
+
+<p>Alist mapping tool names to call visitor functions.
+</p>
+<p>Each entry is (TOOL-NAME . FUNCTION) where FUNCTION is called
+with (ARGS) to visit the relevant location of the tool call.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dinsert_002dcustom_002dmessage_002dfunctions"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-insert-custom-message-functions</strong> <var class="def-var-arguments"><code class="code">'()</code></var><a class="copiable-link" href="#index-pimacs_002dinsert_002dcustom_002dmessage_002dfunctions"> &para;</a></span></dt>
+<dd>
+<p>Alist mapping custom message types to inserter functions.
+</p>
+<p>Each entry is (CUSTOM-TYPE . FUNCTION) where FUNCTION is called
+with the message plist to insert the custom message content.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dsend_002dpop_002dto_002dchat"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-send-pop-to-chat</strong> <var class="def-var-arguments"><code class="code">t</code></var><a class="copiable-link" href="#index-pimacs_002dsend_002dpop_002dto_002dchat"> &para;</a></span></dt>
+<dd>
+<p>Whether to pop to the chat buffer after sending region, filename or errors.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dchat_002dkeep_002dinput_002dat_002dbottom"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-chat-keep-input-at-bottom</strong> <var class="def-var-arguments"><code class="code">t</code></var><a class="copiable-link" href="#index-pimacs_002dchat_002dkeep_002dinput_002dat_002dbottom"> &para;</a></span></dt>
+<dd>
+<p>Whether to keep the input area at the bottom as new chat content is added.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dlist_002dsessions_002dtable"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-list-sessions-table</strong><a class="copiable-link" href="#index-pimacs_002dlist_002dsessions_002dtable"> &para;</a></span></dt>
+<dd>
+<div class="example lisp">
+<pre class="lisp-preformatted">'((&quot;Session&quot; . (:session_name face font-lock-type-face))
+  (&quot;Provider&quot; . :provider)
+  (&quot;Model&quot; . :model)
+  (&quot;State&quot; . (:agent_state face font-lock-constant-face))
+  (&quot;Context&quot; . (:context_usage face shadow))
+  (&quot;Messages&quot; . :total_messages)
+  (&quot;Cost&quot; . (:cost face shadow))
+  (&quot;Project&quot; . (:project_root face shadow)))
+</pre></div>
+
+<p>Columns displayed by <code class="code">pimacs-list-sessions</code>.
+</p>
+<p>Each entry is (HEADER . COMPONENT).  COMPONENT uses the same format as an
+entry in <code class="code">pimacs-header-line-format</code>.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dlist_002dsessions_002dsort_002dkey"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-list-sessions-sort-key</strong> <var class="def-var-arguments"><code class="code">'(&quot;Session&quot; . nil)</code></var><a class="copiable-link" href="#index-pimacs_002dlist_002dsessions_002dsort_002dkey"> &para;</a></span></dt>
+<dd>
+<p>Initial sort order for <code class="code">pimacs-list-sessions</code>.
+</p>
+<p>The car is a header from <code class="code">pimacs-list-sessions-table</code>.  A non-nil cdr sorts
+in descending order.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dsync_002drequest_002dtimeout"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-sync-request-timeout</strong> <var class="def-var-arguments"><code class="code">2</code></var><a class="copiable-link" href="#index-pimacs_002dsync_002drequest_002dtimeout"> &para;</a></span></dt>
+<dd>
+<p>The number of seconds to wait for a sync response.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dexecutable"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-executable</strong> <var class="def-var-arguments"><code class="code">&quot;pi&quot;</code></var><a class="copiable-link" href="#index-pimacs_002dexecutable"> &para;</a></span></dt>
+<dd>
+<p>Pi command executable name.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dprocess_002denvironment"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-process-environment</strong> <var class="def-var-arguments"><code class="code">'()</code></var><a class="copiable-link" href="#index-pimacs_002dprocess_002denvironment"> &para;</a></span></dt>
+<dd>
+<p>List of extra environment variables to use when starting pimacs.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dflags"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-flags</strong> <var class="def-var-arguments"><code class="code">'()</code></var><a class="copiable-link" href="#index-pimacs_002dflags"> &para;</a></span></dt>
+<dd>
+<p>List of additional flags to provide when starting pimacs.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dlog_002drpc"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-log-rpc</strong> <var class="def-var-arguments"><code class="code">nil</code></var><a class="copiable-link" href="#index-pimacs_002dlog_002drpc"> &para;</a></span></dt>
+<dd>
+<p>When non-nil, log all RPC JSON to <code class="code">pimacs-log-rpc-file</code>.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dlog_002drpc_002dfile"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-log-rpc-file</strong> <var class="def-var-arguments"><code class="code">(expand-file-name &quot;pimacs.el.log&quot; (temporary-file-directory))</code></var><a class="copiable-link" href="#index-pimacs_002dlog_002drpc_002dfile"> &para;</a></span></dt>
+<dd>
+<p>File to write RPC JSON log entries to.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002duse_002dansi_002dcolors"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-use-ansi-colors</strong> <var class="def-var-arguments"><code class="code">t</code></var><a class="copiable-link" href="#index-pimacs_002duse_002dansi_002dcolors"> &para;</a></span></dt>
+<dd>
+<p>Whether to render ANSI colors in widget and status output.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dheader_002dline_002dformat"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-header-line-format</strong> <var class="def-var-arguments"><code class="code">'(:context_usage &quot; (&quot; :compaction_mode &quot;)&quot; :spacer &quot;(&quot; :provider &quot;) &quot; :model &quot; • &quot; :thinking_level)</code></var><a class="copiable-link" href="#index-pimacs_002dheader_002dline_002dformat"> &para;</a></span></dt>
+<dd>
+<p>Format of the Pimacs chat header line.
+</p>
+<p>Strings are displayed literally.  Functions are called with the state
+plist and their returned values are displayed.  A keyword component can
+include text properties using <code class="code">propertize</code> syntax.  For example:
+&quot;<code class="code">(:model face font-lock-function-name-face)</code>&quot;.  A status component has
+form <code class="code">(:status STATUS-KEY PROPERTY VALUE...)</code>; it displays the text set
+by an extension with STATUS-KEY and accepts optional text properties.
+For example: <code class="code">(:status &quot;xyz-status&quot; face font-lock-warning-face)</code>.
+</p>
+<p>The following keywords are replaced with state information.
+</p>
+<p>Session state keywords:
+</p><dl class="table">
+<dt><code class="code">:model</code></dt>
+<dd><p>Model identifier.
+</p></dd>
+<dt><code class="code">:provider</code></dt>
+<dd><p>Model provider.
+</p></dd>
+<dt><code class="code">:thinking_level</code></dt>
+<dd><p>Thinking level.
+</p></dd>
+<dt><code class="code">:session_name</code></dt>
+<dd><p>Session name.
+</p></dd>
+<dt><code class="code">:project_root</code></dt>
+<dd><p>Project root directory.
+</p></dd>
+<dt><code class="code">:compaction_mode</code></dt>
+<dd><p><code class="code">auto</code> or <code class="code">manual</code>.
+</p></dd>
+<dt><code class="code">:message_count</code></dt>
+<dd><p>Message count.
+</p></dd>
+<dt><code class="code">:pending_message_count</code></dt>
+<dd><p>Pending message count.
+</p></dd>
+</dl>
+
+<p>Session statistics keywords:
+</p><dl class="table">
+<dt><code class="code">:user_messages</code></dt>
+<dd><p>User message count.
+</p></dd>
+<dt><code class="code">:assistant_messages</code></dt>
+<dd><p>Assistant message count.
+</p></dd>
+<dt><code class="code">:tool_calls</code></dt>
+<dd><p>Tool call count.
+</p></dd>
+<dt><code class="code">:tool_results</code></dt>
+<dd><p>Tool result count.
+</p></dd>
+<dt><code class="code">:total_messages</code></dt>
+<dd><p>Total message count.
+</p></dd>
+<dt><code class="code">:input_tokens</code></dt>
+<dd><p>Input token count.
+</p></dd>
+<dt><code class="code">:output_tokens</code></dt>
+<dd><p>Output token count.
+</p></dd>
+<dt><code class="code">:cache_read_tokens</code></dt>
+<dd><p>Cache-read token count.
+</p></dd>
+<dt><code class="code">:cache_write_tokens</code></dt>
+<dd><p>Cache-write token count.
+</p></dd>
+<dt><code class="code">:cache_hit_percent</code></dt>
+<dd><p>Total cache hit percentage.
+</p></dd>
+<dt><code class="code">:total_tokens</code></dt>
+<dd><p>Total token count.
+</p></dd>
+<dt><code class="code">:cost</code></dt>
+<dd><p>Session cost.
+</p></dd>
+<dt><code class="code">:context_usage</code></dt>
+<dd><p>Context tokens and context window.
+</p></dd>
+<dt><code class="code">:context_tokens</code></dt>
+<dd><p>Context token count.
+</p></dd>
+<dt><code class="code">:context_window</code></dt>
+<dd><p>Context window size.
+</p></dd>
+</dl>
+
+<p>UI keywords:
+</p><dl class="table">
+<dt><code class="code">:agent_state</code></dt>
+<dd><p>Current agent state.
+</p></dd>
+<dt><code class="code">:spinner</code></dt>
+<dd><p>Active agent spinner.
+</p></dd>
+<dt><code class="code">:spacer</code></dt>
+<dd><p>Space that right-aligns all following entries.
+</p></dd>
+</dl>
+
+<p>Status components:
+<code class="code">(:status STATUS-KEY ...)</code>  Extension status text for STATUS-KEY.
+</p>
+<p>Use at most one <code class="code">:spacer</code>.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dmode_002dline_002dformat"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-mode-line-format</strong> <var class="def-var-arguments"><code class="code">'(&quot; Pimacs &quot; :agent_state :spinner)</code></var><a class="copiable-link" href="#index-pimacs_002dmode_002dline_002dformat"> &para;</a></span></dt>
+<dd>
+<p>Format of the Pimacs mode-line entry.
+</p>
+<p>See <code class="code">pimacs-header-line-format</code> for available components.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dmarkdown_002dleading_002dnewline_002dblock_002dtypes"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-markdown-leading-newline-block-types</strong><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dleading_002dnewline_002dblock_002dtypes"> &para;</a></span></dt>
+<dd>
+<div class="example lisp">
+<pre class="lisp-preformatted">'(&quot;pipe_table&quot;
+  &quot;fenced_code_block&quot;
+  &quot;indented_code_block&quot;
+  &quot;block_quote&quot;
+  &quot;list&quot;
+  &quot;thematic_break&quot;
+  &quot;html_block&quot;)
+</pre></div>
+
+<p>List of Markdown block node types.
+Render these on a fresh line when the renderer starts mid-line.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dmarkdown_002dincremental_002drender_002ddebug"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-markdown-incremental-render-debug</strong> <var class="def-var-arguments"><code class="code">nil</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dincremental_002drender_002ddebug"> &para;</a></span></dt>
+<dd>
+<p>Whether to capture incremental Markdown rendering diagnostics.
+</p>
+<p>When non-nil, diagnostics are appended to the temporary buffer
+<code class="code">*pimacs-markdown-incremental-debug*</code>.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dmarkdown_002duse_002dunicode_002dtables"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-markdown-use-unicode-tables</strong> <var class="def-var-arguments"><code class="code">t</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002duse_002dunicode_002dtables"> &para;</a></span></dt>
+<dd>
+<p>Whether to render Markdown tables with Unicode borders.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dsection_002dautohide_002dcount"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-section-autohide-count</strong> <var class="def-var-arguments"><code class="code">2</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dautohide_002dcount"> &para;</a></span></dt>
+<dd>
+<p>Automatically hide older chat sections beyond this count.
+This helps reduce clutter by collapsing earlier responses when the
+conversation grows long.  When nil, auto hiding is disabled and no
+sections are hidden automatically.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dsection_002dautohide_002dfilter"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-section-autohide-filter</strong> <var class="def-var-arguments"><code class="code">'all</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dautohide_002dfilter"> &para;</a></span></dt>
+<dd>
+<p>Filter controlling which sections are eligible for automatic hiding.
+</p>
+<p>When set to <code class="code">all</code>, every top-level section is eligible.
+</p>
+<p>A value of <code class="code">(:include TYPE...)</code> makes only the listed section types eligible.
+A value of <code class="code">(:exclude TYPE...)</code> makes every section type except the listed
+types eligible.  A function value is called with each top-level section and
+should return non-nil when that section is eligible.  Non-eligible sections
+do not count toward <code class="code">pimacs-section-autohide-count</code>.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dsection_002dpadding"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-section-padding</strong> <var class="def-var-arguments"><code class="code">&quot;\n\n&quot;</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dpadding"> &para;</a></span></dt>
+<dd>
+<p>String inserted between sections to control the visual gap.
+Increase or decrease this value to adjust spacing between sections.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dsection_002dvisibility_002dindicators"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-section-visibility-indicators</strong> <var class="def-var-arguments"><code class="code">'(pimacs-section-fringe-bitmap&gt; . pimacs-section-fringe-bitmapv)</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dvisibility_002dindicators"> &para;</a></span></dt>
+<dd>
+<p>Fringe bitmaps used to indicate section visibility.
+</p>
+<p>The car is used for hidden sections and the cdr for visible sections.
+Set this to nil to disable fringe indicators.
+</p></dd></dl>
+
+<dl class="first-defvr first-defopt-alias-first-defvr">
+<dt class="defvr defopt-alias-defvr" id="index-pimacs_002dsection_002dtype_002dfaces"><span class="category-def">User Option: </span><span><strong class="def-name">pimacs-section-type-faces</strong><a class="copiable-link" href="#index-pimacs_002dsection_002dtype_002dfaces"> &para;</a></span></dt>
+<dd>
+<div class="example lisp">
+<pre class="lisp-preformatted">'((root . pimacs-section-root-face)
+  (thinking . pimacs-section-thinking-face)
+  (thinking-level . pimacs-section-thinking-level-face)
+  (assistant . pimacs-section-assistant-face)
+  (user . pimacs-section-user-face)
+  (tool-call . pimacs-section-tool-call-face)
+  (tool-result . pimacs-section-tool-result-face)
+  (error . pimacs-section-error-face)
+  (model . pimacs-section-model-face)
+  (compact . pimacs-section-compact-face)
+  (info . pimacs-section-info-face)
+  (custom . pimacs-section-custom-face)
+  (queue . pimacs-section-queue-face)
+  (notify . pimacs-section-notify-face)
+  (select . pimacs-section-select-face)
+  (confirm . pimacs-section-confirm-face)
+  (input . pimacs-section-input-face)
+  (session . pimacs-section-session-face))
+</pre></div>
+
+<p>Faces prepended to content in sections of each type.
+</p></dd></dl>
+
+
+<hr>
+</div>
+<div class="chapter-level-extent" id="Custom-Faces">
+<div class="nav-panel">
+<p>
+Previous: <a href="#Custom-Variables" accesskey="p" rel="prev">Custom Variables</a>, Up: <a href="#Top" accesskey="u" rel="up">Pimacs User Manual v0.7.0-pre</a> &nbsp; </p>
+</div>
+<h2 class="chapter" id="Custom-Faces-1"><span>Custom Faces<a class="copiable-link" href="#Custom-Faces-1"> &para;</a></span></h2>
+
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dchat_002drole_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-chat-role-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit font-lock-builtin-face))</code></var><a class="copiable-link" href="#index-pimacs_002dchat_002drole_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for generic chat role labels.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dchat_002duser_002drole_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-chat-user-role-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit font-lock-keyword-face))</code></var><a class="copiable-link" href="#index-pimacs_002dchat_002duser_002drole_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for user chat message role labels.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dchat_002dassistant_002drole_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-chat-assistant-role-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit font-lock-constant-face))</code></var><a class="copiable-link" href="#index-pimacs_002dchat_002dassistant_002drole_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for assistant chat message role labels.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dchat_002dtitle_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-chat-title-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit font-lock-builtin-face))</code></var><a class="copiable-link" href="#index-pimacs_002dchat_002dtitle_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for titles.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dprompt_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-prompt-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit widget-field))</code></var><a class="copiable-link" href="#index-pimacs_002dprompt_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for the Pimacs prompt input field.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002derror_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-error-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit error))</code></var><a class="copiable-link" href="#index-pimacs_002derror_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for Pimacs widget error messages.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dtool_002dname_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-tool-name-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit font-lock-function-name-face))</code></var><a class="copiable-link" href="#index-pimacs_002dtool_002dname_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for tool names in tool execution events.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dgrep_002dmatch_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-grep-match-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit match))</code></var><a class="copiable-link" href="#index-pimacs_002dgrep_002dmatch_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used to highlight matching text in grep tool results.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dnotify_002dinfo_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-notify-info-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit font-lock-comment-face))</code></var><a class="copiable-link" href="#index-pimacs_002dnotify_002dinfo_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for info notification messages.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dnotify_002dwarning_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-notify-warning-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit warning))</code></var><a class="copiable-link" href="#index-pimacs_002dnotify_002dwarning_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for warning notification messages.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dnotify_002derror_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-notify-error-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit error))</code></var><a class="copiable-link" href="#index-pimacs_002dnotify_002derror_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for error notification messages.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dwidget_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-widget-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow))</code></var><a class="copiable-link" href="#index-pimacs_002dwidget_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for extension widgets.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dstatus_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-status-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow))</code></var><a class="copiable-link" href="#index-pimacs_002dstatus_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for extension status.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dheading_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-heading-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit font-lock-function-name-face :weight bold))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dheading_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for Markdown headings.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dinline_002dcode_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-inline-code-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit (fixed-pitch font-lock-constant-face)))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dinline_002dcode_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for inline code.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dequation_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-equation-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit (fixed-pitch font-lock-constant-face)))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dequation_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for Markdown equations.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dbold_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-bold-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit bold))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dbold_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for bold text.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002ditalic_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-italic-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit italic))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002ditalic_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for italic text.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dstrike_002dthrough_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-strike-through-face</strong> <var class="def-var-arguments"><code class="code">'((t :strike-through t))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dstrike_002dthrough_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for Markdown strike-through text.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dsuperscript_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-superscript-face</strong> <var class="def-var-arguments"><code class="code">'((t :height 0.8 :raise 0.3))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dsuperscript_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for Markdown superscript text.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dsubscript_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-subscript-face</strong> <var class="def-var-arguments"><code class="code">'((t :height 0.8 :raise -0.2))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dsubscript_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for Markdown subscript text.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dlink_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-link-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit link))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dlink_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for provisional Markdown links.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dlist_002dmarker_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-list-marker-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow :slant normal :weight normal))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dlist_002dmarker_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for Markdown list markers.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dcheckbox_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-checkbox-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit font-lock-builtin-face))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dcheckbox_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for Markdown task-list checkboxes.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dblockquote_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-blockquote-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit font-lock-comment-face))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dblockquote_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for Markdown blockquotes.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dhorizontal_002drule_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-horizontal-rule-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dhorizontal_002drule_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for Markdown horizontal rules.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dcode_002dblock_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-code-block-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit fixed-pitch))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dcode_002dblock_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used as the base face of Markdown code blocks.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dtable_002dheader_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-table-header-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit fixed-pitch))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dtable_002dheader_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for Markdown table headers.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dmarkdown_002dtable_002dborder_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-markdown-table-border-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit fixed-pitch))</code></var><a class="copiable-link" href="#index-pimacs_002dmarkdown_002dtable_002dborder_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face used for Markdown table borders.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002droot_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-root-face</strong> <var class="def-var-arguments"><code class="code">'((t))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002droot_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to root sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dthinking_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-thinking-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dthinking_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to thinking sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dthinking_002dlevel_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-thinking-level-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dthinking_002dlevel_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to thinking-level sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dassistant_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-assistant-face</strong> <var class="def-var-arguments"><code class="code">'((t))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dassistant_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to assistant sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002duser_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-user-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit highlight :extend t))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002duser_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to user sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dtool_002dcall_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-tool-call-face</strong> <var class="def-var-arguments"><code class="code">'((t))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dtool_002dcall_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to tool call sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dtool_002dresult_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-tool-result-face</strong> <var class="def-var-arguments"><code class="code">'((t))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dtool_002dresult_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to tool result sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002derror_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-error-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit pimacs-error-face))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002derror_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to error sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dmodel_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-model-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dmodel_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to model sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dcompact_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-compact-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dcompact_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to compaction sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dinfo_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-info-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dinfo_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to information sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dcustom_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-custom-face</strong> <var class="def-var-arguments"><code class="code">'((t))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dcustom_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to custom sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dqueue_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-queue-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dqueue_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to queue sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dnotify_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-notify-face</strong> <var class="def-var-arguments"><code class="code">'((t))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dnotify_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to notification sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dselect_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-select-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dselect_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to selection sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dconfirm_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-confirm-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dconfirm_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to confirmation sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dinput_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-input-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dinput_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to input sections.
+</p></dd></dl>
+
+<dl class="first-deffn">
+<dt class="deffn" id="index-pimacs_002dsection_002dsession_002dface"><span class="category-def">Face: </span><span><strong class="def-name">pimacs-section-session-face</strong> <var class="def-var-arguments"><code class="code">'((t :inherit shadow))</code></var><a class="copiable-link" href="#index-pimacs_002dsection_002dsession_002dface"> &para;</a></span></dt>
+<dd>
+<p>Face applied to session sections.
+</p></dd></dl>
+
+
+</div>
+</div>
+
+
+
+</body>
+</html>
